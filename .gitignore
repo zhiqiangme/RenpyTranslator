@@ -1,5 +1,9 @@
 .codegraph/
 config.json
 cache.jsonl
+backups/
+work/
+__pycache__/
+*.pyc
 *.rpyc
 *.bak
