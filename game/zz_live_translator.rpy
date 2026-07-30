@@ -2,30 +2,31 @@
 # 所有网络请求都在后台线程执行，避免阻塞游戏渲染。
 
 init 999 python:
-    import io
-    import json
-    import os
-    import re
-    import threading
-    import time
+    # Ren'Py 的 Python 块共享游戏 store，必须使用独有别名避免被剧情变量覆盖。
+    import io as _live_translator_io_module
+    import json as _live_translator_json_module
+    import os as _live_translator_os_module
+    import re as _live_translator_re_module
+    import threading as _live_translator_threading_module
+    import time as _live_translator_time_module
 
     try:
-        import Queue as queue_module
+        import Queue as _live_translator_queue_module
     except ImportError:
-        import queue as queue_module
+        import queue as _live_translator_queue_module
 
     try:
-        text_type = unicode
+        _live_translator_text_type = unicode
     except NameError:
-        text_type = str
+        _live_translator_text_type = str
 
-    _live_translator_directory = os.path.join(
+    _live_translator_directory = _live_translator_os_module.path.join(
         renpy.config.gamedir, "live_translator"
     )
-    _live_translator_config_path = os.path.join(
+    _live_translator_config_path = _live_translator_os_module.path.join(
         _live_translator_directory, "config.json"
     )
-    _live_translator_cache_path = os.path.join(
+    _live_translator_cache_path = _live_translator_os_module.path.join(
         _live_translator_directory, "cache.jsonl"
     )
 
@@ -58,20 +59,20 @@ init 999 python:
     }
 
     def _live_translator_to_text(value):
-        if isinstance(value, text_type):
+        if isinstance(value, _live_translator_text_type):
             return value
         try:
             return value.decode("utf-8", "replace")
         except AttributeError:
-            return text_type(value)
+            return _live_translator_text_type(value)
 
     def _live_translator_load_config():
         loaded = {}
         try:
-            with io.open(
+            with _live_translator_io_module.open(
                 _live_translator_config_path, "r", encoding="utf-8"
             ) as config_file:
-                loaded = json.load(config_file)
+                loaded = _live_translator_json_module.load(config_file)
         except Exception as error:
             print("LiveTranslator: config load failed: %s" % error)
 
@@ -84,19 +85,21 @@ init 999 python:
     _live_translator_cache = {}
     _live_translator_pending = set()
     _live_translator_retry_after = {}
-    _live_translator_queue = queue_module.Queue()
-    _live_translator_lock = threading.RLock()
+    _live_translator_queue = _live_translator_queue_module.Queue()
+    _live_translator_lock = _live_translator_threading_module.RLock()
     _live_translator_last_error = ""
     _live_translator_request_count = 0
     _live_translator_success_count = 0
     _live_translator_previous_replace_text = config.replace_text
 
     def _live_translator_load_cache():
-        if not os.path.isfile(_live_translator_cache_path):
+        if not _live_translator_os_module.path.isfile(
+            _live_translator_cache_path
+        ):
             return
 
         try:
-            with io.open(
+            with _live_translator_io_module.open(
                 _live_translator_cache_path, "r", encoding="utf-8"
             ) as cache_file:
                 for line in cache_file:
@@ -104,7 +107,7 @@ init 999 python:
                     if not line:
                         continue
                     try:
-                        record = json.loads(line)
+                        record = _live_translator_json_module.loads(line)
                         source = _live_translator_to_text(record["source"])
                         translation = _live_translator_to_text(
                             record["translation"]
@@ -122,8 +125,10 @@ init 999 python:
                 "source": source,
                 "translation": translation
             }
-            serialized = json.dumps(record, ensure_ascii=False)
-            with io.open(
+            serialized = _live_translator_json_module.dumps(
+                record, ensure_ascii=False
+            )
+            with _live_translator_io_module.open(
                 _live_translator_cache_path, "a", encoding="utf-8"
             ) as cache_file:
                 cache_file.write(serialized)
@@ -133,14 +138,16 @@ init 999 python:
 
     _live_translator_load_cache()
 
-    _live_translator_english_pattern = re.compile(r"[A-Za-z]")
+    _live_translator_english_pattern = _live_translator_re_module.compile(
+        r"[A-Za-z]"
+    )
     _live_translator_skip_patterns = []
     for configured_pattern in _live_translator_config.get(
         "skip_patterns", []
     ):
         try:
             _live_translator_skip_patterns.append(
-                re.compile(configured_pattern)
+                _live_translator_re_module.compile(configured_pattern)
             )
         except Exception as error:
             print("LiveTranslator: invalid skip pattern: %s" % error)
@@ -163,7 +170,7 @@ init 999 python:
         environment_name = _live_translator_config.get(
             "api_key_env", "REN_TRANSLATOR_API_KEY"
         )
-        return os.environ.get(environment_name, "")
+        return _live_translator_os_module.environ.get(environment_name, "")
 
     def _live_translator_endpoint():
         base_url = _live_translator_config.get("base_url", "").rstrip("/")
@@ -183,7 +190,7 @@ init 999 python:
         object_end = cleaned.rfind(u"}")
         if object_start >= 0 and object_end >= object_start:
             cleaned = cleaned[object_start:object_end + 1]
-        return json.loads(cleaned)
+        return _live_translator_json_module.loads(cleaned)
 
     def _live_translator_request_batch(sources):
         global _live_translator_request_count
@@ -200,7 +207,7 @@ init 999 python:
         if not api_key:
             raise RuntimeError("config.json 尚未填写 api_key")
 
-        user_content = json.dumps(
+        user_content = _live_translator_json_module.dumps(
             {"texts": sources},
             ensure_ascii=False
         )
@@ -237,7 +244,9 @@ init 999 python:
         _live_translator_request_count += 1
         response = requests.post(
             _live_translator_endpoint(),
-            data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+            data=_live_translator_json_module.dumps(
+                payload, ensure_ascii=False
+            ).encode("utf-8"),
             headers=headers,
             timeout=timeout_seconds
         )
@@ -296,7 +305,7 @@ init 999 python:
         cooldown = float(
             _live_translator_config.get("retry_cooldown_seconds", 30)
         )
-        retry_time = time.time() + max(5.0, cooldown)
+        retry_time = _live_translator_time_module.time() + max(5.0, cooldown)
         with _live_translator_lock:
             for source in sources:
                 _live_translator_pending.discard(source)
@@ -317,17 +326,17 @@ init 999 python:
                     _live_translator_config.get("batch_wait_ms", 180)
                 ) / 1000.0
             )
-            deadline = time.time() + wait_seconds
+            deadline = _live_translator_time_module.time() + wait_seconds
 
             while len(batch) < batch_size:
-                remaining = deadline - time.time()
+                remaining = deadline - _live_translator_time_module.time()
                 if remaining <= 0:
                     break
                 try:
                     batch.append(
                         _live_translator_queue.get(timeout=remaining)
                     )
-                except queue_module.Empty:
+                except _live_translator_queue_module.Empty:
                     break
 
             try:
@@ -337,7 +346,7 @@ init 999 python:
                 _live_translator_fail_batch(batch, error)
 
     def _live_translator_enqueue(source):
-        now = time.time()
+        now = _live_translator_time_module.time()
         with _live_translator_lock:
             retry_time = _live_translator_retry_after.get(source, 0)
             if source in _live_translator_pending or now < retry_time:
@@ -409,7 +418,10 @@ init 999 python:
 
     def _live_translator_apply_font():
         font_path = _live_translator_config.get("font", "")
-        if not font_path or not os.path.isfile(font_path):
+        if (
+            not font_path
+            or not _live_translator_os_module.path.isfile(font_path)
+        ):
             print("LiveTranslator: configured font not found: %s" % font_path)
             return
 
@@ -451,7 +463,7 @@ init 999 python:
     if "live_translator_hotkeys" not in config.overlay_screens:
         config.overlay_screens.append("live_translator_hotkeys")
 
-    _live_translator_thread = threading.Thread(
+    _live_translator_thread = _live_translator_threading_module.Thread(
         target=_live_translator_worker,
         name="RenPyLiveTranslator"
     )
