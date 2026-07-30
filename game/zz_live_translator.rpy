@@ -43,6 +43,7 @@ init 999 python:
         "retry_cooldown_seconds": 30,
         "temperature": 0.1,
         "max_output_tokens": 2400,
+        "json_response_format": True,
         "pending_text": "",
         "system_prompt": (
             "你是视觉小说本地化译者。把输入数组中的英文逐条翻译成自然、简洁的"
@@ -77,11 +78,22 @@ init 999 python:
             print("LiveTranslator: config load failed: %s" % error)
 
         merged = dict(_live_translator_default_config)
-        if isinstance(loaded, dict):
+        # Ren'Py 会替换脚本环境中的 dict 类型，不能用 isinstance 判断。
+        if hasattr(loaded, "items"):
             merged.update(loaded)
+        else:
+            print("LiveTranslator: config root must be a JSON object")
         return merged
 
     _live_translator_config = _live_translator_load_config()
+    print(
+        "LiveTranslator: loaded config path=%s model=%s key_present=%s"
+        % (
+            _live_translator_config_path,
+            _live_translator_config.get("model", ""),
+            bool(_live_translator_config.get("api_key", ""))
+        )
+    )
     _live_translator_cache = {}
     _live_translator_pending = set()
     _live_translator_retry_after = {}
@@ -233,6 +245,9 @@ init 999 python:
                 _live_translator_config.get("max_output_tokens", 2400)
             )
         }
+        if _live_translator_config.get("json_response_format", True):
+            payload["response_format"] = {"type": "json_object"}
+
         headers = {
             "Authorization": "Bearer " + api_key,
             "Content-Type": "application/json"
@@ -255,10 +270,13 @@ init 999 python:
         message_content = response_data["choices"][0]["message"]["content"]
 
         # 兼容部分接口返回内容块数组的形式。
-        if isinstance(message_content, list):
+        if (
+            not isinstance(message_content, _live_translator_text_type)
+            and hasattr(message_content, "append")
+        ):
             content_parts = []
             for content_block in message_content:
-                if isinstance(content_block, dict):
+                if hasattr(content_block, "get"):
                     content_parts.append(content_block.get("text", ""))
                 else:
                     content_parts.append(_live_translator_to_text(content_block))
@@ -266,7 +284,11 @@ init 999 python:
 
         translated_data = _live_translator_extract_json(message_content)
         translations = translated_data.get("translations")
-        if not isinstance(translations, list):
+        if (
+            translations is None
+            or isinstance(translations, _live_translator_text_type)
+            or not hasattr(translations, "__iter__")
+        ):
             raise ValueError("API 返回缺少 translations 数组")
         if len(translations) != len(sources):
             raise ValueError("API 返回的译文数量与原文不一致")
