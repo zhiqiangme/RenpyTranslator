@@ -29,6 +29,11 @@ init 999 python:
     _live_translator_cache_path = _live_translator_os_module.path.join(
         _live_translator_directory, "cache.jsonl"
     )
+    _live_translator_pretranslated_path = (
+        _live_translator_os_module.path.join(
+            _live_translator_directory, "pretranslated.jsonl"
+        )
+    )
 
     _live_translator_default_config = {
         "enabled": True,
@@ -67,6 +72,13 @@ init 999 python:
         except AttributeError:
             return _live_translator_text_type(value)
 
+    def _live_translator_log(message):
+        # 某些命令行启动方式没有可刷新的控制台句柄，日志失败不能中断游戏。
+        try:
+            print(message)
+        except Exception:
+            pass
+
     def _live_translator_load_config():
         loaded = {}
         try:
@@ -75,18 +87,22 @@ init 999 python:
             ) as config_file:
                 loaded = _live_translator_json_module.load(config_file)
         except Exception as error:
-            print("LiveTranslator: config load failed: %s" % error)
+            _live_translator_log(
+                "LiveTranslator: config load failed: %s" % error
+            )
 
         merged = dict(_live_translator_default_config)
         # Ren'Py 会替换脚本环境中的 dict 类型，不能用 isinstance 判断。
         if hasattr(loaded, "items"):
             merged.update(loaded)
         else:
-            print("LiveTranslator: config root must be a JSON object")
+            _live_translator_log(
+                "LiveTranslator: config root must be a JSON object"
+            )
         return merged
 
     _live_translator_config = _live_translator_load_config()
-    print(
+    _live_translator_log(
         "LiveTranslator: loaded config path=%s model=%s key_present=%s"
         % (
             _live_translator_config_path,
@@ -94,7 +110,8 @@ init 999 python:
             bool(_live_translator_config.get("api_key", ""))
         )
     )
-    _live_translator_cache = {}
+    _live_translator_pretranslated_cache = {}
+    _live_translator_runtime_cache = {}
     _live_translator_pending = set()
     _live_translator_retry_after = {}
     _live_translator_queue = _live_translator_queue_module.Queue()
@@ -103,16 +120,18 @@ init 999 python:
     _live_translator_request_count = 0
     _live_translator_success_count = 0
     _live_translator_previous_replace_text = config.replace_text
+    _live_translator_previous_say_menu_text_filter = (
+        config.say_menu_text_filter
+    )
 
-    def _live_translator_load_cache():
-        if not _live_translator_os_module.path.isfile(
-            _live_translator_cache_path
-        ):
-            return
+    def _live_translator_load_cache(cache_path, cache_name, target_cache):
+        if not _live_translator_os_module.path.isfile(cache_path):
+            return 0
 
+        loaded_count = 0
         try:
             with _live_translator_io_module.open(
-                _live_translator_cache_path, "r", encoding="utf-8"
+                cache_path, "r", encoding="utf-8"
             ) as cache_file:
                 for line in cache_file:
                     line = line.strip()
@@ -124,12 +143,17 @@ init 999 python:
                         translation = _live_translator_to_text(
                             record["translation"]
                         )
-                        _live_translator_cache[source] = translation
+                        target_cache[source] = translation
+                        loaded_count += 1
                     except Exception:
                         # 单行损坏不影响其余缓存。
                         continue
         except Exception as error:
-            print("LiveTranslator: cache load failed: %s" % error)
+            _live_translator_log(
+                "LiveTranslator: %s load failed: %s"
+                % (cache_name, error)
+            )
+        return loaded_count
 
     def _live_translator_append_cache(source, translation):
         try:
@@ -146,9 +170,28 @@ init 999 python:
                 cache_file.write(serialized)
                 cache_file.write(u"\n")
         except Exception as error:
-            print("LiveTranslator: cache write failed: %s" % error)
+            _live_translator_log(
+                "LiveTranslator: cache write failed: %s" % error
+            )
 
-    _live_translator_load_cache()
+    # 先加载离线预翻译，再加载运行时缓存；后者可覆盖预翻译，便于人工修正。
+    _live_translator_pretranslated_count = _live_translator_load_cache(
+        _live_translator_pretranslated_path,
+        "pretranslated cache",
+        _live_translator_pretranslated_cache
+    )
+    _live_translator_runtime_cache_count = _live_translator_load_cache(
+        _live_translator_cache_path,
+        "runtime cache",
+        _live_translator_runtime_cache
+    )
+    _live_translator_log(
+        "LiveTranslator: loaded pretranslated=%d runtime_cache=%d"
+        % (
+            _live_translator_pretranslated_count,
+            _live_translator_runtime_cache_count
+        )
+    )
 
     _live_translator_english_pattern = _live_translator_re_module.compile(
         r"[A-Za-z]"
@@ -162,7 +205,9 @@ init 999 python:
                 _live_translator_re_module.compile(configured_pattern)
             )
         except Exception as error:
-            print("LiveTranslator: invalid skip pattern: %s" % error)
+            _live_translator_log(
+                "LiveTranslator: invalid skip pattern: %s" % error
+            )
 
     def _live_translator_should_translate(source):
         stripped = source.strip()
@@ -312,7 +357,7 @@ init 999 python:
 
         with _live_translator_lock:
             for source, translation in zip(sources, translations):
-                _live_translator_cache[source] = translation
+                _live_translator_runtime_cache[source] = translation
                 _live_translator_pending.discard(source)
                 _live_translator_retry_after.pop(source, None)
                 _live_translator_append_cache(source, translation)
@@ -333,7 +378,7 @@ init 999 python:
                 _live_translator_pending.discard(source)
                 _live_translator_retry_after[source] = retry_time
         _live_translator_last_error = _live_translator_to_text(error)
-        print("LiveTranslator: request failed: %s" % error)
+        _live_translator_log("LiveTranslator: request failed: %s" % error)
 
     def _live_translator_worker():
         while True:
@@ -376,6 +421,41 @@ init 999 python:
             _live_translator_pending.add(source)
         _live_translator_queue.put(source)
 
+    def _live_translator_lookup(source):
+        # 运行时缓存优先，便于用户覆盖离线预翻译。
+        with _live_translator_lock:
+            cached_translation = _live_translator_runtime_cache.get(source)
+            if cached_translation is None:
+                cached_translation = (
+                    _live_translator_pretranslated_cache.get(source)
+                )
+        return cached_translation
+
+    def _live_translator_replace_say_menu_text(value):
+        # 此过滤器在文本标签和 [变量] 展开前运行，保证整句精确命中。
+        original_value = value
+        if (
+            _live_translator_previous_say_menu_text_filter is not None
+            and _live_translator_previous_say_menu_text_filter
+            is not _live_translator_replace_say_menu_text
+        ):
+            try:
+                original_value = (
+                    _live_translator_previous_say_menu_text_filter(value)
+                )
+            except Exception as error:
+                _live_translator_log(
+                    "LiveTranslator: previous say/menu filter failed: %s"
+                    % error
+                )
+        if not _live_translator_config.get("enabled", True):
+            return original_value
+        source = _live_translator_to_text(value)
+        cached_translation = _live_translator_lookup(source)
+        if cached_translation is not None:
+            return cached_translation
+        return original_value
+
     def _live_translator_replace_text(value):
         original_value = value
         if (
@@ -386,7 +466,9 @@ init 999 python:
             try:
                 original_value = _live_translator_previous_replace_text(value)
             except Exception as error:
-                print("LiveTranslator: previous text hook failed: %s" % error)
+                _live_translator_log(
+                    "LiveTranslator: previous text hook failed: %s" % error
+                )
 
         if not _live_translator_config.get("enabled", True):
             return original_value
@@ -395,8 +477,7 @@ init 999 python:
         if not _live_translator_should_translate(source):
             return original_value
 
-        with _live_translator_lock:
-            cached_translation = _live_translator_cache.get(source)
+        cached_translation = _live_translator_lookup(source)
         if cached_translation is not None:
             return cached_translation
 
@@ -430,9 +511,11 @@ init 999 python:
             status_message = u"翻译错误：" + _live_translator_last_error[:120]
         else:
             status_message = (
-                u"实时翻译正常：缓存 %d 条，请求 %d 次"
+                u"实时翻译正常：预翻译 %d 条，缓存 %d 条，请求 %d 次"
                 % (
-                    len(_live_translator_cache),
+                    _live_translator_pretranslated_count,
+                    _live_translator_runtime_cache_count
+                    + _live_translator_success_count,
                     _live_translator_request_count
                 )
             )
@@ -444,7 +527,9 @@ init 999 python:
             not font_path
             or not _live_translator_os_module.path.isfile(font_path)
         ):
-            print("LiveTranslator: configured font not found: %s" % font_path)
+            _live_translator_log(
+                "LiveTranslator: configured font not found: %s" % font_path
+            )
             return
 
         # 同时覆盖常见 GUI 变量和样式，兼容默认及多数定制界面。
@@ -480,6 +565,7 @@ init 999 python:
                 continue
 
     _live_translator_apply_font()
+    config.say_menu_text_filter = _live_translator_replace_say_menu_text
     config.replace_text = _live_translator_replace_text
 
     if "live_translator_hotkeys" not in config.overlay_screens:
