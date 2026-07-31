@@ -7,7 +7,8 @@ $projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $gameDirectory = Join-Path $GamePath "game"
 $sourceScript = Join-Path $projectRoot "game\zz_live_translator.rpy"
 $sourceConfig = Join-Path $projectRoot "config.example.json"
-$sourcePretranslated = Join-Path $projectRoot "pretranslated.jsonl"
+$sourceTranslations = Join-Path $projectRoot "translations"
+$buildPretranslated = Join-Path $projectRoot "Build-Pretranslated.ps1"
 $targetScript = Join-Path $gameDirectory "zz_live_translator.rpy"
 $targetDataDirectory = Join-Path $gameDirectory "live_translator"
 $targetConfig = Join-Path $targetDataDirectory "config.json"
@@ -36,10 +37,11 @@ if (-not (Test-Path -LiteralPath $targetConfig -PathType Leaf)) {
     Copy-Item -LiteralPath $sourceConfig -Destination $targetConfig
 }
 
-# 离线预翻译由项目统一维护，安装时更新到游戏目录。
-if (Test-Path -LiteralPath $sourcePretranslated -PathType Leaf) {
-    Copy-Item -LiteralPath $sourcePretranslated -Destination $targetPretranslated -Force
-    Write-Host "已安装离线预翻译：$targetPretranslated"
+# 分卷译文安装时合并，游戏仍只需读取一个文件。
+if (Test-Path -LiteralPath $sourceTranslations -PathType Container) {
+    & $buildPretranslated `
+        -SourceDirectory $sourceTranslations `
+        -OutputPath $targetPretranslated
 }
 
 Write-Host "安装完成：$targetScript"
