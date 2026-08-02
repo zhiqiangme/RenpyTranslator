@@ -10,11 +10,11 @@ $nameRules = @(
     [pscustomobject]@{ Source = "Aiden"; ChineseForms = @("艾登") },
     [pscustomobject]@{ Source = "Goro"; ChineseForms = @("五郎", "吾郎") },
     [pscustomobject]@{ Source = "Yoshinori"; ChineseForms = @("吉野") },
-    [pscustomobject]@{ Source = "Yoshi"; ChineseForms = @("吉野") },
+    [pscustomobject]@{ Source = "Yoshi"; SourceVariants = @("Yoshiii"); ChineseForms = @("吉野") },
     [pscustomobject]@{ Source = "Yuri"; ChineseForms = @("尤里") },
     [pscustomobject]@{ Source = "Lloyd"; ChineseForms = @("劳埃德", "勞埃德") },
     [pscustomobject]@{ Source = "Darius"; ChineseForms = @("达里乌斯", "達里烏斯") },
-    [pscustomobject]@{ Source = "Dar"; ChineseForms = @("达尔", "達爾") },
+    [pscustomobject]@{ Source = "Dar"; ChineseForms = @("达尔", "達爾", "达里", "達里") },
     [pscustomobject]@{ Source = "Hyunjin"; ChineseForms = @("贤真", "玄真", "賢真", "玄眞") },
     [pscustomobject]@{ Source = "Jin"; ChineseForms = @("贤真", "玄真", "賢真", "玄眞") },
     [pscustomobject]@{ Source = "Emilia"; ChineseForms = @("埃米莉亚", "埃米莉婭", "艾米莉亚", "艾米莉婭") },
@@ -57,14 +57,47 @@ $nameRules = @(
     [pscustomobject]@{ Source = "Geezer"; ChineseForms = @("老头", "老頭") },
     [pscustomobject]@{ Source = "Buttcheeks"; SourceVariants = @("BUTTCHEEKS"); ChineseForms = @("屁股蛋") },
     [pscustomobject]@{ Source = "Mr. Future President"; ChineseForms = @("未来主席", "未來主席") },
-    [pscustomobject]@{ Source = "Gramps"; ChineseForms = @("老爷子", "老爺子", "爷爷", "爺爺") }
+    [pscustomobject]@{ Source = "Gramps"; ChineseForms = @("老爷子", "老爺子", "爷爷", "爺爺", "老头", "老頭") }
 )
 
-# 全名必须保持原有顺序，不能仅保留英文但倒置姓名。
-$nameOrderRules = @(
-    [pscustomobject]@{ Source = "Yoshinori Nagira"; InvalidForm = "NagiraYoshinori" },
-    [pscustomobject]@{ Source = "Yuri Nomoru"; InvalidForm = "NomoruYuri" }
+# 昵称不能擅自扩写为正式名字。
+$nameAliasRules = @(
+    [pscustomobject]@{ Source = "Yoshi"; SourceVariants = @("Yoshiii"); InvalidForms = @("Yoshinori") },
+    [pscustomobject]@{ Source = "Dar"; InvalidForms = @("Darius") }
 )
+
+# 原文出现全名时，译文必须保留完全相同的英文拼写、顺序和空格。
+$fullNameRules = @(
+    "Yoshinori Nagira",
+    "Goro Nomoru",
+    "Emilia Komarova",
+    "Lloyd Sirius",
+    "Darius Najjar",
+    "Hyunjin Choi",
+    "Yuri Nomoru"
+)
+
+function Test-SourceContainsName(
+    [string]$Text,
+    [string[]]$Forms
+) {
+    foreach ($form in $Forms) {
+        # 全大写台词中的名字也要检查，但不把普通的小写同形词当成人名。
+        $candidateForms = @($form)
+        $uppercaseForm = $form.ToUpperInvariant()
+        if ($uppercaseForm -cne $form) {
+            $candidateForms += $uppercaseForm
+        }
+
+        foreach ($candidateForm in $candidateForms) {
+            $pattern = "(?<![A-Za-z])" + [regex]::Escape($candidateForm) + "(?![A-Za-z])"
+            if ($Text -cmatch $pattern) {
+                return $true
+            }
+        }
+    }
+    return $false
+}
 
 function Get-RenPyMarkers([string]$text) {
     return @(
@@ -94,7 +127,9 @@ $jsonErrorCount = 0
 $duplicateCount = 0
 $markerErrorCount = 0
 $nameErrorCount = 0
-$nameOrderErrorCount = 0
+$nameAliasErrorCount = 0
+$fullNameErrorCount = 0
+$titleErrorCount = 0
 
 foreach ($translationFile in $translationFiles) {
     $lineNumber = 0
@@ -136,15 +171,7 @@ foreach ($translationFile in $translationFiles) {
             if ($null -ne $sourceVariantsProperty) {
                 $sourceForms += @($sourceVariantsProperty.Value)
             }
-            $sourceHasName = $false
-            foreach ($sourceForm in $sourceForms) {
-                $sourcePattern = "(?<![A-Za-z])" + [regex]::Escape($sourceForm) + "(?![A-Za-z])"
-                if ($source -cmatch $sourcePattern) {
-                    $sourceHasName = $true
-                    break
-                }
-            }
-            if (-not $sourceHasName) {
+            if (-not (Test-SourceContainsName $source $sourceForms)) {
                 continue
             }
             $remainingForms = @(
@@ -158,25 +185,55 @@ foreach ($translationFile in $translationFiles) {
             }
         }
 
-        foreach ($rule in $nameOrderRules) {
-            $sourcePattern = "(?<![A-Za-z])" + [regex]::Escape($rule.Source) + "(?![A-Za-z])"
-            if ($source -cmatch $sourcePattern -and $translation.Contains($rule.InvalidForm)) {
-                $nameOrderErrorCount++
-                $issues.Add("姓名顺序：$($translationFile.Name):$lineNumber [$($rule.InvalidForm)]")
+        foreach ($rule in $nameAliasRules) {
+            $sourceForms = @($rule.Source)
+            $sourceVariantsProperty = $rule.PSObject.Properties["SourceVariants"]
+            if ($null -ne $sourceVariantsProperty) {
+                $sourceForms += @($sourceVariantsProperty.Value)
             }
+            if (-not (Test-SourceContainsName $source $sourceForms)) {
+                continue
+            }
+
+            foreach ($invalidForm in $rule.InvalidForms) {
+                # 同句原文确实出现正式名字时，不把它误判成昵称扩写。
+                if (
+                    -not (Test-SourceContainsName $source @($invalidForm)) -and
+                    (Test-SourceContainsName $translation @($invalidForm))
+                ) {
+                    $nameAliasErrorCount++
+                    $issues.Add("昵称扩写：$($translationFile.Name):$lineNumber [$invalidForm]")
+                }
+            }
+        }
+
+        foreach ($fullName in $fullNameRules) {
+            if ($source.Contains($fullName) -and -not $translation.Contains($fullName)) {
+                $fullNameErrorCount++
+                $issues.Add("英文全名：$($translationFile.Name):$lineNumber [$fullName]")
+            }
+        }
+
+        # Mr. Perfect 和 Mr. Future President 是角色昵称，其余 Sir/Mr. 敬称应译为中文。
+        $englishTitlePattern = "(?i)(?<![A-Za-z])(?:sir|mr\.)\s+(?!(?:perfect|future\s+president)(?![A-Za-z]))[A-Za-z][A-Za-z'-]*"
+        if ($translation -match $englishTitlePattern) {
+            $titleErrorCount++
+            $issues.Add("英文敬称：$($translationFile.Name):$lineNumber [$($Matches[0])]")
         }
     }
 }
 
 Write-Host (
-    "已校验 {0} 个分卷、{1} 条：JSON={2}，重复={3}，标记={4}，中文人名={5}，姓名顺序={6}" -f
+    "已校验 {0} 个分卷、{1} 条：JSON={2}，重复={3}，标记={4}，中文人名={5}，昵称扩写={6}，英文全名={7}，英文敬称={8}" -f
     $translationFiles.Count,
     $recordCount,
     $jsonErrorCount,
     $duplicateCount,
     $markerErrorCount,
     $nameErrorCount,
-    $nameOrderErrorCount
+    $nameAliasErrorCount,
+    $fullNameErrorCount,
+    $titleErrorCount
 )
 
 if ($issues.Count -gt 0) {
