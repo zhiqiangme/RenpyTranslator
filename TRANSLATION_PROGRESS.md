@@ -183,7 +183,7 @@ D:\Program Files\Steam\steamapps\common\Camp Buddy Scoutmaster Season\game\scrip
 建议继续保持按 Day 和路线推进：
 
 1. 从吾郎个人场景 `goro_6s.rpy` 共 69 条开始。
-2. 继续处理其余 `goro_*.rpy` 个人场景，共 96 条。
+2. 继续处理其余 `goro_*.rpy` 个人场景，共 378 条。
 3. 最后处理 `yoshi_1.rpy`、零散 UI 和其他剩余文件，共 18 条。
 
 剩余量最大的文件包括：
@@ -191,10 +191,10 @@ D:\Program Files\Steam\steamapps\common\Camp Buddy Scoutmaster Season\game\scrip
 | 原剧情文件 | 剩余条数 |
 | --- | ---: |
 | `goro_crack.rpy` | 92 |
-| `goro_6d.rpy` | 84 |
 | `goro_6s.rpy` | 69 |
 | `goro_mg2.rpy` | 68 |
-| `goro_5s.rpy` | 66 |
+| `goro_mg4.rpy` | 63 |
+| `goro_7d.rpy` | 54 |
 
 完整待翻译记录仍以 `work/translation_queue.jsonl` 为准。
 
