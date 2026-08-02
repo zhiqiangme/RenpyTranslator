@@ -255,6 +255,15 @@ init 999 python:
     _live_translator_chinese_pattern = _live_translator_re_module.compile(
         u"[\u3400-\u9fff]"
     )
+    _live_translator_save_date_pattern = _live_translator_re_module.compile(
+        r"^(?:(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),"
+        r"\s+)?(?:January|February|March|April|May|June|July|August|"
+        r"September|October|November|December)\s+\d{1,2}\s+\d{4},?"
+        r"\s+\d{1,2}:\d{2}$"
+    )
+    _live_translator_save_slot_pattern = _live_translator_re_module.compile(
+        r"^Save Slot(?:\s+\d+)?\s*$"
+    )
     _live_translator_skip_patterns = []
     for configured_pattern in _live_translator_config.get(
         "skip_patterns", []
@@ -281,6 +290,36 @@ init 999 python:
             if skip_pattern.search(stripped):
                 return False
         return True
+
+    def _live_translator_is_save_metadata(source):
+        stripped = source.strip()
+        if _live_translator_save_date_pattern.match(stripped):
+            return True
+        if _live_translator_save_slot_pattern.match(source):
+            return True
+
+        # 已保存的自定义名称只用于辨识存档，不属于待翻译文案。
+        try:
+            for save_name in getattr(persistent, "save_name", []):
+                if (
+                    save_name
+                    and stripped
+                    == _live_translator_to_text(save_name).strip()
+                ):
+                    return True
+        except Exception:
+            pass
+
+        # 重命名时 Input 会把光标两侧文本片段送入 replace_text。
+        try:
+            if (
+                renpy.get_screen("save_name") is not None
+                or renpy.get_screen("load_name") is not None
+            ):
+                return True
+        except Exception:
+            pass
+        return False
 
     def _live_translator_api_key():
         configured_key = _live_translator_to_text(
@@ -533,6 +572,25 @@ init 999 python:
                 cached_translation = normalized_record[1]
         return cached_translation
 
+    def _live_translator_lookup_pretranslated(source):
+        # 存档界面只允许固定文案命中预制库，不读取动态名称的 API 缓存。
+        with _live_translator_lock:
+            cached_translation = (
+                _live_translator_pretranslated_cache.get(source)
+            )
+            if cached_translation is not None:
+                return cached_translation
+
+            normalized_key = _live_translator_normalize_source_key(source)
+            normalized_record = (
+                _live_translator_pretranslated_normalized_cache.get(
+                    normalized_key
+                )
+            )
+            if normalized_record is not None:
+                return normalized_record[1]
+        return None
+
     def _live_translator_font_path(fallback):
         font_path = _live_translator_config.get("font", "")
         if font_path and _live_translator_os_module.path.isfile(font_path):
@@ -603,6 +661,14 @@ init 999 python:
 
         source = _live_translator_to_text(original_value)
         if not _live_translator_should_translate(source):
+            return original_value
+
+        if _live_translator_is_save_metadata(source):
+            pretranslated_text = (
+                _live_translator_lookup_pretranslated(source)
+            )
+            if pretranslated_text is not None:
+                return pretranslated_text
             return original_value
 
         cached_translation = _live_translator_lookup(source)
