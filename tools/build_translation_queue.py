@@ -14,7 +14,11 @@ from pathlib import Path
 CHARACTER_PATTERN = re.compile(
     r'^\s*\$\s+([A-Za-z_]\w*)\s*=\s*Character\(\s*(u?[\'"].*?[\'"])'
 )
-QUOTED_PATTERN = r'(?P<quoted>u?"(?:\\.|[^"\\])*")'
+PYTHON_STRING_LITERAL = (
+    r"(?:[uU]?[rR]?|[rR][uU]?)"
+    r"(?:\"(?:\\.|[^\"\\])*\"|'(?:\\.|[^'\\])*')"
+)
+QUOTED_PATTERN = r"(?P<quoted>" + PYTHON_STRING_LITERAL + r")"
 DIALOGUE_PATTERN = re.compile(
     r"^\s*(?P<prefix>[A-Za-z_]\w*(?:\s+[A-Za-z_]\w*)*)\s+"
     + QUOTED_PATTERN
@@ -27,11 +31,27 @@ MENU_PATTERN = re.compile(
     r"^\s*" + QUOTED_PATTERN + r"\s*:\s*(?:#.*)?$"
 )
 SCREEN_TEXT_PATTERN = re.compile(
-    r'^\s*(?:text|textbutton|label)\s+(?P<quoted>u?"(?:\\.|[^"\\])*")'
+    r"^\s*(?:text|textbutton|label)\s+" + QUOTED_PATTERN
 )
 TRANSLATION_CALL_PATTERN = re.compile(
-    r'(?<!\w)_(?:p)?\(\s*(?P<quoted>u?"(?:\\.|[^"\\])*")\s*\)'
+    r"(?<!\w)_(?:p)?\(\s*" + QUOTED_PATTERN + r"\s*\)"
 )
+DYNAMIC_LIST_START_PATTERN = re.compile(
+    r"^\s*(?:default\s+)?(?P<name>details_info|success_msg)\s*=\s*\["
+)
+SHOW_SCREEN_TEXT_PATTERN = re.compile(
+    r"renpy\.show_screen\(\s*"
+    r"(?:[uU]?\"(?:yoshi_says|hyunjin_says)\"|"
+    r"[uU]?'(?:yoshi_says|hyunjin_says)')\s*,\s*"
+    + QUOTED_PATTERN
+)
+REACTION_MAP_START_PATTERN = re.compile(
+    r"^\s*text_reactions_[A-Za-z_]\w*\s*=\s*\{"
+)
+REACTION_PAIR_PATTERN = re.compile(
+    r"^\s*[\[(]\s*" + QUOTED_PATTERN + r"\s*,\s*" + PYTHON_STRING_LITERAL
+)
+PYTHON_STRING_PATTERN = re.compile(PYTHON_STRING_LITERAL)
 LABEL_PATTERN = re.compile(r"^\s*label\s+([A-Za-z_]\w*)\s*:")
 ASCII_LETTER_PATTERN = re.compile(r"[A-Za-z]")
 FILE_LIKE_PATTERN = re.compile(
@@ -154,13 +174,73 @@ def build_records(
     for path in files:
         label = ""
         recent_dialogue: list[str] = []
+        dynamic_list_name = ""
+        dynamic_list_indent = 0
+        reaction_map_active = False
+        reaction_map_indent = 0
         lines = path.read_text(encoding="utf-8-sig", errors="replace").splitlines()
         for line_number, line in enumerate(lines, 1):
+            stripped_line = line.lstrip()
+            line_indent = len(line) - len(stripped_line)
             label_match = LABEL_PATTERN.match(line)
             if label_match:
                 label = label_match.group(1)
 
             extracted: list[tuple[str, str, str]] = []
+
+            dynamic_list_match = DYNAMIC_LIST_START_PATTERN.match(line)
+            if dynamic_list_match:
+                dynamic_list_name = dynamic_list_match.group("name")
+                dynamic_list_indent = line_indent
+            elif (
+                dynamic_list_name
+                and stripped_line.startswith("]")
+                and line_indent <= dynamic_list_indent
+            ):
+                dynamic_list_name = ""
+
+            reaction_map_match = REACTION_MAP_START_PATTERN.match(line)
+            if reaction_map_match:
+                reaction_map_active = True
+                reaction_map_indent = line_indent
+            elif (
+                reaction_map_active
+                and stripped_line.startswith("}")
+                and line_indent <= reaction_map_indent
+            ):
+                reaction_map_active = False
+
+            # 找不同小游戏把提示语放在 Python 列表中，普通对话规则抓不到。
+            if dynamic_list_name:
+                for literal_match in PYTHON_STRING_PATTERN.finditer(line):
+                    quoted = literal_match.group(0)
+                    try:
+                        dynamic_source = decode_literal(quoted)
+                    except (SyntaxError, ValueError):
+                        continue
+                    if (
+                        dynamic_list_name == "details_info"
+                        and re.fullmatch(r"error_\d+", dynamic_source)
+                    ):
+                        continue
+                    extracted.append(("minigame", "", quoted))
+
+            # 互动热点语音字幕来自 Python 字典中 (文本, 音频) 的配对。
+            if reaction_map_active:
+                reaction_pair_match = REACTION_PAIR_PATTERN.match(line)
+                if reaction_pair_match:
+                    extracted.append(
+                        ("minigame", "", reaction_pair_match.group("quoted"))
+                    )
+
+            # 失败提示通过 show_screen 的第二个位置参数动态传入。
+            if not stripped_line.startswith("#"):
+                show_screen_match = SHOW_SCREEN_TEXT_PATTERN.search(line)
+                if show_screen_match:
+                    extracted.append(
+                        ("minigame", "", show_screen_match.group("quoted"))
+                    )
+
             dialogue_match = DIALOGUE_PATTERN.match(line)
             if dialogue_match:
                 prefix_tokens = dialogue_match.group("prefix").split()
