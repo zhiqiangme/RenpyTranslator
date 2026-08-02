@@ -5,12 +5,12 @@
 ## 当前结论
 
 - 待翻译清单总数：15,770 条。
-- 已完成人工翻译：15,490 条，约 98.2%。
-- 剩余：280 条。
-- 当前准确断点：吾郎个人场景 `goro_crack.rpy` 尚未开始，共 92 条，下次从第 1 条继续。
+- 已完成人工翻译：15,582 条，约 98.8%。
+- 剩余：188 条。
+- 当前准确断点：吾郎个人场景 `goro_mg1.rpy` 尚未开始，共 39 条，下次从第 1 条继续。
 - 所有译文保存在项目的 `translations` 目录，并按 Day、路线和分支拆分。
 - 这一阶段的离线人工翻译没有调用 DeepSeek 或其他翻译 API。
-- 最后一笔翻译提交：`translations：完成吾郎个人场景goro_8`。
+- 最后一笔翻译提交：`translations：完成吾郎多人场景goro_crack`。
 
 ## 实现方式
 
@@ -180,25 +180,26 @@ D:\Program Files\Steam\steamapps\common\Camp Buddy Scoutmaster Season\game\scrip
 | `goro_7d.jsonl` | 54 | 个人场景完成 |
 | `goro_7s.jsonl` | 19 | 个人场景完成 |
 | `goro_8.jsonl` | 43 | 个人场景完成 |
-| **合计** | **15,490** | **剩余 280 条** |
+| `goro_crack.jsonl` | 92 | 多人场景完成 |
+| **合计** | **15,582** | **剩余 188 条** |
 
 ## 后续翻译顺序
 
 建议继续保持按 Day 和路线推进：
 
-1. 从吾郎个人场景 `goro_crack.rpy` 共 92 条开始。
-2. 继续处理其余 `goro_*.rpy` 个人场景，共 170 条。
+1. 从吾郎个人场景 `goro_mg1.rpy` 共 39 条开始。
+2. 继续处理其余 `goro_*.rpy` 个人场景，共 131 条。
 3. 最后处理 `yoshi_1.rpy`、零散 UI 和其他剩余文件，共 18 条。
 
 剩余量最大的文件包括：
 
 | 原剧情文件 | 剩余条数 |
 | --- | ---: |
-| `goro_crack.rpy` | 92 |
 | `goro_mg2.rpy` | 68 |
 | `goro_mg4.rpy` | 63 |
 | `goro_mg1.rpy` | 39 |
 | `yoshi_1.rpy` | 12 |
+| `screens.rpy` | 3 |
 
 完整待翻译记录仍以 `work/translation_queue.jsonl` 为准。
 
@@ -206,10 +207,10 @@ D:\Program Files\Steam\steamapps\common\Camp Buddy Scoutmaster Season\game\scrip
 
 截至 2026-08-02 的实测结果：
 
-- 项目分卷：15,490 条。
+- 项目分卷：15,582 条。
 - 游戏内 `pretranslated.jsonl`：8,551 条，修改时间为 2026-08-02 17:21:02，
   SHA-256 为 `B9B2891B0D9DF44D21EFFF4AC18465E661DDBE32C5A00476577AC9B76E4858FB`。
-- 游戏内文件仍是上次安装的 8,551 条版本；项目中新增的 6,939 条目前只在项目中。
+- 游戏内文件仍是上次安装的 8,551 条版本；项目中新增的 7,031 条目前只在项目中。
 - 游戏内运行时缓存：18 条、2,743 字节。
 - 项目备份：`backups/cache.jsonl`。
 - 游戏缓存与项目备份 SHA-256 均为
