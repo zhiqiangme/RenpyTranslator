@@ -35,6 +35,10 @@ init 999 python:
         )
     )
 
+    _live_translator_name_prompt_rule = (
+        u"所有人物姓名必须保持英文原样，不得翻译、音译或改写。"
+    )
+
     _live_translator_default_config = {
         "enabled": True,
         "base_url": "https://api.openai.com/v1",
@@ -53,10 +57,19 @@ init 999 python:
         "system_prompt": (
             "你是视觉小说本地化译者。把输入数组中的英文逐条翻译成自然、简洁的"
             "简体中文，保持人物语气、称谓、情绪和原意，不审查、不解释。"
+            "所有人物姓名必须保持英文原样，不得翻译、音译或改写。"
             "原样保留 Ren'Py 文本标签、方括号变量、printf 占位符、转义符和专有名词。"
             "只返回严格 JSON 对象，格式为 {\"translations\":[\"译文1\",\"译文2\"]}，"
             "数组长度和顺序必须与输入一致。"
         ),
+        "protected_names": [
+            "Aiden", "Andre", "Darius", "Emilia", "Goro", "Hiro",
+            "Hunter", "Hyunjin", "Justin", "Keitaro", "Lloyd", "Naoto",
+            "Natsumi", "Reimond", "Taiga", "Vera", "William", "Yoichi",
+            "Yoshinori", "Yuri", "Yoshi", "Jin", "Dar", "Sirius",
+            "Najjar", "Nagira", "Nomoru", "Yoshinori Nagira",
+            "Yuri Nomoru"
+        ],
         "skip_patterns": [
             "^https?://",
             "^[A-Za-z]:[\\\\/]",
@@ -136,6 +149,9 @@ init 999 python:
         source_text = source_text.replace(u"\\”", u"”")
         source_text = source_text.replace(u"\\‘", u"‘")
         source_text = source_text.replace(u"\\’", u"’")
+        # 脚本中的 \% 在不同文本阶段可能变成 % 或 %%。
+        source_text = source_text.replace(u"\\%", u"%")
+        source_text = source_text.replace(u"%%", u"%")
         return _live_translator_re_module.sub(
             u"[ \\t\\r\\n]+", u" ", source_text
         ).strip()
@@ -262,8 +278,26 @@ init 999 python:
         r"\s+\d{1,2}:\d{2}$"
     )
     _live_translator_save_slot_pattern = _live_translator_re_module.compile(
-        r"^Save Slot(?:\s+\d+)?\s*$"
+        r"^Save Slot(?:\s+([1-9]\d{0,2}))?\s*$"
     )
+    _live_translator_text_tag_pattern = _live_translator_re_module.compile(
+        u"\\{[^{}]*\\}"
+    )
+    _live_translator_name_punctuation_pattern = (
+        _live_translator_re_module.compile(
+            u"[\\s\\.,!?…，。！？、~:;：；'\"“”‘’()（）\\[\\]<>《》【】—–-]+"
+        )
+    )
+    _live_translator_protected_names = set()
+    for configured_name in _live_translator_config.get(
+        "protected_names", []
+    ):
+        normalized_name = _live_translator_name_punctuation_pattern.sub(
+            u"",
+            _live_translator_to_text(configured_name)
+        ).lower()
+        if normalized_name:
+            _live_translator_protected_names.add(normalized_name)
     _live_translator_skip_patterns = []
     for configured_pattern in _live_translator_config.get(
         "skip_patterns", []
@@ -277,12 +311,32 @@ init 999 python:
                 "LiveTranslator: invalid skip pattern: %s" % error
             )
 
+    def _live_translator_is_protected_name_text(source):
+        # 纯人名及其标点属于显示文本，直接保留英文且不占用 API。
+        without_tags = _live_translator_text_tag_pattern.sub(u"", source)
+        normalized_name = _live_translator_name_punctuation_pattern.sub(
+            u"", without_tags
+        ).lower()
+        return normalized_name in _live_translator_protected_names
+
+    def _live_translator_local_save_slot_translation(source):
+        # 存档位编号是动态元数据，本地确定性翻译，避免 999 条缓存和 API 调用。
+        slot_match = _live_translator_save_slot_pattern.match(source)
+        if slot_match is None:
+            return None
+        slot_number = slot_match.group(1)
+        if slot_number:
+            return u"存档位 %s" % slot_number
+        return u"存档位"
+
     def _live_translator_should_translate(source):
         stripped = source.strip()
         if len(stripped) < 2:
             return False
         # 中文译文会保留英文人名，不能因此再次送入 API 反向翻译。
         if _live_translator_chinese_pattern.search(stripped):
+            return False
+        if _live_translator_is_protected_name_text(stripped):
             return False
         if not _live_translator_english_pattern.search(stripped):
             return False
@@ -295,9 +349,6 @@ init 999 python:
         stripped = source.strip()
         if _live_translator_save_date_pattern.match(stripped):
             return True
-        if _live_translator_save_slot_pattern.match(source):
-            return True
-
         # 已保存的自定义名称只用于辨识存档，不属于待翻译文案。
         try:
             for save_name in getattr(persistent, "save_name", []):
@@ -384,15 +435,24 @@ init 999 python:
             {"texts": sources},
             ensure_ascii=False
         )
+        system_prompt = _live_translator_to_text(
+            _live_translator_config.get(
+                "system_prompt",
+                _live_translator_default_config["system_prompt"]
+            )
+        ).strip()
+        # 即使用户沿用旧配置，也强制附加人名规则；这不会新增 API 请求。
+        if _live_translator_name_prompt_rule not in system_prompt:
+            system_prompt = (
+                system_prompt + u" " + _live_translator_name_prompt_rule
+            ).strip()
+
         payload = {
             "model": model,
             "messages": [
                 {
                     "role": "system",
-                    "content": _live_translator_config.get(
-                        "system_prompt",
-                        _live_translator_default_config["system_prompt"]
-                    )
+                    "content": system_prompt
                 },
                 {
                     "role": "user",
@@ -547,30 +607,34 @@ init 999 python:
         _live_translator_queue.put(source)
 
     def _live_translator_lookup(source):
-        # 精确匹配优先；同一级别中运行时缓存优先，便于用户覆盖预翻译。
+        # 预制译文优先，确保旧 API 缓存不能覆盖已校对文案。
         with _live_translator_lock:
-            cached_translation = _live_translator_runtime_cache.get(source)
-            if cached_translation is None:
-                cached_translation = (
-                    _live_translator_pretranslated_cache.get(source)
-                )
+            cached_translation = _live_translator_pretranslated_cache.get(
+                source
+            )
             if cached_translation is not None:
                 return cached_translation
 
             # Ren'Py 可能折叠空格或移除引号转义，使用规范化键安全兜底。
             normalized_key = _live_translator_normalize_source_key(source)
             normalized_record = (
+                _live_translator_pretranslated_normalized_cache.get(
+                    normalized_key
+                )
+            )
+            if normalized_record is not None:
+                return normalized_record[1]
+
+            cached_translation = _live_translator_runtime_cache.get(source)
+            if cached_translation is not None:
+                return cached_translation
+
+            normalized_record = (
                 _live_translator_runtime_normalized_cache.get(normalized_key)
             )
-            if normalized_record is None:
-                normalized_record = (
-                    _live_translator_pretranslated_normalized_cache.get(
-                        normalized_key
-                    )
-                )
             if normalized_record is not None:
-                cached_translation = normalized_record[1]
-        return cached_translation
+                return normalized_record[1]
+        return None
 
     def _live_translator_lookup_pretranslated(source):
         # 存档界面只允许固定文案命中预制库，不读取动态名称的 API 缓存。
@@ -606,6 +670,10 @@ init 999 python:
                 translated_parts.append(part)
                 continue
 
+            if not _live_translator_should_translate(part):
+                translated_parts.append(part)
+                continue
+
             cached_translation = _live_translator_lookup(part)
             if cached_translation is not None:
                 translated_parts.append(cached_translation)
@@ -636,7 +704,14 @@ init 999 python:
                 )
         if not _live_translator_config.get("enabled", True):
             return original_value
-        source = _live_translator_to_text(value)
+        source = _live_translator_to_text(original_value)
+        local_save_slot = _live_translator_local_save_slot_translation(
+            source
+        )
+        if local_save_slot is not None:
+            return local_save_slot
+        if not _live_translator_should_translate(source):
+            return original_value
         cached_translation = _live_translator_lookup(source)
         if cached_translation is not None:
             return cached_translation
@@ -660,6 +735,11 @@ init 999 python:
             return original_value
 
         source = _live_translator_to_text(original_value)
+        local_save_slot = _live_translator_local_save_slot_translation(
+            source
+        )
+        if local_save_slot is not None:
+            return local_save_slot
         if not _live_translator_should_translate(source):
             return original_value
 
