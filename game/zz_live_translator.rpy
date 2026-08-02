@@ -280,6 +280,19 @@ init 999 python:
     _live_translator_save_slot_pattern = _live_translator_re_module.compile(
         r"^Save Slot(?:\s+([1-9]\d{0,2}))?\s*$"
     )
+    _live_translator_weekday_pattern = _live_translator_re_module.compile(
+        r"^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)"
+        r"(,)?\s*$"
+    )
+    _live_translator_weekday_translations = {
+        "Monday": u"星期一",
+        "Tuesday": u"星期二",
+        "Wednesday": u"星期三",
+        "Thursday": u"星期四",
+        "Friday": u"星期五",
+        "Saturday": u"星期六",
+        "Sunday": u"星期日"
+    }
     _live_translator_text_tag_pattern = _live_translator_re_module.compile(
         u"\\{[^{}]*\\}"
     )
@@ -328,6 +341,20 @@ init 999 python:
         if slot_number:
             return u"存档位 %s" % slot_number
         return u"存档位"
+
+    def _live_translator_local_weekday_translation(source):
+        # 存档界面可能把星期单独传入；本地转换，完整日期仍保持原文。
+        weekday_match = _live_translator_weekday_pattern.match(source)
+        if weekday_match is None:
+            return None
+        translated_weekday = _live_translator_weekday_translations.get(
+            weekday_match.group(1)
+        )
+        if translated_weekday is None:
+            return None
+        if weekday_match.group(2):
+            return translated_weekday + u"，"
+        return translated_weekday
 
     def _live_translator_should_translate(source):
         stripped = source.strip()
@@ -705,6 +732,9 @@ init 999 python:
         if not _live_translator_config.get("enabled", True):
             return original_value
         source = _live_translator_to_text(original_value)
+        local_weekday = _live_translator_local_weekday_translation(source)
+        if local_weekday is not None:
+            return local_weekday
         local_save_slot = _live_translator_local_save_slot_translation(
             source
         )
@@ -735,6 +765,9 @@ init 999 python:
             return original_value
 
         source = _live_translator_to_text(original_value)
+        local_weekday = _live_translator_local_weekday_translation(source)
+        if local_weekday is not None:
+            return local_weekday
         local_save_slot = _live_translator_local_save_slot_translation(
             source
         )
