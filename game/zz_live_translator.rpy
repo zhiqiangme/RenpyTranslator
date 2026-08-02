@@ -556,7 +556,10 @@ init 999 python:
             "help_button_text",
             "quick_button_text",
             "slot_button_text",
-            "notify_text"
+            "notify_text",
+            # Camp Buddy 的聊天记录使用独立样式，默认 Halogen 字体不含中文字形。
+            "readback_text",
+            "readback_button_text"
         ]
         for style_name in common_style_names:
             try:
