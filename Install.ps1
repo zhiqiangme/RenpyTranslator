@@ -1,13 +1,20 @@
 param(
-    [string]$GamePath = "D:\Program Files\Steam\steamapps\common\Camp Buddy Scoutmaster Season"
+    [string]$GamePath = "D:\Program Files\Steam\steamapps\common\Camp Buddy Scoutmaster Season",
+    [string]$TranslationsPath = ""
 )
 
 $ErrorActionPreference = "Stop"
-$projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+$projectRoot = [System.IO.Path]::GetDirectoryName(
+    $MyInvocation.MyCommand.Path
+)
 $gameDirectory = Join-Path $GamePath "game"
 $sourceScript = Join-Path $projectRoot "game\zz_live_translator.rpy"
 $sourceConfig = Join-Path $projectRoot "config.example.json"
-$sourceTranslations = Join-Path $projectRoot "translations"
+$sourceTranslations = if ([string]::IsNullOrWhiteSpace($TranslationsPath)) {
+    Join-Path $projectRoot "translations"
+} else {
+    [System.IO.Path]::GetFullPath($TranslationsPath)
+}
 $buildPretranslated = Join-Path $projectRoot "Build-Pretranslated.ps1"
 $targetScript = Join-Path $gameDirectory "zz_live_translator.rpy"
 $targetDataDirectory = Join-Path $gameDirectory "live_translator"

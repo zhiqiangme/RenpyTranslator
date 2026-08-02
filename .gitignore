@@ -4,6 +4,9 @@ cache.jsonl
 backups/
 work/
 /translations - 副本/
+/translations_bak/*
+!/translations_bak/.gitignore
+!/translations_bak/Install.ps1
 __pycache__/
 *.pyc
 *.rpyc
