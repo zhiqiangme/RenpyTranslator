@@ -567,7 +567,27 @@ init 999 python:
             except Exception:
                 continue
 
+    def _live_translator_readback_adjustment_change(
+        self, value, *args, **kwargs
+    ):
+        # 游戏旧版聊天记录没有接收 Ren'Py 7.8 惯性滚动新增的 end_animation 参数。
+        return renpy.display.behavior.Adjustment.change(
+            self, value, *args, **kwargs
+        )
+
+    def _live_translator_patch_readback_adjustment():
+        readback_adjustment_class = globals().get("NewAdj")
+        if readback_adjustment_class is None:
+            return
+        readback_adjustment_class.change = (
+            _live_translator_readback_adjustment_change
+        )
+        _live_translator_log(
+            "LiveTranslator: patched readback adjustment for Ren'Py 7.8"
+        )
+
     _live_translator_apply_font()
+    _live_translator_patch_readback_adjustment()
     config.say_menu_text_filter = _live_translator_replace_say_menu_text
     config.replace_text = _live_translator_replace_text
 
