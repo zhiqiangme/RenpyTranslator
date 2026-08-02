@@ -1,9 +1,9 @@
 {
   "enabled": true,
-  "base_url": "https://api.openai.com/v1",
-  "api_key": "",
+  "base_url": "https://api.deepseek.com",
+  "api_key": "这里填写具体API Key，保留双引号，例如sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
   "api_key_env": "REN_TRANSLATOR_API_KEY",
-  "model": "your-model-name",
+  "model": "deepseek-v4-flash",
   "font": "C:/Windows/Fonts/msyh.ttc",
   "batch_size": 8,
   "batch_wait_ms": 180,
