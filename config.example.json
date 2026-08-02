@@ -15,7 +15,7 @@
   "pending_text": "",
   "system_prompt": "你是视觉小说本地化译者。把输入数组中的英文逐条翻译成自然、简洁的简体中文，保持人物语气、称谓、情绪和原意，不审查、不解释。所有人物姓名必须保持英文原样，不得翻译、音译或改写。原样保留 Ren'Py 文本标签、方括号变量、printf 占位符、转义符和专有名词。只返回严格 JSON 对象，格式为 {\"translations\":[\"译文1\",\"译文2\"]}，数组长度和顺序必须与输入一致。",
   "protected_names": [
-    "Aiden", "Andre", "Darius", "Emilia", "Goro", "Hiro",
+    "Aiden", "Andre", "Darius", "Emilia", "Emillia", "Goro", "Hiro",
     "Hunter", "Hyunjin", "Justin", "Keitaro", "Lloyd", "Naoto",
     "Natsumi", "Reimond", "Taiga", "Vera", "William", "Yoichi",
     "Yoshinori", "Yuri", "Yoshi", "Jin", "Dar", "Sirius",

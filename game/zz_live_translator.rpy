@@ -63,7 +63,7 @@ init 999 python:
             "数组长度和顺序必须与输入一致。"
         ),
         "protected_names": [
-            "Aiden", "Andre", "Darius", "Emilia", "Goro", "Hiro",
+            "Aiden", "Andre", "Darius", "Emilia", "Emillia", "Goro", "Hiro",
             "Hunter", "Hyunjin", "Justin", "Keitaro", "Lloyd", "Naoto",
             "Natsumi", "Reimond", "Taiga", "Vera", "William", "Yoichi",
             "Yoshinori", "Yuri", "Yoshi", "Jin", "Dar", "Sirius",
