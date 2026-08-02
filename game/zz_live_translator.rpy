@@ -196,6 +196,9 @@ init 999 python:
     _live_translator_english_pattern = _live_translator_re_module.compile(
         r"[A-Za-z]"
     )
+    _live_translator_cjk_pattern = _live_translator_re_module.compile(
+        u"[\u3400-\u9fff]"
+    )
     _live_translator_skip_patterns = []
     for configured_pattern in _live_translator_config.get(
         "skip_patterns", []
@@ -431,6 +434,24 @@ init 999 python:
                 )
         return cached_translation
 
+    def _live_translator_apply_text_font(value):
+        text_value = _live_translator_to_text(value)
+        if not _live_translator_cjk_pattern.search(text_value):
+            return text_value
+
+        font_path = _live_translator_config.get("font", "")
+        if (
+            not font_path
+            or not _live_translator_os_module.path.isfile(font_path)
+        ):
+            return text_value
+
+        # 内联字体标签优先级高于界面中硬编码的英文字体。
+        opening_tag = u"{font=" + _live_translator_to_text(font_path) + u"}"
+        if text_value.startswith(opening_tag) and text_value.endswith(u"{/font}"):
+            return text_value
+        return opening_tag + text_value + u"{/font}"
+
     def _live_translator_replace_say_menu_text(value):
         # 此过滤器在文本标签和 [变量] 展开前运行，保证整句精确命中。
         original_value = value
@@ -453,8 +474,8 @@ init 999 python:
         source = _live_translator_to_text(value)
         cached_translation = _live_translator_lookup(source)
         if cached_translation is not None:
-            return cached_translation
-        return original_value
+            return _live_translator_apply_text_font(cached_translation)
+        return _live_translator_apply_text_font(original_value)
 
     def _live_translator_replace_text(value):
         original_value = value
@@ -475,16 +496,16 @@ init 999 python:
 
         source = _live_translator_to_text(original_value)
         if not _live_translator_should_translate(source):
-            return original_value
+            return _live_translator_apply_text_font(original_value)
 
         cached_translation = _live_translator_lookup(source)
         if cached_translation is not None:
-            return cached_translation
+            return _live_translator_apply_text_font(cached_translation)
 
         _live_translator_enqueue(source)
         pending_text = _live_translator_config.get("pending_text", "")
         if pending_text:
-            return _live_translator_to_text(pending_text)
+            return _live_translator_apply_text_font(pending_text)
         return original_value
 
     def _live_translator_toggle():
