@@ -252,6 +252,9 @@ init 999 python:
     _live_translator_english_pattern = _live_translator_re_module.compile(
         r"[A-Za-z]"
     )
+    _live_translator_chinese_pattern = _live_translator_re_module.compile(
+        u"[\u3400-\u9fff]"
+    )
     _live_translator_skip_patterns = []
     for configured_pattern in _live_translator_config.get(
         "skip_patterns", []
@@ -268,6 +271,9 @@ init 999 python:
     def _live_translator_should_translate(source):
         stripped = source.strip()
         if len(stripped) < 2:
+            return False
+        # 中文译文会保留英文人名，不能因此再次送入 API 反向翻译。
+        if _live_translator_chinese_pattern.search(stripped):
             return False
         if not _live_translator_english_pattern.search(stripped):
             return False
