@@ -557,6 +557,8 @@ init 999 python:
             "quick_button_text",
             "slot_button_text",
             "notify_text",
+            # Camp Buddy 的确认框正文使用独立字体样式。
+            "text_confirm",
             # Camp Buddy 的聊天记录使用独立样式，默认 Halogen 字体不含中文字形。
             "readback_text",
             "readback_button_text"
