@@ -5,12 +5,12 @@
 ## 当前结论
 
 - 待翻译清单总数：15,770 条。
-- 已完成人工翻译：13,616 条，约 86.3%。
-- 剩余：2,154 条。
-- 当前准确断点：吾郎路线公共剧情 `dayg9.rpy` 已完成前 70 条，剩余 343 条，下次从第 71 条继续。
+- 已完成人工翻译：13,959 条，约 88.5%。
+- 剩余：1,811 条。
+- 当前准确断点：吾郎路线 WE 分支 `dayg9_we.rpy` 尚未开始，共 23 条，下次从第 1 条继续。
 - 所有译文保存在项目的 `translations` 目录，并按 Day、路线和分支拆分。
 - 这一阶段的离线人工翻译没有调用 DeepSeek 或其他翻译 API。
-- 最后一笔翻译提交：`translations：统一人名不翻译并完成吾郎路线dayg9前70条`。
+- 最后一笔翻译提交：`translations：完成人名不翻译规范下的吾郎路线dayg9剧情`。
 
 ## 实现方式
 
@@ -160,15 +160,15 @@ D:\Program Files\Steam\steamapps\common\Camp Buddy Scoutmaster Season\game\scrip
 | `dayg6.jsonl` | 182 | 吾郎路线完成 |
 | `dayg7.jsonl` | 350 | 吾郎路线完成 |
 | `dayg8.jsonl` | 810 | 吾郎路线完成 |
-| `dayg9.jsonl` | 70 | 吾郎路线进行中（前 70 条） |
-| **合计** | **13,616** | **剩余 2,154 条** |
+| `dayg9.jsonl` | 413 | 吾郎路线完成 |
+| **合计** | **13,959** | **剩余 1,811 条** |
 
 ## 后续翻译顺序
 
 建议继续保持按 Day 和路线推进：
 
-1. 从吾郎路线公共剧情 `dayg9.rpy` 第 71 条继续，剩余 343 条。
-2. 按 `dayg9.rpy` 到 `dayg10_*.rpy` 的顺序翻译吾郎路线。
+1. 从吾郎路线 WE 分支 `dayg9_we.rpy` 共 23 条开始。
+2. 按 `dayg9_we.rpy`、`dayg9_be.rpy`、`dayg9_gepe.rpy` 到 `dayg10_*.rpy` 的顺序翻译吾郎路线。
 3. 最后处理 `goro_*.rpy`、零散 UI 和其他剩余文件。
 
 剩余量最大的文件包括：
@@ -177,7 +177,7 @@ D:\Program Files\Steam\steamapps\common\Camp Buddy Scoutmaster Season\game\scrip
 | --- | ---: |
 | `dayg10_be.rpy` | 193 |
 | `dayg10_gepe.rpy` | 533 |
-| `dayg9.rpy` | 343 |
+| `goro_1.rpy` | 78 |
 | `goro_crack.rpy` | 92 |
 | `goro_6d.rpy` | 84 |
 
@@ -187,10 +187,10 @@ D:\Program Files\Steam\steamapps\common\Camp Buddy Scoutmaster Season\game\scrip
 
 截至 2026-08-02 的实测结果：
 
-- 项目分卷：13,616 条。
+- 项目分卷：13,959 条。
 - 游戏内 `pretranslated.jsonl`：8,551 条，修改时间为 2026-08-02 17:21:02，
   SHA-256 为 `B9B2891B0D9DF44D21EFFF4AC18465E661DDBE32C5A00476577AC9B76E4858FB`。
-- 游戏内文件仍是上次安装的 8,551 条版本；项目中新增的 5,065 条目前只在项目中。
+- 游戏内文件仍是上次安装的 8,551 条版本；项目中新增的 5,408 条目前只在项目中。
 - 游戏内运行时缓存：18 条、2,743 字节。
 - 项目备份：`backups/cache.jsonl`。
 - 游戏缓存与项目备份 SHA-256 均为
