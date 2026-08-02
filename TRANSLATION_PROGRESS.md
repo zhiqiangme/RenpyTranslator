@@ -5,12 +5,12 @@
 ## 当前结论
 
 - 待翻译清单总数：15,770 条。
-- 已完成人工翻译：14,064 条，约 89.2%。
-- 剩余：1,706 条。
-- 当前准确断点：吾郎路线 WE 分支 `dayg10_we.rpy` 尚未开始，共 54 条，下次从第 1 条继续。
+- 已完成人工翻译：14,311 条，约 90.7%。
+- 剩余：1,459 条。
+- 当前准确断点：吾郎路线 GEPE 分支 `dayg10_gepe.rpy` 尚未开始，共 533 条，下次从第 1 条继续。
 - 所有译文保存在项目的 `translations` 目录，并按 Day、路线和分支拆分。
 - 这一阶段的离线人工翻译没有调用 DeepSeek 或其他翻译 API。
-- 最后一笔翻译提交：`translations：完成吾郎路线dayg9全部结局分支`。
+- 最后一笔翻译提交：`translations：完成吾郎路线dayg10 WE与BE分支`。
 
 ## 实现方式
 
@@ -164,21 +164,23 @@ D:\Program Files\Steam\steamapps\common\Camp Buddy Scoutmaster Season\game\scrip
 | `dayg9_we.jsonl` | 23 | WE 分支完成 |
 | `dayg9_be.jsonl` | 51 | BE 分支完成 |
 | `dayg9_gepe.jsonl` | 31 | GEPE 分支完成 |
-| **合计** | **14,064** | **剩余 1,706 条** |
+| `dayg10_we.jsonl` | 54 | WE 分支完成 |
+| `dayg10_be.jsonl` | 193 | BE 分支完成 |
+| **合计** | **14,311** | **剩余 1,459 条** |
 
 ## 后续翻译顺序
 
 建议继续保持按 Day 和路线推进：
 
-1. 从吾郎路线 WE 分支 `dayg10_we.rpy` 共 54 条开始。
-2. 按 `dayg10_we.rpy`、`dayg10_be.rpy`、`dayg10_gepe.rpy` 的顺序翻译吾郎路线。
+1. 从吾郎路线 GEPE 分支 `dayg10_gepe.rpy` 共 533 条开始。
+2. 完成后处理 `goro_*.rpy`、零散 UI 和其他剩余文件。
 3. 最后处理 `goro_*.rpy`、零散 UI 和其他剩余文件。
 
 剩余量最大的文件包括：
 
 | 原剧情文件 | 剩余条数 |
 | --- | ---: |
-| `dayg10_be.rpy` | 193 |
+| `goro_crack.rpy` | 92 |
 | `dayg10_gepe.rpy` | 533 |
 | `goro_1.rpy` | 78 |
 | `goro_crack.rpy` | 92 |
@@ -190,10 +192,10 @@ D:\Program Files\Steam\steamapps\common\Camp Buddy Scoutmaster Season\game\scrip
 
 截至 2026-08-02 的实测结果：
 
-- 项目分卷：14,064 条。
+- 项目分卷：14,311 条。
 - 游戏内 `pretranslated.jsonl`：8,551 条，修改时间为 2026-08-02 17:21:02，
   SHA-256 为 `B9B2891B0D9DF44D21EFFF4AC18465E661DDBE32C5A00476577AC9B76E4858FB`。
-- 游戏内文件仍是上次安装的 8,551 条版本；项目中新增的 5,513 条目前只在项目中。
+- 游戏内文件仍是上次安装的 8,551 条版本；项目中新增的 5,760 条目前只在项目中。
 - 游戏内运行时缓存：18 条、2,743 字节。
 - 项目备份：`backups/cache.jsonl`。
 - 游戏缓存与项目备份 SHA-256 均为
