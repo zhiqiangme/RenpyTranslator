@@ -221,13 +221,28 @@ init 999 python:
         return True
 
     def _live_translator_api_key():
-        configured_key = _live_translator_config.get("api_key", "")
-        if configured_key:
+        configured_key = _live_translator_to_text(
+            _live_translator_config.get("api_key", "")
+        ).strip()
+        # 示例占位文本不应触发无效请求；仍允许环境变量提供真实密钥。
+        if configured_key and u"这里填写" not in configured_key:
             return configured_key
         environment_name = _live_translator_config.get(
             "api_key_env", "REN_TRANSLATOR_API_KEY"
         )
-        return _live_translator_os_module.environ.get(environment_name, "")
+        return _live_translator_to_text(
+            _live_translator_os_module.environ.get(environment_name, "")
+        ).strip()
+
+    def _live_translator_runtime_api_ready():
+        model = _live_translator_to_text(
+            _live_translator_config.get("model", "")
+        ).strip()
+        return bool(
+            _live_translator_api_key()
+            and model
+            and model != "your-model-name"
+        )
 
     def _live_translator_endpoint():
         base_url = _live_translator_config.get("base_url", "").rstrip("/")
@@ -413,6 +428,9 @@ init 999 python:
                 _live_translator_fail_batch(batch, error)
 
     def _live_translator_enqueue(source):
+        # 没有有效 API 配置时保留英文原文，也不创建失败重试任务。
+        if not _live_translator_runtime_api_ready():
+            return
         now = _live_translator_time_module.time()
         with _live_translator_lock:
             retry_time = _live_translator_retry_after.get(source, 0)
