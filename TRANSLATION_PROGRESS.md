@@ -5,12 +5,12 @@
 ## 当前结论
 
 - 待翻译清单总数：15,770 条。
-- 已完成人工翻译：8,421 条，约 53.4%。
-- 剩余：7,349 条。
-- 当前准确断点：`daya9_be.rpy` 已完成前 50/73 条，下次从第 51 条继续。
+- 已完成人工翻译：8,551 条，约 54.2%。
+- 剩余：7,219 条。
+- 当前准确断点：`daya10_be.rpy` 尚未开始，共 231 条，下次从第 1 条继续。
 - 所有译文保存在项目的 `translations` 目录，并按 Day、路线和分支拆分。
 - 这一阶段的离线人工翻译没有调用 DeepSeek 或其他翻译 API。
-- 最后一笔翻译提交：`dead0b1 translations：继续艾登路线Day 9坏结局回忆剧情`。
+- 最后一笔翻译提交：`6630fa5 translations：完成艾登路线Day 10 WE分支剧情`。
 
 ## 实现方式
 
@@ -129,20 +129,21 @@ D:\Program Files\Steam\steamapps\common\Camp Buddy Scoutmaster Season\game\scrip
 | `daya08.jsonl` | 641 | 完成 |
 | `daya09.jsonl` | 386 | 主文件完成 |
 | `daya09_we.jsonl` | 6 | WE 分支完成 |
-| `daya09_be.jsonl` | 50/73 | 未完成，剩余 23 条 |
-| **合计** | **8,421** | **剩余 7,349 条** |
+| `daya09_be.jsonl` | 73 | 完成 |
+| `daya09_gepe.jsonl` | 82 | GEPE 分支完成 |
+| `daya10_we.jsonl` | 25 | WE 分支完成 |
+| **合计** | **8,551** | **剩余 7,219 条** |
 
 ## 后续翻译顺序
 
 建议继续保持按 Day 和路线推进：
 
-1. 完成 `daya9_be.rpy` 剩余 23 条，从第 51 条开始。
-2. 翻译 `daya9_gepe.rpy`，共 82 条。
-3. 翻译艾登路线 Day 10：`daya10_we.rpy` 25 条、`daya10_be.rpy` 231 条、
+1. 翻译艾登路线 Day 10 BE 分支：`daya10_be.rpy` 共 231 条，从第 1 条开始。
+2. 继续翻译艾登路线 Day 10：
    `daya10_gepe.rpy` 558 条。
-4. 处理艾登个人场景文件，例如 `aiden_*.rpy`。
-5. 按 `dayg1.rpy` 到 `dayg10_*.rpy` 的顺序翻译吾郎路线。
-6. 最后处理 `goro_*.rpy`、零散 UI 和其他剩余文件。
+3. 处理艾登个人场景文件，例如 `aiden_*.rpy`。
+4. 按 `dayg1.rpy` 到 `dayg10_*.rpy` 的顺序翻译吾郎路线。
+5. 最后处理 `goro_*.rpy`、零散 UI 和其他剩余文件。
 
 剩余量最大的文件包括：
 
@@ -163,15 +164,16 @@ D:\Program Files\Steam\steamapps\common\Camp Buddy Scoutmaster Season\game\scrip
 
 截至 2026-08-02 的实测结果：
 
-- 项目分卷：8,421 条。
-- 游戏内 `pretranslated.jsonl`：只有 272 条，修改时间为 2026-07-31 08:31:11。
-- 因此后续完成的大批译文目前只在项目中，尚未重新合并安装到游戏。
+- 项目分卷：8,551 条。
+- 游戏内 `pretranslated.jsonl`：8,551 条，修改时间为 2026-08-02 17:21:02，
+  SHA-256 为 `B9B2891B0D9DF44D21EFFF4AC18465E661DDBE32C5A00476577AC9B76E4858FB`。
+- 项目合并文件与游戏内文件 SHA-256 一致，当前项目译文已重新合并并安装到游戏。
 - 游戏内运行时缓存：18 条、2,743 字节。
 - 项目备份：`backups/cache.jsonl`。
 - 游戏缓存与项目备份 SHA-256 均为
   `CC3AF0FBCAD881BA63D60751ABC8B602BD6A2A6249E5024282F0EEA913BD84CD`。
 
-需要在游戏中使用当前全部 8,421 条译文时，重新运行一次 `Install.ps1` 即可；
+后续新增译文后，重新运行一次 `Install.ps1` 即可更新游戏内文件；
 该操作会保留已有 API 配置和运行时缓存。
 
 ## 注意事项
