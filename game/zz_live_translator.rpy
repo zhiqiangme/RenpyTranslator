@@ -196,9 +196,6 @@ init 999 python:
     _live_translator_english_pattern = _live_translator_re_module.compile(
         r"[A-Za-z]"
     )
-    _live_translator_cjk_pattern = _live_translator_re_module.compile(
-        u"[\u3400-\u9fff]"
-    )
     _live_translator_skip_patterns = []
     for configured_pattern in _live_translator_config.get(
         "skip_patterns", []
@@ -434,24 +431,6 @@ init 999 python:
                 )
         return cached_translation
 
-    def _live_translator_apply_text_font(value):
-        text_value = _live_translator_to_text(value)
-        if not _live_translator_cjk_pattern.search(text_value):
-            return text_value
-
-        font_path = _live_translator_config.get("font", "")
-        if (
-            not font_path
-            or not _live_translator_os_module.path.isfile(font_path)
-        ):
-            return text_value
-
-        # 内联字体标签优先级高于界面中硬编码的英文字体。
-        opening_tag = u"{font=" + _live_translator_to_text(font_path) + u"}"
-        if text_value.startswith(opening_tag) and text_value.endswith(u"{/font}"):
-            return text_value
-        return opening_tag + text_value + u"{/font}"
-
     def _live_translator_font_path(fallback):
         font_path = _live_translator_config.get("font", "")
         if font_path and _live_translator_os_module.path.isfile(font_path):
@@ -500,8 +479,8 @@ init 999 python:
         source = _live_translator_to_text(value)
         cached_translation = _live_translator_lookup(source)
         if cached_translation is not None:
-            return _live_translator_apply_text_font(cached_translation)
-        return _live_translator_apply_text_font(original_value)
+            return cached_translation
+        return original_value
 
     def _live_translator_replace_text(value):
         original_value = value
@@ -522,16 +501,16 @@ init 999 python:
 
         source = _live_translator_to_text(original_value)
         if not _live_translator_should_translate(source):
-            return _live_translator_apply_text_font(original_value)
+            return original_value
 
         cached_translation = _live_translator_lookup(source)
         if cached_translation is not None:
-            return _live_translator_apply_text_font(cached_translation)
+            return cached_translation
 
         _live_translator_enqueue(source)
         pending_text = _live_translator_config.get("pending_text", "")
         if pending_text:
-            return _live_translator_apply_text_font(pending_text)
+            return _live_translator_to_text(pending_text)
         return original_value
 
     def _live_translator_toggle():
@@ -586,6 +565,19 @@ init 999 python:
             gui.interface_text_font = font_path
         except Exception:
             pass
+
+        # 字体替换在字形加载阶段生效，可覆盖屏幕中硬编码的英文字体，
+        # 不会像动态文本标签那样污染对话、存档名和截图正文。
+        replacement_fonts = [
+            "Fonts/EnterCommand.ttf",
+            "fonts/TT2020StyleE-Regular.ttf"
+        ]
+        for source_font in replacement_fonts:
+            for bold in (False, True):
+                for italics in (False, True):
+                    config.font_replacement_map[
+                        (source_font, bold, italics)
+                    ] = (font_path, bold, italics)
 
         common_style_names = [
             "default",
