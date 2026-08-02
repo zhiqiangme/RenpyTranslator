@@ -452,6 +452,32 @@ init 999 python:
             return text_value
         return opening_tag + text_value + u"{/font}"
 
+    def _live_translator_font_path(fallback):
+        font_path = _live_translator_config.get("font", "")
+        if font_path and _live_translator_os_module.path.isfile(font_path):
+            return font_path
+        return fallback
+
+    def _live_translator_confirm_message(message):
+        # Ren'Py 的内置确认文本可能先逐句翻译，再用换行拼成完整消息。
+        message_text = _live_translator_to_text(message)
+        translated_parts = []
+        for part in _live_translator_re_module.split(u"(\n)", message_text):
+            if not part or part == u"\n":
+                translated_parts.append(part)
+                continue
+
+            cached_translation = _live_translator_lookup(part)
+            if cached_translation is not None:
+                translated_parts.append(cached_translation)
+                continue
+
+            translated_parts.append(part)
+            if _live_translator_should_translate(part):
+                _live_translator_enqueue(part)
+
+        return u"".join(translated_parts)
+
     def _live_translator_replace_say_menu_text(value):
         # 此过滤器在文本标签和 [变量] 展开前运行，保证整句精确命中。
         original_value = value
@@ -628,3 +654,46 @@ init 999 python:
 screen live_translator_hotkeys():
     key "K_F9" action Function(_live_translator_toggle)
     key "K_F10" action Function(_live_translator_show_status)
+
+
+# 游戏原确认屏幕将正文绑定到不含中文字形的 TT2020 字体。
+# 在模组文件中重定义同名屏幕，并为正文直接指定已配置的中文字体。
+screen confirm(message, yes_action, no_action):
+    modal True
+    zorder 1002
+    style_prefix "confirm"
+
+    add "images/interface/dark_overlay.png"
+    add "images/interface/confirm/confirm_box.png" xalign 0.5 yalign 0.5
+
+    text _live_translator_confirm_message(message):
+        style "text_confirm"
+        font _live_translator_font_path("fonts/TT2020StyleE-Regular.ttf")
+        xalign 0.5
+        yalign 0.5
+        xmaximum 800
+        yoffset -65
+
+    hbox:
+        xalign 0.5
+        yalign 0.5
+        yoffset 180
+        spacing 150
+
+        imagebutton:
+            xmaximum 295
+            ymaximum 121
+            activate_sound "Audio/Buttons/button_accept.ogg"
+            idle "images/interface/confirm/confirm_button_yes_idle.png"
+            hover "images/interface/confirm/confirm_button_yes_hover.png"
+            action [Function(sendCommandToActiveToy, {"command":"Stop"}), yes_action]
+
+        imagebutton:
+            xmaximum 295
+            ymaximum 121
+            activate_sound "Audio/Buttons/button_back.ogg"
+            idle "images/interface/confirm/confirm_button_no_idle.png"
+            hover "images/interface/confirm/confirm_button_no_hover.png"
+            action no_action
+
+    key "game_menu" action no_action
