@@ -588,6 +588,7 @@ init 999 python:
         # 不会像动态文本标签那样污染对话、存档名和截图正文。
         replacement_fonts = [
             "Fonts/EnterCommand.ttf",
+            "Fonts/Overspray.ttf",
             "fonts/TT2020StyleE-Regular.ttf"
         ]
         for source_font in replacement_fonts:
@@ -603,6 +604,11 @@ init 999 python:
             "say_label",
             "input",
             "choice_button_text",
+            # Camp Buddy 的四块木牌选项使用独立样式和 Overspray 字体。
+            "choice_button_text1",
+            "choice_button_text2",
+            "choice_button_text3",
+            "choice_button_text4",
             "button_text",
             "label_text",
             "interface_text",
