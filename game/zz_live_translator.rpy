@@ -131,6 +131,11 @@ init 999 python:
     def _live_translator_normalize_source_key(source):
         # 仅规范化查找键，不修改实际显示文本或发送给 API 的原文。
         source_text = _live_translator_to_text(source)
+        # Ren'Py 会移除弯引号前用于脚本解析的反斜杠。
+        source_text = source_text.replace(u"\\“", u"“")
+        source_text = source_text.replace(u"\\”", u"”")
+        source_text = source_text.replace(u"\\‘", u"‘")
+        source_text = source_text.replace(u"\\’", u"’")
         return _live_translator_re_module.sub(
             u"[ \\t\\r\\n]+", u" ", source_text
         ).strip()
@@ -507,7 +512,7 @@ init 999 python:
             if cached_translation is not None:
                 return cached_translation
 
-            # Ren'Py 运行时可能折叠连续空格，使用规范化键进行安全兜底。
+            # Ren'Py 可能折叠空格或移除引号转义，使用规范化键安全兜底。
             normalized_key = _live_translator_normalize_source_key(source)
             normalized_record = (
                 _live_translator_runtime_normalized_cache.get(normalized_key)
