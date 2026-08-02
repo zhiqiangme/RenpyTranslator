@@ -112,6 +112,10 @@ init 999 python:
     )
     _live_translator_pretranslated_cache = {}
     _live_translator_runtime_cache = {}
+    _live_translator_pretranslated_normalized_cache = {}
+    _live_translator_runtime_normalized_cache = {}
+    _live_translator_pretranslated_normalized_conflicts = set()
+    _live_translator_runtime_normalized_conflicts = set()
     _live_translator_pending = set()
     _live_translator_retry_after = {}
     _live_translator_queue = _live_translator_queue_module.Queue()
@@ -124,7 +128,44 @@ init 999 python:
         config.say_menu_text_filter
     )
 
-    def _live_translator_load_cache(cache_path, cache_name, target_cache):
+    def _live_translator_normalize_source_key(source):
+        # 仅规范化查找键，不修改实际显示文本或发送给 API 的原文。
+        source_text = _live_translator_to_text(source)
+        return _live_translator_re_module.sub(
+            u"[ \\t\\r\\n]+", u" ", source_text
+        ).strip()
+
+    def _live_translator_index_normalized_source(
+        source,
+        translation,
+        normalized_cache,
+        normalized_conflicts
+    ):
+        normalized_key = _live_translator_normalize_source_key(source)
+        if not normalized_key or normalized_key in normalized_conflicts:
+            return
+
+        indexed_record = normalized_cache.get(normalized_key)
+        if indexed_record is None:
+            normalized_cache[normalized_key] = (source, translation)
+            return
+
+        indexed_source, indexed_translation = indexed_record
+        if indexed_source == source or indexed_translation == translation:
+            normalized_cache[normalized_key] = (source, translation)
+            return
+
+        # 仅空格不同却对应不同译文时禁止兜底，避免误匹配到另一句。
+        normalized_cache.pop(normalized_key, None)
+        normalized_conflicts.add(normalized_key)
+
+    def _live_translator_load_cache(
+        cache_path,
+        cache_name,
+        target_cache,
+        target_normalized_cache,
+        target_normalized_conflicts
+    ):
         if not _live_translator_os_module.path.isfile(cache_path):
             return 0
 
@@ -144,6 +185,12 @@ init 999 python:
                             record["translation"]
                         )
                         target_cache[source] = translation
+                        _live_translator_index_normalized_source(
+                            source,
+                            translation,
+                            target_normalized_cache,
+                            target_normalized_conflicts
+                        )
                         loaded_count += 1
                     except Exception:
                         # 单行损坏不影响其余缓存。
@@ -178,12 +225,16 @@ init 999 python:
     _live_translator_pretranslated_count = _live_translator_load_cache(
         _live_translator_pretranslated_path,
         "pretranslated cache",
-        _live_translator_pretranslated_cache
+        _live_translator_pretranslated_cache,
+        _live_translator_pretranslated_normalized_cache,
+        _live_translator_pretranslated_normalized_conflicts
     )
     _live_translator_runtime_cache_count = _live_translator_load_cache(
         _live_translator_cache_path,
         "runtime cache",
-        _live_translator_runtime_cache
+        _live_translator_runtime_cache,
+        _live_translator_runtime_normalized_cache,
+        _live_translator_runtime_normalized_conflicts
     )
     _live_translator_log(
         "LiveTranslator: loaded pretranslated=%d runtime_cache=%d"
@@ -373,6 +424,12 @@ init 999 python:
         with _live_translator_lock:
             for source, translation in zip(sources, translations):
                 _live_translator_runtime_cache[source] = translation
+                _live_translator_index_normalized_source(
+                    source,
+                    translation,
+                    _live_translator_runtime_normalized_cache,
+                    _live_translator_runtime_normalized_conflicts
+                )
                 _live_translator_pending.discard(source)
                 _live_translator_retry_after.pop(source, None)
                 _live_translator_append_cache(source, translation)
@@ -440,13 +497,29 @@ init 999 python:
         _live_translator_queue.put(source)
 
     def _live_translator_lookup(source):
-        # 运行时缓存优先，便于用户覆盖离线预翻译。
+        # 精确匹配优先；同一级别中运行时缓存优先，便于用户覆盖预翻译。
         with _live_translator_lock:
             cached_translation = _live_translator_runtime_cache.get(source)
             if cached_translation is None:
                 cached_translation = (
                     _live_translator_pretranslated_cache.get(source)
                 )
+            if cached_translation is not None:
+                return cached_translation
+
+            # Ren'Py 运行时可能折叠连续空格，使用规范化键进行安全兜底。
+            normalized_key = _live_translator_normalize_source_key(source)
+            normalized_record = (
+                _live_translator_runtime_normalized_cache.get(normalized_key)
+            )
+            if normalized_record is None:
+                normalized_record = (
+                    _live_translator_pretranslated_normalized_cache.get(
+                        normalized_key
+                    )
+                )
+            if normalized_record is not None:
+                cached_translation = normalized_record[1]
         return cached_translation
 
     def _live_translator_font_path(fallback):
