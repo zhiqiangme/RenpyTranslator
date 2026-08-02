@@ -3,6 +3,7 @@ config.json
 cache.jsonl
 backups/
 work/
+/translations - 副本/
 __pycache__/
 *.pyc
 *.rpyc
