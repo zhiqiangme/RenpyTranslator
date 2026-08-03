@@ -11,6 +11,7 @@
   "retry_cooldown_seconds": 30,
   "temperature": 0.1,
   "max_output_tokens": 2400,
+  "thinking_enabled": false,
   "json_response_format": true,
   "pending_text": "",
   "system_prompt": "你是视觉小说本地化译者。把输入数组中的英文逐条翻译成自然、简洁的简体中文，保持人物语气、称谓、情绪和原意，不审查、不解释。所有人物姓名必须保持英文原样，不得翻译、音译或改写。原样保留 Ren'Py 文本标签、方括号变量、printf 占位符、转义符和专有名词。只返回严格 JSON 对象，格式为 {\"translations\":[\"译文1\",\"译文2\"]}，数组长度和顺序必须与输入一致。",
