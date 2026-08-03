@@ -52,6 +52,7 @@ init 999 python:
         "retry_cooldown_seconds": 30,
         "temperature": 0.1,
         "max_output_tokens": 2400,
+        "thinking_enabled": False,
         "json_response_format": True,
         "pending_text": "",
         "system_prompt": (
@@ -495,6 +496,13 @@ init 999 python:
         }
         if _live_translator_config.get("json_response_format", True):
             payload["response_format"] = {"type": "json_object"}
+
+        # DeepSeek 等 OpenAI 兼容接口的思考模式开关；默认关闭思考以降低延迟并稳定输出。
+        # 文档：https://api-docs.deepseek.com/zh-cn/guides/thinking_mode
+        if _live_translator_config.get("thinking_enabled", False):
+            payload["thinking"] = {"type": "enabled"}
+        else:
+            payload["thinking"] = {"type": "disabled"}
 
         headers = {
             "Authorization": "Bearer " + api_key,
