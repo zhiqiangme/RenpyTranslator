@@ -103,10 +103,6 @@ D:\Program Files\Steam\steamapps\common\Camp Buddy Scoutmaster Season
 - 正确填写大模型 API 后，会在后台翻译并写入本地运行时缓存。
 - 未填写有效 API（包括仍保留示例 Key）时，不会发送网络请求，游戏直接显示英文原文。
 
-本地私用的 `translations_bak` 译文已被 Git 忽略，不应提交或上传。需要安装
-这套完整私用译文时，运行 `translations_bak\Install.ps1`；该脚本只会从
-`translations_bak` 合并译文，不会读取公开的 `translations`。
-
 ## 卸载
 
 仅移除模组，保留配置和缓存：
