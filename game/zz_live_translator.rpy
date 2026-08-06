@@ -690,9 +690,21 @@ init 999 python:
                 return normalized_record[1]
         return None
 
+    def _live_translator_font_available(font_path):
+        # 绝对路径走真实文件检查；相对路径视为 Ren'Py 虚拟文件系统路径，
+        # 以游戏 game 目录为基准拼接后检查真实文件是否存在。
+        if not font_path:
+            return False
+        if _live_translator_os_module.path.isabs(font_path):
+            return _live_translator_os_module.path.isfile(font_path)
+        candidate = _live_translator_os_module.path.join(
+            renpy.config.gamedir, font_path
+        )
+        return _live_translator_os_module.path.isfile(candidate)
+
     def _live_translator_font_path(fallback):
         font_path = _live_translator_config.get("font", "")
-        if font_path and _live_translator_os_module.path.isfile(font_path):
+        if font_path and _live_translator_font_available(font_path):
             return font_path
         return fallback
 
@@ -840,7 +852,7 @@ init 999 python:
         font_path = _live_translator_config.get("font", "")
         if (
             not font_path
-            or not _live_translator_os_module.path.isfile(font_path)
+            or not _live_translator_font_available(font_path)
         ):
             _live_translator_log(
                 "LiveTranslator: configured font not found: %s" % font_path
