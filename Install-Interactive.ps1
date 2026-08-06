@@ -5,7 +5,7 @@ param(
     [string]$GamePath = "",
     [string]$FontChoice = "",
     [string]$ApiKey = "",
-    [string]$FontSourcePath = "D:\Users\Desktop\HarmonyOS Sans\HarmonyOS_Sans_SC.ttf"
+    [string]$FontSourcePath = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -97,6 +97,10 @@ $config = Get-Content -LiteralPath $targetConfig -Raw -Encoding UTF8 | ConvertFr
 # 字体：鸿蒙复制到游戏目录并写相对路径；宋体/微软雅黑引用系统字体
 switch ($fontChoice) {
     "1" {
+        # 未指定时优先使用项目内置字体目录
+        if ([string]::IsNullOrWhiteSpace($FontSourcePath)) {
+            $FontSourcePath = Join-Path $projectRoot "fonts\HarmonyOS_Sans_SC.ttf"
+        }
         if (-not (Test-Path -LiteralPath $FontSourcePath -PathType Leaf)) {
             throw "未找到鸿蒙字体源文件：$FontSourcePath`n请用 -FontSourcePath 参数指定 HarmonyOS_Sans_SC.ttf 的实际位置"
         }
@@ -150,3 +154,20 @@ Write-Host ""
 Write-Host "安装完成：$targetScript"
 Write-Host "配置文件：$targetConfig"
 Write-Host "游戏内快捷键：F9 开关翻译，F10 查看状态。"
+
+# ---------- 更新检测 ----------
+$updateScript = Join-Path $projectRoot "Update.ps1"
+if (Test-Path -LiteralPath $updateScript -PathType Leaf) {
+    try {
+        $updateState = & $updateScript -CheckOnly
+        if ($updateState -like "UPDATE_AVAILABLE*" -or $updateState -like "UNKNOWN_LOCAL*") {
+            Write-Host "检测到项目有可用更新（$updateState）" -ForegroundColor Cyan
+            $updateAnswer = Read-Host "按回车立即更新；输入「不更新」跳过"
+            if ($updateAnswer.Trim() -ne "不更新") { & $updateScript -Force }
+        } elseif ($updateState -ne "NO_RELEASE") {
+            Write-Host "模组已是最新版本（$updateState）"
+        }
+    } catch {
+        Write-Host "警告：更新检测失败，不影响本次安装。$_" -ForegroundColor Yellow
+    }
+}

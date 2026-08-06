@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$GamePath = "D:\Program Files\Steam\steamapps\common\Camp Buddy Scoutmaster Season",
     [string]$TranslationsPath = ""
 )
@@ -54,3 +54,20 @@ if (Test-Path -LiteralPath $sourceTranslations -PathType Container) {
 Write-Host "安装完成：$targetScript"
 Write-Host "请编辑配置：$targetConfig"
 Write-Host "游戏内快捷键：F9 开关翻译，F10 查看状态。"
+
+# ---------- 更新检测 ----------
+$updateScript = Join-Path $projectRoot "Update.ps1"
+if (Test-Path -LiteralPath $updateScript -PathType Leaf) {
+    try {
+        $updateState = & $updateScript -CheckOnly
+        if ($updateState -like "UPDATE_AVAILABLE*" -or $updateState -like "UNKNOWN_LOCAL*") {
+            Write-Host "检测到项目有可用更新（$updateState）" -ForegroundColor Cyan
+            $updateAnswer = Read-Host "按回车立即更新；输入「不更新」跳过"
+            if ($updateAnswer.Trim() -ne "不更新") { & $updateScript -Force }
+        } elseif ($updateState -ne "NO_RELEASE") {
+            Write-Host "模组已是最新版本（$updateState）"
+        }
+    } catch {
+        Write-Host "警告：更新检测失败，不影响本次安装。$_" -ForegroundColor Yellow
+    }
+}
