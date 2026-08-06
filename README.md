@@ -66,6 +66,32 @@ D:\Program Files\Steam\steamapps\common\Camp Buddy Scoutmaster Season
 会自动校验重复项并合并到游戏目录；翻译清单和提取出的剧情源码只保存在已忽略的
 `work` 目录中。
 
+## 更新
+
+更新脚本会检测 GitHub 仓库 `zhiqiangme/renpy-live-translator` 的发行版，
+有新版本时下载并覆盖项目文件（模组代码 + 译文），本地私有文件
+（`config.json`、`cache.jsonl`、`work`、`backups`、`translations_bak`）不受影响。
+
+双击运行：
+
+```powershell
+.\Update.ps1
+```
+
+或者只检测不更新（供脚本复用）：
+
+```powershell
+.\Update.ps1 -CheckOnly
+```
+
+两个安装脚本（`Install.ps1`、`Install-Interactive.ps1`）在安装完成后也会自动
+检查一次更新：无异常且无更新时直接结束；检测到新版本时按回车立即更新，
+输入「不更新」跳过。网络不可用或仓库暂未发布时静默跳过，不影响安装。
+
+版本号取自 GitHub 发行版的标签（如 `v1.0.0`），本地记录在根目录
+`version.txt`。更新完成后**需要重新运行一次安装脚本**，才会把新译文
+合并进游戏目录的 `pretranslated.jsonl`。
+
 ## 公开译文范围
 
 公开仓库会保留全部 JSONL 分卷，但成人敏感内容会按单条
