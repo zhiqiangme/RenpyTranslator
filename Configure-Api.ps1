@@ -1,12 +1,13 @@
 ﻿# 配置脚本：设置 API Key（DPAPI 加密）与模型服务商
 # 用法：在 PowerShell 中运行 .\Configure-Api.ps1
-# 交互流程：选择模型服务商（默认 DeepSeek）→ 确认 API 地址（预设自动填入）→ 填写 API Key
-# 可选参数：提供 -GamePath/-Provider/-ApiKey/-BaseUrl 时跳过对应交互（便于自动化）
+# 交互流程：选择模型服务商（默认 DeepSeek）→ 确认 API 地址（预设自动填入）→ 填写 API Key → 确认模型名（预填默认，可改）
+# 可选参数：提供 -GamePath/-Provider/-ApiKey/-BaseUrl/-Model 时跳过对应交互（便于自动化）
 param(
     [string]$GamePath = "",
     [string]$Provider = "",
     [string]$ApiKey = "",
-    [string]$BaseUrl = ""
+    [string]$BaseUrl = "",
+    [string]$Model = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -69,11 +70,12 @@ try {
 
     $selectedProvider = $providers[$providerIndex]
     $baseUrl = [string]$selectedProvider.BaseUrl
-    $Model = [string]$selectedProvider.DefaultModel
+    # 服务商预设的默认模型，作为后续确认步骤的预填值
+    $defaultModel = [string]$selectedProvider.DefaultModel
 
     # ---------- 3. 确认 API 地址（预设自动填入，回车默认，可手动修改） ----------
     Write-Host ""
-    Write-Host "服务商：$($selectedProvider.Name)    模型：$Model"
+    Write-Host "服务商：$($selectedProvider.Name)"
     if (-not [string]::IsNullOrWhiteSpace($BaseUrl)) {
         $baseUrl = $BaseUrl.Trim()
     } elseif ([string]::IsNullOrWhiteSpace($baseUrl)) {
@@ -96,6 +98,22 @@ try {
         $apiKeyInput = $apiKeyInput.Trim()
     } else {
         $apiKeyInput = $ApiKey.Trim()
+    }
+
+    # ---------- 5. 确认模型名（预填服务商默认模型，回车直接用，可手改） ----------
+    Write-Host ""
+    if ([string]::IsNullOrWhiteSpace($Model)) {
+        $modelInput = Read-Host "模型名（直接回车使用默认：$defaultModel）"
+        if ([string]::IsNullOrWhiteSpace($modelInput)) {
+            if ([string]::IsNullOrWhiteSpace($defaultModel)) {
+                throw "模型名不能为空，请重新运行并手动输入模型名"
+            }
+            $Model = $defaultModel
+        } else {
+            $Model = $modelInput.Trim()
+        }
+    } else {
+        $Model = $Model.Trim()
     }
 
     # ---------- 写回配置：DPAPI 加密 API Key ----------
