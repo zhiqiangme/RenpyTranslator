@@ -17,8 +17,8 @@ $defaultGamePath = "D:\Program Files\Steam\steamapps\common\Camp Buddy Scoutmast
 
 # ---------- 1. 输入游戏目录 ----------
 if ([string]::IsNullOrWhiteSpace($GamePath)) {
-    $gamePathInput = Read-Host "请输入游戏目录（直接回车使用默认路径）`
-$defaultGamePath"
+    Write-Host "默认游戏目录：$defaultGamePath"
+    $gamePathInput = Read-Host "请输入游戏目录（直接回车使用默认路径）"
     if ([string]::IsNullOrWhiteSpace($gamePathInput)) {
         $GamePath = $defaultGamePath
     } else {
