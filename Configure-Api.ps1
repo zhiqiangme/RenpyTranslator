@@ -127,7 +127,8 @@ try {
     Write-Host "配置完成：$targetConfig"
     Write-Host "服务商：$($selectedProvider.Name)（$baseUrl）"
     Write-Host "模型：$Model"
-    Write-Host "游戏内快捷键：F9 开关翻译，F10 查看状态。"
+    Write-Host "游戏内快捷键：" -NoNewline
+    Write-Host "F9 开关翻译，F10 查看状态。" -ForegroundColor Red
 } catch {
     # 任何错误立即停止并提示，不继续写配置。
     Write-Host ""

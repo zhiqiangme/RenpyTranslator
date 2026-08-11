@@ -177,8 +177,13 @@ if (Test-Path -LiteralPath $sourceTranslations -PathType Container) {
 Write-Host ""
 Write-Host "安装完成：$targetScript"
 Write-Host "配置文件：$targetConfig"
-Write-Host "游戏内快捷键：F9 开关翻译，F10 查看状态。"
-Write-Host "如需修改 API Key 或切换模型服务商，请运行 Configure-Api.ps1。"
+Write-Host "游戏内快捷键：" -NoNewline
+Write-Host "F9 开关翻译，F10 查看状态。" -ForegroundColor Red
+Write-Host "如需修改 " -NoNewline
+Write-Host "API Key" -ForegroundColor Green -NoNewline
+Write-Host " 或切换模型服务商，请运行 " -NoNewline
+Write-Host "Configure-Api.ps1" -ForegroundColor Green -NoNewline
+Write-Host "。"
 
 # ---------- 更新检测 ----------
 $updateScript = Join-Path $projectRoot "Update.ps1"
