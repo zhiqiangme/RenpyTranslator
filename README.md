@@ -120,9 +120,7 @@ D:\Program Files\Steam\steamapps\common\Camp Buddy Scoutmaster Season
 
 ## 公开译文范围
 
-公开仓库会保留全部 JSONL 分卷，但成人敏感内容会按单条
-`{"source":"...","translation":"..."}` 记录移除，不会把整个分卷文件删除。
-其余大部分人工译文仍可直接使用。
+公开仓库保留全部 JSONL 分卷，其余大部分人工译文仍可直接使用。
 
 遇到公开译文中缺失的句子时：
 
