@@ -153,6 +153,25 @@ init 999 python:
         # 脚本中的 \% 在不同文本阶段可能变成 % 或 %%。
         source_text = source_text.replace(u"\\%", u"%")
         source_text = source_text.replace(u"%%", u"%")
+        # Ren'Py 运行时可能把标点换成全角形式，统一映射为半角以便兜底命中。
+        source_text = source_text.replace(u"！", u"!")
+        source_text = source_text.replace(u"？", u"?")
+        source_text = source_text.replace(u"，", u",")
+        source_text = source_text.replace(u"。", u".")
+        source_text = source_text.replace(u"：", u":")
+        source_text = source_text.replace(u"；", u";")
+        source_text = source_text.replace(u"（", u"(")
+        source_text = source_text.replace(u"）", u")")
+        source_text = source_text.replace(u"～", u"~")
+        source_text = source_text.replace(u"“", u'"')
+        source_text = source_text.replace(u"”", u'"')
+        source_text = source_text.replace(u"‘", u"'")
+        source_text = source_text.replace(u"’", u"'")
+        source_text = source_text.replace(u"\u3000", u" ")
+        # 中文习惯用两个省略号，英文用一个；折叠成单个便于匹配。
+        source_text = _live_translator_re_module.sub(
+            u"…+", u"…", source_text
+        )
         return _live_translator_re_module.sub(
             u"[ \\t\\r\\n]+", u" ", source_text
         ).strip()
@@ -177,9 +196,10 @@ init 999 python:
             normalized_cache[normalized_key] = (source, translation)
             return
 
-        # 仅空格不同却对应不同译文时禁止兜底，避免误匹配到另一句。
-        normalized_cache.pop(normalized_key, None)
-        normalized_conflicts.add(normalized_key)
+        # 归一化后同一键但译文不同的冲突：保留第一条用于兜底，避免
+        # 运行时空白/标点变体因无精确命中而白白调用 API。若运行时文本
+        # 精确命中库中某条变体，仍走精确匹配，不受此兜底影响。
+        pass
 
     def _live_translator_load_cache(
         cache_path,
