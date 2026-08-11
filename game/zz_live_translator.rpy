@@ -294,6 +294,15 @@ init 999 python:
         "Saturday": u"星期六",
         "Sunday": u"星期日"
     }
+    # 引擎找不到图片时的运行时错误提示，图名是动态的，需本地确定性翻译，
+    # 避免每张缺失图都触发一次 API 调用；兼容直引号/弯引号及有无句号。
+    _live_translator_image_not_found_pattern = (
+        _live_translator_re_module.compile(
+            u"^Image\\s+[\u0027\u2018\u2019]"
+            u"([^\u0027\u2018\u2019]+)"
+            u"[\u0027\u2018\u2019]\\s+not found\\.?\\s*$"
+        )
+    )
     _live_translator_text_tag_pattern = _live_translator_re_module.compile(
         u"\\{[^{}]*\\}"
     )
@@ -356,6 +365,14 @@ init 999 python:
         if weekday_match.group(2):
             return translated_weekday + u"，"
         return translated_weekday
+
+    def _live_translator_local_image_not_found_translation(source):
+        # 引擎报错 "Image 'xxx' not found." 时按动态图名本地直译，
+        # 不查询翻译库也不调用 API。
+        image_match = _live_translator_image_not_found_pattern.match(source)
+        if image_match is None:
+            return None
+        return u"找不到图片 '%s'" % image_match.group(1)
 
     def _live_translator_should_translate(source):
         stripped = source.strip()
@@ -760,6 +777,11 @@ init 999 python:
         )
         if local_save_slot is not None:
             return local_save_slot
+        local_image_not_found = (
+            _live_translator_local_image_not_found_translation(source)
+        )
+        if local_image_not_found is not None:
+            return local_image_not_found
         if not _live_translator_should_translate(source):
             return original_value
         cached_translation = _live_translator_lookup(source)
@@ -793,6 +815,11 @@ init 999 python:
         )
         if local_save_slot is not None:
             return local_save_slot
+        local_image_not_found = (
+            _live_translator_local_image_not_found_translation(source)
+        )
+        if local_image_not_found is not None:
+            return local_image_not_found
         if not _live_translator_should_translate(source):
             return original_value
 
