@@ -1,6 +1,6 @@
 ﻿# 配置脚本：设置 API Key（DPAPI 加密）与模型服务商
 # 用法：在 PowerShell 中运行 .\Configure-Api.ps1
-# 交互流程：选择模型服务商（默认 DeepSeek）→ 确认 API 地址（预设自动填入）→ 填写 API Key → 确认模型名（预填默认，可改）
+# 交互流程：选择模型服务商（默认 DeepSeek）→ 计费方式（官方API/订阅端点，无订阅不显示）→ 确认 API 地址 → 填写 API Key → 确认模型名
 # 可选参数：提供 -GamePath/-Provider/-ApiKey/-BaseUrl/-Model 时跳过对应交互（便于自动化）
 param(
     [string]$GamePath = "",
@@ -14,19 +14,20 @@ $ErrorActionPreference = "Stop"
 
 $defaultGamePath = "D:\Program Files\Steam\steamapps\common\Camp Buddy Scoutmaster Season"
 
-# 内置服务商预设：名称 / base_url / 默认模型（默认模型为该厂商最新款性价比模型）
+# 内置服务商预设：名称 / base_url / 默认模型 / 订阅端点（无则不填）/ 订阅端点默认模型
+# 默认模型为该厂商最新款性价比模型；订阅端点与官方按量 API 分开的厂商才填 PlanBaseUrl
 $providers = @(
-    @{ Name = "DeepSeek"; BaseUrl = "https://api.deepseek.com"; DefaultModel = "deepseek-v4-flash" },
-    @{ Name = "OpenAI"; BaseUrl = "https://api.openai.com/v1"; DefaultModel = "gpt-5.6-luna" },
-    @{ Name = "小米 MiMo"; BaseUrl = "https://api.mimo.mi.com/v1"; DefaultModel = "mimo-v2.5" },
-    @{ Name = "MiniMax"; BaseUrl = "https://api.minimax.chat/v1"; DefaultModel = "minimax-m3" },
-    @{ Name = "腾讯混元"; BaseUrl = "https://api.hunyuan.cloud.tencent.com/v1"; DefaultModel = "hy3" },
-    @{ Name = "Google Gemini"; BaseUrl = "https://generativelanguage.googleapis.com/v1beta/openai"; DefaultModel = "gemini-3.6-flash" },
-    @{ Name = "阿里通义千问"; BaseUrl = "https://dashscope.aliyuncs.com/compatible-mode/v1"; DefaultModel = "qwen-flash" },
-    @{ Name = "智谱 GLM"; BaseUrl = "https://open.bigmodel.cn/api/paas/v4"; DefaultModel = "glm-4.7-flash" },
-    @{ Name = "Kimi（月之暗面）"; BaseUrl = "https://api.moonshot.cn/v1"; DefaultModel = "kimi-k2.6" },
-    @{ Name = "字节豆包"; BaseUrl = "https://ark.cn-beijing.volces.com/api/v3"; DefaultModel = "doubao-seed-2.0-lite" },
-    @{ Name = "自定义（手动输入）"; BaseUrl = ""; DefaultModel = "" }
+    @{ Name = "DeepSeek"; BaseUrl = "https://api.deepseek.com"; DefaultModel = "deepseek-v4-flash"; PlanBaseUrl = ""; PlanModel = "" },
+    @{ Name = "OpenAI"; BaseUrl = "https://api.openai.com/v1"; DefaultModel = "gpt-5.6-luna"; PlanBaseUrl = ""; PlanModel = "" },
+    @{ Name = "小米 MiMo"; BaseUrl = "https://api.xiaomimimo.com/v1"; DefaultModel = "mimo-v2.5"; PlanBaseUrl = "https://token-plan-cn.xiaomimimo.com/v1"; PlanModel = "mimo-v2.5" },
+    @{ Name = "MiniMax"; BaseUrl = "https://api.minimax.chat/v1"; DefaultModel = "minimax-m3"; PlanBaseUrl = "https://api.minimaxi.com/v1"; PlanModel = "MiniMax-M3" },
+    @{ Name = "腾讯混元"; BaseUrl = "https://api.hunyuan.cloud.tencent.com/v1"; DefaultModel = "hy3"; PlanBaseUrl = ""; PlanModel = "" },
+    @{ Name = "Google Gemini"; BaseUrl = "https://generativelanguage.googleapis.com/v1beta/openai"; DefaultModel = "gemini-3.6-flash"; PlanBaseUrl = ""; PlanModel = "" },
+    @{ Name = "阿里通义千问"; BaseUrl = "https://dashscope.aliyuncs.com/compatible-mode/v1"; DefaultModel = "qwen-flash"; PlanBaseUrl = "https://coding.dashscope.aliyuncs.com/v1"; PlanModel = "qwen3.5-plus" },
+    @{ Name = "智谱 GLM"; BaseUrl = "https://open.bigmodel.cn/api/paas/v4"; DefaultModel = "glm-4.7-flash"; PlanBaseUrl = "https://open.bigmodel.cn/api/coding/paas/v4"; PlanModel = "glm-4.7" },
+    @{ Name = "Kimi（月之暗面）"; BaseUrl = "https://api.moonshot.cn/v1"; DefaultModel = "kimi-k2.6"; PlanBaseUrl = "https://api.kimi.com/coding/v1"; PlanModel = "kimi-for-coding" },
+    @{ Name = "字节豆包"; BaseUrl = "https://ark.cn-beijing.volces.com/api/v3"; DefaultModel = "doubao-seed-2.0-lite"; PlanBaseUrl = "https://ark.cn-beijing.volces.com/api/coding/v3"; PlanModel = "doubao-seed-2.0-lite" },
+    @{ Name = "自定义（手动输入）"; BaseUrl = ""; DefaultModel = ""; PlanBaseUrl = ""; PlanModel = "" }
 )
 
 try {
@@ -79,7 +80,27 @@ try {
     # 服务商预设的默认模型，作为后续确认步骤的预填值
     $defaultModel = [string]$selectedProvider.DefaultModel
 
-    # ---------- 3. 确认 API 地址（预设自动填入，回车默认，可手动修改） ----------
+    # ---------- 3. 计费方式选择（仅当该服务商有独立订阅端点时显示） ----------
+    $planBaseUrl = [string]$selectedProvider.PlanBaseUrl
+    if (-not [string]::IsNullOrWhiteSpace($planBaseUrl) -and
+        [string]::IsNullOrWhiteSpace($BaseUrl) -and
+        [string]::IsNullOrWhiteSpace($Model)) {
+        Write-Host ""
+        Write-Host "服务商：$($selectedProvider.Name)"
+        Write-Host "  1) 官方按量 API：$baseUrl"
+        Write-Host "  2) Token/Coding Plan 订阅：$planBaseUrl"
+        $planChoice = Read-Host "请选择计费方式（直接回车默认 1：官方按量 API）"
+        if ($planChoice.Trim() -eq "2") {
+            $baseUrl = $planBaseUrl
+            $planModel = [string]$selectedProvider.PlanModel
+            if (-not [string]::IsNullOrWhiteSpace($planModel)) {
+                $defaultModel = $planModel
+            }
+            Write-Host "已选择订阅端点，默认模型：$defaultModel"
+        }
+    }
+
+    # ---------- 4. 确认 API 地址（预设自动填入，回车默认，可手动修改） ----------
     Write-Host ""
     Write-Host "服务商：$($selectedProvider.Name)"
     if (-not [string]::IsNullOrWhiteSpace($BaseUrl)) {
@@ -97,7 +118,7 @@ try {
         }
     }
 
-    # ---------- 4. 输入 API Key ----------
+    # ---------- 5. 输入 API Key ----------
     Write-Host ""
     if ([string]::IsNullOrWhiteSpace($ApiKey)) {
         $apiKeyInput = Read-Host "请输入 API Key（直接回车：保留现有 Key）"
@@ -106,7 +127,7 @@ try {
         $apiKeyInput = $ApiKey.Trim()
     }
 
-    # ---------- 5. 确认模型名（预填服务商默认模型，回车直接用，可手改） ----------
+    # ---------- 6. 确认模型名（预填服务商默认模型，回车直接用，可手改） ----------
     Write-Host ""
     if ([string]::IsNullOrWhiteSpace($Model)) {
         $modelInput = Read-Host "模型名（直接回车使用默认：$defaultModel）"
