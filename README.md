@@ -9,7 +9,7 @@
 - 后台批量调用 OpenAI 兼容的 `/chat/completions` 接口，不阻塞游戏。
 - 优先读取由本项目人工维护的分卷译文，未命中时再使用运行时 API。
 - 首次出现时先显示英文，译文返回后自动刷新；之后从本地缓存即时显示中文。
-- 默认使用本机微软雅黑，避免原游戏字体缺少中文字形。
+- 默认使用随模组内置的鸿蒙字体 HarmonyOS Sans SC，避免原游戏字体缺少中文字形。
 
 图片中烘焙进去的英文不属于 Ren'Py 文本，不能通过此模组翻译，需要额外 OCR 或替换图片。
 
@@ -21,35 +21,58 @@
 .\Install.ps1
 ```
 
-默认安装到：
+安装脚本会交互式询问游戏目录、显示字体，并可填写 API Key。默认安装到：
 
 ```text
 D:\Program Files\Steam\steamapps\common\Camp Buddy Scoutmaster Season
 ```
 
-若游戏路径不同：
+若游戏路径不同，可跳过交互直接指定：
 
 ```powershell
 .\Install.ps1 -GamePath "D:\Games\YourRenPyGame"
 ```
 
-安装后编辑：
+安装脚本自动完成：
 
-```text
-游戏目录\game\live_translator\config.json
+1. 备份游戏目录里已有的 `zz_live_translator.rpy`。
+2. 复制最新模组脚本。
+3. 合并 `translations/*.jsonl` 到 `game/live_translator/pretranslated.jsonl`。
+4. 写入字体配置；`config.json` 中已有配置（base_url/model/缓存）不会被覆盖。
+
+## API Key 配置（DPAPI 加密）
+
+**API Key 不会明文保存在配置文件中。** 安装脚本（`Install.ps1`）或独立配置脚本
+（`Configure-Api.ps1`）会把 Key 用 Windows DPAPI 加密后写入
+`config.json` 的 `api_key_encrypted` 字段（绑定当前 Windows 用户，仅本机可解密），
+并清空旧的明文 `api_key` 字段。请勿手动向 `config.json` 填写明文 Key——模组不会读取它。
+
+推荐使用独立配置脚本管理 API Key、服务商与模型：
+
+```powershell
+.\Configure-Api.ps1
 ```
 
-至少填写：
+交互流程：选择游戏目录 → 选择模型服务商 → 选择计费方式（官方 API / Token Plan 订阅，
+仅支持订阅端点的服务商显示）→ 确认 API 地址（预设自动填入，可改）→ 填写 API Key（加密保存）
+→ 确认模型名（预填该服务商性价比默认模型，可改）。
 
-```json
-{
-  "base_url": "https://你的服务地址/v1",
-  "api_key": "你的 API Key",
-  "model": "你的模型名称"
-}
-```
+内置 10 家服务商预设（按序，默认模型为各家最新款性价比模型）：
 
-不要把包含 API Key 的配置文件发给别人。
+| 服务商 | 默认模型 | 订阅端点 |
+| --- | --- | --- |
+| DeepSeek | deepseek-v4-flash | — |
+| OpenAI | gpt-5.6-luna | — |
+| 小米 MiMo | mimo-v2.5 | 有 |
+| MiniMax | minimax-m3 | 有 |
+| 腾讯混元 | hy3 | — |
+| Google Gemini | gemini-3.6-flash | — |
+| 阿里通义千问 | qwen-flash | 有 |
+| 智谱 GLM | glm-4.7-flash | 有 |
+| Kimi（月之暗面） | kimi-k2.6 | 有 |
+| 字节豆包 | doubao-seed-2.0-lite | 有 |
+
+另有「自定义」选项，可手动输入 API 地址与模型名（如使用中转站或自建服务）。
 
 ## 使用
 
@@ -65,6 +88,9 @@ D:\Program Files\Steam\steamapps\common\Camp Buddy Scoutmaster Season
 `translations` 中的文件只包含原文和中文译文，不包含 API Key。执行安装脚本时
 会自动校验重复项并合并到游戏目录；翻译清单和提取出的剧情源码只保存在已忽略的
 `work` 目录中。
+
+模组对部分动态文本（如存档位编号、星期、图片缺失报错）做了本地确定性翻译，
+命中时不会调用 API。
 
 ## 更新
 
@@ -84,9 +110,9 @@ D:\Program Files\Steam\steamapps\common\Camp Buddy Scoutmaster Season
 .\Update.ps1 -CheckOnly
 ```
 
-两个安装脚本（`Install.ps1`、`Install-Interactive.ps1`）在安装完成后也会自动
-检查一次更新：无异常且无更新时直接结束；检测到新版本时按回车立即更新，
-输入「不更新」跳过。网络不可用或仓库暂未发布时静默跳过，不影响安装。
+`Install.ps1` 在安装完成后也会自动检查一次更新：无异常且无更新时直接结束；
+检测到新版本时按回车立即更新，输入「不更新」跳过。网络不可用或仓库暂未发布时
+静默跳过，不影响安装。
 
 版本号取自 GitHub 发行版的标签（如 `v1.0.0`），本地记录在根目录
 `version.txt`。更新完成后**需要重新运行一次安装脚本**，才会把新译文
@@ -101,7 +127,7 @@ D:\Program Files\Steam\steamapps\common\Camp Buddy Scoutmaster Season
 遇到公开译文中缺失的句子时：
 
 - 正确填写大模型 API 后，会在后台翻译并写入本地运行时缓存。
-- 未填写有效 API（包括仍保留示例 Key）时，不会发送网络请求，游戏直接显示英文原文。
+- 未填写有效 API（或 DPAPI 解密失败）时，不会发送网络请求，游戏直接显示英文原文。
 
 ## 卸载
 
