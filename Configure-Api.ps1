@@ -14,12 +14,18 @@ $ErrorActionPreference = "Stop"
 
 $defaultGamePath = "D:\Program Files\Steam\steamapps\common\Camp Buddy Scoutmaster Season"
 
-# 内置服务商预设：名称 / base_url / 默认模型
+# 内置服务商预设：名称 / base_url / 默认模型（默认模型为该厂商最新款性价比模型）
 $providers = @(
     @{ Name = "DeepSeek"; BaseUrl = "https://api.deepseek.com"; DefaultModel = "deepseek-v4-flash" },
-    @{ Name = "OpenAI"; BaseUrl = "https://api.openai.com/v1"; DefaultModel = "gpt-4o-mini" },
-    @{ Name = "OpenRouter"; BaseUrl = "https://openrouter.ai/api/v1"; DefaultModel = "deepseek/deepseek-chat" },
-    @{ Name = "硅基流动 SiliconFlow"; BaseUrl = "https://api.siliconflow.cn/v1"; DefaultModel = "deepseek-ai/DeepSeek-V3" },
+    @{ Name = "OpenAI"; BaseUrl = "https://api.openai.com/v1"; DefaultModel = "gpt-5.6-luna" },
+    @{ Name = "小米 MiMo"; BaseUrl = "https://api.mimo.mi.com/v1"; DefaultModel = "mimo-v2.5" },
+    @{ Name = "MiniMax"; BaseUrl = "https://api.minimax.chat/v1"; DefaultModel = "minimax-m3" },
+    @{ Name = "腾讯混元"; BaseUrl = "https://api.hunyuan.cloud.tencent.com/v1"; DefaultModel = "hy3" },
+    @{ Name = "Google Gemini"; BaseUrl = "https://generativelanguage.googleapis.com/v1beta/openai"; DefaultModel = "gemini-3.6-flash" },
+    @{ Name = "阿里通义千问"; BaseUrl = "https://dashscope.aliyuncs.com/compatible-mode/v1"; DefaultModel = "qwen-flash" },
+    @{ Name = "智谱 GLM"; BaseUrl = "https://open.bigmodel.cn/api/paas/v4"; DefaultModel = "glm-4.7-flash" },
+    @{ Name = "Kimi（月之暗面）"; BaseUrl = "https://api.moonshot.cn/v1"; DefaultModel = "kimi-k2.6" },
+    @{ Name = "字节豆包"; BaseUrl = "https://ark.cn-beijing.volces.com/api/v3"; DefaultModel = "doubao-seed-2.0-lite" },
     @{ Name = "自定义（手动输入）"; BaseUrl = ""; DefaultModel = "" }
 )
 
