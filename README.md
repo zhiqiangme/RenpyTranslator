@@ -94,7 +94,7 @@ D:\Program Files\Steam\steamapps\common\Camp Buddy Scoutmaster Season
 
 ## 更新
 
-更新脚本会检测 GitHub 仓库 `zhiqiangme/renpy-live-translator` 的发行版，
+更新脚本会检测 GitHub 仓库 `zhiqiangme/renpy-translator` 的发行版，
 有新版本时下载并覆盖项目文件（模组代码 + 译文），本地私有文件
 （`config.json`、`cache.jsonl`、`work`、`backups`、`translations_bak`）不受影响。
 

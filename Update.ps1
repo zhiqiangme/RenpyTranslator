@@ -6,7 +6,7 @@
 param(
     [switch]$CheckOnly,
     [switch]$Force,
-    [string]$Repository = "zhiqiangme/renpy-live-translator",
+    [string]$Repository = "zhiqiangme/renpy-translator",
     [string]$ProjectRoot = ""
 )
 
