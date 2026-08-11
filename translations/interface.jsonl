@@ -1,0 +1,89 @@
+{"source":"{#file_time}%A, %B %d %Y, %H:%M","translation":"{#file_time}%Y年%m月%d日 %A %H:%M"}
+{"source":"Are you sure you would like to rename this save?","translation":"确定要重命名这个存档吗？"}
+{"source":"Are you sure you want to return to the main menu?","translation":"确定要返回主菜单吗？"}
+{"source":"This will lose unsaved progress.","translation":"未保存的进度将会丢失。"}
+{"source":"Are you sure you want to quit?","translation":"确定要退出游戏吗？"}
+{"source":"Are you sure you want to overwrite your save?","translation":"确定要覆盖这个存档吗？"}
+{"source":"Are you sure you want to delete your save?","translation":"确定要删除这个存档吗？"}
+{"source":"Loading will lose unsaved progress. Are you sure you want to do this?","translation":"加载存档将丢失未保存的进度。确定要继续吗？"}
+{"source":"Camp Buddy Scoutmaster Season","translation":"Camp Buddy：童军长篇"}
+{"source":"Back","translation":"返回"}
+{"source":"History","translation":"历史"}
+{"source":"Skip","translation":"跳过"}
+{"source":"Auto","translation":"自动"}
+{"source":"Save","translation":"保存"}
+{"source":"Q.Save","translation":"快速保存"}
+{"source":"Q.Load","translation":"快速读取"}
+{"source":"Prefs","translation":"设置"}
+{"source":"Start","translation":"开始游戏"}
+{"source":"Load","translation":"读取"}
+{"source":"Preferences","translation":"设置"}
+{"source":"End Replay","translation":"结束回放"}
+{"source":"Main Menu","translation":"主菜单"}
+{"source":"About","translation":"关于"}
+{"source":"Help","translation":"帮助"}
+{"source":"Quit","translation":"退出"}
+{"source":"Return","translation":"返回"}
+{"source":"Version [config.version!t]\n","translation":"版本 [config.version!t]\n"}
+{"source":"Made with {a=https://www.renpy.org/}Ren'Py{/a} [renpy.version_only].\n\n[renpy.license!t]","translation":"使用 {a=https://www.renpy.org/}Ren'Py{/a} [renpy.version_only] 制作。\n\n[renpy.license!t]"}
+{"source":"Page {}","translation":"第 {} 页"}
+{"source":"Automatic saves","translation":"自动存档"}
+{"source":"Quick saves","translation":"快速存档"}
+{"source":"empty slot","translation":"空存档位"}
+{"source":"{#auto_page}A","translation":"{#auto_page}自动"}
+{"source":"{#quick_page}Q","translation":"{#quick_page}快速"}
+{"source":"Display","translation":"显示"}
+{"source":"Window","translation":"窗口"}
+{"source":"Fullscreen","translation":"全屏"}
+{"source":"Rollback Side","translation":"回退区域"}
+{"source":"Disable","translation":"禁用"}
+{"source":"Left","translation":"左侧"}
+{"source":"Right","translation":"右侧"}
+{"source":"Unseen Text","translation":"未读文本"}
+{"source":"After Choices","translation":"选项后"}
+{"source":"Transitions","translation":"转场效果"}
+{"source":"Text Speed","translation":"文字速度"}
+{"source":"Auto-Forward Time","translation":"自动前进时间"}
+{"source":"Music Volume","translation":"音乐音量"}
+{"source":"Sound Volume","translation":"音效音量"}
+{"source":"Test","translation":"测试"}
+{"source":"Voice Volume","translation":"语音音量"}
+{"source":"Mute All","translation":"全部静音"}
+{"source":"The dialogue history is empty.","translation":"对话历史为空。"}
+{"source":"Keyboard","translation":"键盘"}
+{"source":"Mouse","translation":"鼠标"}
+{"source":"Gamepad","translation":"手柄"}
+{"source":"Enter","translation":"回车键"}
+{"source":"Advances dialogue and activates the interface.","translation":"推进对话并激活界面。"}
+{"source":"Space","translation":"空格键"}
+{"source":"Advances dialogue without selecting choices.","translation":"不选择选项并推进对话。"}
+{"source":"Arrow Keys","translation":"方向键"}
+{"source":"Navigate the interface.","translation":"在界面中移动。"}
+{"source":"Escape","translation":"Esc 键"}
+{"source":"Accesses the game menu.","translation":"打开游戏菜单。"}
+{"source":"Ctrl","translation":"Ctrl 键"}
+{"source":"Skips dialogue while held down.","translation":"按住时跳过对话。"}
+{"source":"Tab","translation":"Tab 键"}
+{"source":"Toggles dialogue skipping.","translation":"切换对话跳过。"}
+{"source":"Page Up","translation":"Page Up 键"}
+{"source":"Rolls back to earlier dialogue.","translation":"回退到之前的对话。"}
+{"source":"Page Down","translation":"Page Down 键"}
+{"source":"Rolls forward to later dialogue.","translation":"前进到之后的对话。"}
+{"source":"Hides the user interface.","translation":"隐藏用户界面。"}
+{"source":"Takes a screenshot.","translation":"截取屏幕。"}
+{"source":"Toggles assistive {a=https://www.renpy.org/l/voicing}self-voicing{/a}.","translation":"切换辅助功能中的{a=https://www.renpy.org/l/voicing}自动朗读{/a}。"}
+{"source":"Left Click","translation":"鼠标左键"}
+{"source":"Middle Click","translation":"鼠标中键"}
+{"source":"Right Click","translation":"鼠标右键"}
+{"source":"Mouse Wheel Up\nClick Rollback Side","translation":"鼠标滚轮向上\n点击回退区域"}
+{"source":"Mouse Wheel Down","translation":"鼠标滚轮向下"}
+{"source":"Right Trigger\nA/Bottom Button","translation":"右扳机键\nA/底部按键"}
+{"source":"Left Trigger\nLeft Shoulder","translation":"左扳机键\n左肩键"}
+{"source":"Right Shoulder","translation":"右肩键"}
+{"source":"D-Pad, Sticks","translation":"十字键、摇杆"}
+{"source":"Start, Guide","translation":"开始键、导航键"}
+{"source":"Y/Top Button","translation":"Y/顶部按键"}
+{"source":"Calibrate","translation":"校准"}
+{"source":"Skipping","translation":"正在跳过"}
+{"source":"Menu","translation":"菜单"}
+{"source":"Menu Prediction","translation":"Menu Prediction"}

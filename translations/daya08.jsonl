@@ -1,0 +1,627 @@
+{"source":"Good morning, Yoshi!","translation":"早上好，Yoshi！"}
+{"source":"*yawn* Good morning. I’m still feeling a bit groggy. ","translation":"*打哈欠* 早上好。我还是觉得有点昏沉。"}
+{"source":"Haha, seems like you might’ve partied a bit too much last night.","translation":"哈哈，看来你昨晚可能玩得太过火了。"}
+{"source":"Y-Yeah… It’s been a while since Yuri let us all drink at the camp. And you know I have a pretty low tolerance for liquor…","translation":"是、是啊……Yuri已经很久没允许大家在营地喝酒了。而且你知道我的酒量很差……"}
+{"source":"Where is everybody? Did I wake up late again…?","translation":"大家都在哪里？我又起晚了吗……？"}
+{"source":"No, you didn’t! I actually woke up just a bit before you. ","translation":"没有！其实我也只比你早醒一会儿。"}
+{"source":"Lloyd and Darius are at the site doing some minor repairs before the workers arrive.","translation":"Lloyd和Darius正在工地做一些小修缮，等工人们回来。"}
+{"source":"Oh right, they should be showing up in just a couple of days.","translation":"哦，对，他们再过几天就会到。"}
+{"source":"Jin’s over at the mess hall having some coffee, and Gramps is in his office with Mr. Clermont.","translation":"Jin在食堂喝咖啡，Gramps和Clermont先生在办公室。"}
+{"source":"I’m surprised Mr. Clermont hasn’t left yet. ","translation":"没想到Clermont先生还没离开。"}
+{"source":"Well, the holidays are just around the corner, so work must be slow for him right now.","translation":"这个嘛，节日马上就到，他现在的工作一定不忙。"}
+{"source":"Anyways, Yuri and Emilia left a while ago to take the scouts back home.","translation":"总之，Yuri和Emilia不久前离开，送童子军回家了。"}
+{"source":"A-Ah, they didn’t have to do that! I was planning on driving them back today!","translation":"啊、啊，她们不用这么做！我本来打算今天开车送他们回去！"}
+{"source":"Haha, I think Yuri wanted to sneak in some more time with them for her usual questioning.","translation":"哈哈，我想Yuri只是想偷偷多和他们待一会儿，进行她惯常的盘问。"}
+{"source":"She’s probably gonna be talking about ‘cracks’ and ‘ships’ the entire way, whatever that means.","translation":"她一路上大概都会聊什么“配对”和“嗑CP”，谁知道那是什么意思。"}
+{"source":"Ahehe, I wonder how Emilia will deal with that…","translation":"啊嘿嘿，不知道Emilia会怎么应付……"}
+{"source":"Haha, with any luck, she’ll keep Yuri from going too crazy.","translation":"哈哈，运气好的话，她能阻止Yuri变得太疯狂。"}
+{"source":"Well, it sounds like everyone is settling in again, at least. ","translation":"好吧，至少听起来大家都重新安顿下来了。"}
+{"source":"Yeah, it’s time to get back to the grind, even though I’m dragging a little bit.","translation":"是啊，该回到忙碌工作中了，虽然我还有点没精神。"}
+{"source":"Me, too… Or maybe that’s just the hangover. ","translation":"我也是……也可能只是宿醉。"}
+{"source":"Probably both.","translation":"大概两者都有。"}
+{"source":"Oh well, I guess we better start our day as well and see what we can work on.","translation":"好吧，我们也该开始一天，看看有什么能做的。"}
+{"source":"Sure, Yoshi! What’s the plan for today?","translation":"好啊，Yoshi！今天有什么计划？"}
+{"source":"Sure, Yoshi! What’s the plan for today?{fast}","translation":"好啊，Yoshi！今天有什么计划？{fast}"}
+{"source":"Check on the construction.","translation":"检查施工情况。"}
+{"source":"Why don’t we head over to the construction site?","translation":"我们去施工现场怎么样？"}
+{"source":"Darius and Lloyd might need an extra pair of hands with the repairs.","translation":"Darius和Lloyd修缮时可能需要额外人手。"}
+{"source":"Sure, I could use the exercise! ","translation":"好啊，我正需要活动一下！"}
+{"source":"Let’s head over there!","translation":"我们过去吧！"}
+{"source":"Make the daily report.","translation":"制作每日报告。"}
+{"source":"We should go and make our daily report to Sir Goro. ","translation":"我们应该去向Goro先生做每日报告。"}
+{"source":"You sure you wanna disturb him and Mr. Clermont? We could be interrupting something, hehe~","translation":"你确定想打扰他和Clermont先生？我们可能会打断什么好事，嘿嘿～"}
+{"source":"I-I’m sure they’re just having a normal morning, Aiden.","translation":"我、我相信他们只是在正常地度过早晨，Aiden。"}
+{"source":"You’re right, they probably did all the fun stuff last night.","translation":"你说得对，有趣的事情大概昨晚就全做完了。"}
+{"source":"*sigh* Come on, let’s go.","translation":"*叹气* 拜托，我们走吧。"}
+{"source":"Hahaha, alright!","translation":"哈哈哈，好吧！"}
+{"source":"Have some breakfast.","translation":"吃些早餐。"}
+{"source":"Let’s head over to the mess hall before we start our day. ","translation":"开始一天前，我们先去食堂吧。"}
+{"source":"Sure thing! I can whip up a nice breakfast for you~!","translation":"当然！我可以给你做一顿美味早餐～！"}
+{"source":"Walk around the camp.","translation":"在营地散步。"}
+{"source":"Why don’t we walk around for some fresh air first before we get to work?","translation":"开始工作前，我们先散散步，呼吸新鲜空气怎么样？"}
+{"source":"Hehe, trying to shake off your hangover?","translation":"嘿嘿，想摆脱宿醉吗？"}
+{"source":"Y-Yeah, haha. Don’t want everyone thinking I partied too hard.","translation":"是、是啊，哈哈。不想让大家觉得我玩得太过火。"}
+{"source":"Let’s get dressed and go then!","translation":"那就换好衣服出发！"}
+{"source":"So, the framing where you place the actual roofing are called trusses.","translation":"用来安装实际屋面的框架叫作屋架。"}
+{"source":"The reason why the webbings are assembled in a certain pattern is so that everything behaves as a single, rigid structure.","translation":"腹杆按特定模式组装，是为了让一切形成统一而坚固的结构。"}
+{"source":"Ohh… I’ve always wondered why it’s like that. Now I know.","translation":"哦……我一直好奇为什么是那种形状。现在明白了。"}
+{"source":"I have so much to learn when it comes to building stuff…","translation":"在建造东西方面，我还有太多要学……"}
+{"source":"That’s okay. I only ever learned these things from my engineering course, and on-site experience.","translation":"没关系。我也只是从工程课程和现场经验中学到这些。"}
+{"source":"Teach me more about repairing, I think it’ll come in handy around here!  ","translation":"多教我一些修理知识，我想在这里会派上用场！"}
+{"source":"With how interested you are, you’ll learn quick.","translation":"既然这么感兴趣，你会学得很快。"}
+{"source":"Hehe, you think so?","translation":"嘿嘿，你真的这么认为？"}
+{"source":"Hey, guys! ","translation":"嘿，各位！"}
+{"source":"Looks like you guys are doing repairs as planned, and since we have some free time, we thought we’d come help!","translation":"看来你们正按计划修缮；我们有些空闲时间，所以来帮忙！"}
+{"source":"Sure. The more, the merrier.","translation":"当然。人越多越好。"}
+{"source":"I see Taiga is helping out too! You should know he’s quite the craftsman!","translation":"我看到Taiga也在帮忙！你们应该知道，他可是个很厉害的手艺人！"}
+{"source":"Psh… Hardly.","translation":"切……算不上。"}
+{"source":"He’s keeping up pretty nicely.","translation":"他跟得相当不错。"}
+{"source":"And I heard you taught him a lot of woodworking yourself, Yoshi.","translation":"而且听说你亲自教了他很多木工知识，Yoshi。"}
+{"source":"Oh yeah! We worked together on some minor repairs and furniture assembly!","translation":"哦，对！我们一起做过一些小修缮和家具组装！"}
+{"source":"You have a promising builder then.","translation":"那你培养了一个很有前途的建筑工。"}
+{"source":"Aww~ He’s not used to being praised this much, hahaha!","translation":"哎呀～他不习惯被人这样称赞，哈哈哈！"}
+{"source":"Ah, perfect! You guys are here!","translation":"啊，太好了！你们来了！"}
+{"source":"Oh hey, Lloyd! I was wondering where you were.","translation":"哦，嘿，Lloyd！我刚才还在想你去了哪里。"}
+{"source":"I’m drawing some layouts and planning out the repairs, and uhh…","translation":"我正在绘制布局，规划修缮方案，然后，呃……"}
+{"source":"I kinda need help with the measurements because… I can’t reach them.","translation":"测量时有点需要帮忙，因为……我够不到。"}
+{"source":"Pfft. Arms too short?","translation":"噗。胳膊太短？"}
+{"source":"Hey! You’re not any taller!","translation":"喂！你也没高到哪里去！"}
+{"source":"I actually am though…","translation":"其实我确实更高……"}
+{"source":"I can help you out! We came to assist you, after all!","translation":"我可以帮你！我们本来就是来协助的！"}
+{"source":"Ah perfect! Come with me then!","translation":"啊，太好了！那跟我来！"}
+{"source":"H-Hey, you forgot your measuring tape!","translation":"喂、喂，你忘记卷尺了！"}
+{"source":"So, is there anything I can help with around here, bro?","translation":"那么，这里有什么需要我帮忙的吗，兄弟？"}
+{"source":"Yes. But it’s not about the repairs.","translation":"有。但不是修缮方面。"}
+{"source":"Eh? ","translation":"诶？"}
+{"source":"I need some advice.","translation":"我需要一些建议。"}
+{"source":"Advice? From me? ","translation":"建议？问我？"}
+{"source":"Yes…","translation":"是的……"}
+{"source":"Sure, What’s on your mind, big guy?","translation":"当然。你在想什么，大块头？"}
+{"source":"W-Well, I noticed how you and Yoshinori have gotten closer over the span of the project.","translation":"这、这个嘛，我注意到项目进行期间，你和Yoshinori变得更亲密了。"}
+{"source":"And I was wondering what you did to take things to the next level?","translation":"所以想知道，你做了什么让关系更进一步？"}
+{"source":"Oh… Umm… Well, it depends on the situation actually… Is this about you and Lloyd?","translation":"哦……嗯……其实这取决于情况……是在说你和Lloyd吗？"}
+{"source":"Why, is there something wrong? ","translation":"为什么这么问，有什么问题吗？"}
+{"source":"No…","translation":"没有……"}
+{"source":"It’s just… We’ve been working together for the past decade and… we’ve stayed the same for years…","translation":"只是……过去十年里我们一直一起工作……关系却多年没有变化……"}
+{"source":"Isn’t that a good thing, though?","translation":"不过这不是好事吗？"}
+{"source":"It is. But I want us to be more.","translation":"是好事。但我希望我们能更进一步。"}
+{"source":"Aw, shucks, this is way too familiar for me, haha!","translation":"哎呀，这对我来说太熟悉了，哈哈！"}
+{"source":"It was obvious you and Yoshi were into each other when we were scouts, but it took a long time for you to make it official.","translation":"你和Yoshi当童子军时就明显互有好感，但过了很久才正式确定关系。"}
+{"source":"Meanwhile, Lloyd and I are stuck on that same label we were in the past.","translation":"而我和Lloyd仍被困在过去的同一个关系标签里。"}
+{"source":"We’re still just… friends.","translation":"我们仍然只是……朋友。"}
+{"source":"So, how did you do it?","translation":"所以你是怎么做到的？"}
+{"source":"It’s kinda complicated to tell the whole story, but if I were to sum it up in one word, I guess it’s… communication?","translation":"完整故事有点复杂，但如果用一个词概括，我想是……沟通？"}
+{"source":"I’m really embarrassed to start that conversation. It’s not like me to bring something up like that… Lloyd will be suspicious.","translation":"要开启这种谈话，我真的很难为情。主动提起这种事不像我的作风……Lloyd会起疑。"}
+{"source":"Well… have you tried the… you know… ol’ reliable sausage fight?","translation":"这个嘛……有没有试过……你知道的……可靠的香肠大战？"}
+{"source":"I mean that usually adds a lot of fuel to the flame.","translation":"我是说，那通常会给火焰添上很多燃料。"}
+{"source":"We do… quite often.","translation":"我们会做……而且很频繁。"}
+{"source":"But afterwards, Lloyd acts as if nothing happened. ","translation":"但事后Lloyd总表现得像什么都没发生。"}
+{"source":"Hmm… Lloyd’s not exactly shy with his thoughts, but it’s usually only about his own feelings.","translation":"嗯……Lloyd并不羞于表达想法，但通常只会谈自己的感受。"}
+{"source":"He doesn’t really pry into others unless he has to.","translation":"除非必要，否则他不会打探别人。"}
+{"source":"Meanwhile, you’re normally a quiet and reserved guy who doesn’t show much emotion, either.","translation":"与此同时，你通常安静又内敛，也不怎么流露情绪。"}
+{"source":"It’s like you two are on opposite wavelengths!","translation":"你们两个简直处在完全相反的频道上！"}
+{"source":"I bet Lloyd feels the same way, but he’s holding back ’cause he thinks you’re comfortable with how things are.","translation":"我敢说Lloyd有同样的感受，但他以为你满足于现状，所以一直克制。"}
+{"source":"I see… ","translation":"我明白了……"}
+{"source":"Try and talk to him, big guy! Let him know that there’s a fire in you that you want to share with him!","translation":"试着和他谈谈，大块头！让他知道你心中有一团想与他分享的火焰！"}
+{"source":"I totally get why it’s so hard to even bring something like that up, though… ’Cause sometimes we get too afraid, like what if the other person isn’t thinking the same, and we’re just risking what we already have?","translation":"不过我完全理解，为什么连提起这种事都很难……因为有时我们太害怕：万一对方想法不同，而我们只是在拿已经拥有的一切冒险呢？"}
+{"source":"But on the other hand, you can’t get any further if you keep playing it safe.","translation":"但另一方面，如果一直求稳，关系就永远无法更进一步。"}
+{"source":"You’re right.","translation":"你说得对。"}
+{"source":"I’ll do my best to communicate more. ","translation":"我会尽力多沟通。"}
+{"source":"You just did it with me! Use that same energy with Lloyd, and you’ll find your answers!","translation":"你刚才已经和我做到了！用同样的勇气面对Lloyd，就能找到答案！"}
+{"source":"Thank you Aiden. I know what to do now.","translation":"谢谢你，Aiden。我现在知道该怎么做了。"}
+{"source":"Awesome! I’m glad I was able to help you some!","translation":"太棒了！很高兴自己能帮上点忙！"}
+{"source":"Uhhh… Dar? I need another tall guy around… ","translation":"呃……Dar？这里还需要另一个高个子……"}
+{"source":"*pats Lloyd’s head*","translation":"*拍了拍Lloyd的头*"}
+{"source":"H-huh…? What was that about?","translation":"什、什么……？这是怎么回事？"}
+{"source":"H-Hey, what the heck did you two just talk about?!","translation":"喂、喂，你们两个刚才到底聊了什么？！"}
+{"source":"Nothing~ I’m gonna go and work with Yoshi now! ","translation":"没什么～我现在要去和Yoshi一起工作！"}
+{"source":"{i}Aiden and I spent the afternoon helping Lloyd and Darius with some of the repairs at the construction site.{/i}","translation":"{i}下午，我和Aiden在施工现场帮Lloyd和Darius进行了一些修缮。{/i}"}
+{"source":"{i}Darius kept on making these strange flirty gestures at Lloyd, which seemed to fluster him too…{/i}","translation":"{i}Darius不断对Lloyd做出奇怪的调情动作，似乎也让他很慌乱……{/i}"}
+{"source":"{i}It was odd, but I’m glad to see them acting even closer!{/i}","translation":"{i}虽然很奇怪，但看到他们变得更加亲密，我很高兴！{/i}"}
+{"source":"{i}Eventually, we finished with the repairs and headed back to our cabin.{/i}","translation":"{i}最后，我们完成修缮，回到了自己的小屋。{/i}"}
+{"source":"Yoichi! Would you stop running around already?! You’re not supposed to chase after them!","translation":"Yoichi！能不能别再到处乱跑了？！你不该追着它们！"}
+{"source":"Shut up, old geezer! We’re having fun! ","translation":"闭嘴，老头！我们玩得正开心！"}
+{"source":"Oh, Sir Goro! I thought you were in the office.","translation":"哦，Goro先生！我还以为您在办公室。"}
+{"source":"Yeah, and isn’t Mr. Clermont with you?","translation":"是啊，Clermont先生不是和您在一起吗？"}
+{"source":"He’s taking a short nap.","translation":"他正在小睡。"}
+{"source":"Hehe, you wore him out that bad, huh, Gramps? ","translation":"嘿嘿，你把他折腾得这么累，对吧，Gramps？"}
+{"source":"A-Aiden, he’s probably just a little tired from the party.","translation":"艾、Aiden，他大概只是参加派对后有点累。"}
+{"source":"*ehem* Exactly, Yoshinori.","translation":"*咳咳* 正是如此，Yoshinori。"}
+{"source":"Anyway, I wanted to give him some privacy and decided to step outside for a walk.","translation":"总之，我想给他一些私人空间，于是决定出来散步。"}
+{"source":"It just so happens that I stumbled upon Yoichi here playing with his puppies and—","translation":"正好碰上Yoichi在这里和小狗们玩，然后——"}
+{"source":"Yoichi, stop peeing in the snow! ","translation":"Yoichi，别在雪地里撒尿！"}
+{"source":"Shut up! I can piss wherever I want! ","translation":"闭嘴！我想在哪里尿就在哪里尿！"}
+{"source":"*sigh* How do you control this scout, Yoshinori…","translation":"*叹气* 你是怎么管住这个童子军的，Yoshinori……"}
+{"source":"Haha, it takes quite a bit of getting used to.","translation":"哈哈，确实需要很长时间才能习惯。"}
+{"source":"Yoichi can be just as wild as his puppies. ","translation":"Yoichi有时和他的小狗一样野。"}
+{"source":"That’s true. And normally, I don’t mind letting him and the pups run around during the off-season.","translation":"确实如此。平时淡季让他和小狗们到处跑，我并不介意。"}
+{"source":"But with Mr. Clermont here, I want to make sure there’s no incidents.","translation":"但Clermont先生在这里，我想确保不会发生意外。"}
+{"source":"Hahaha! Who’s the fluffy pups? Yes, you are!","translation":"哈哈哈！谁是毛茸茸的小狗？就是你们！"}
+{"source":"Wow, they really love to play in the snow, huh?","translation":"哇，它们真的很喜欢在雪里玩，对吧？"}
+{"source":"Yeah! It’s their first winter, and I think this is their new favorite weather!","translation":"是啊！这是它们经历的第一个冬天，我觉得这种天气已经成了它们的新宠！"}
+{"source":"I guess they were still too little to be active during the summer and fall, too. ","translation":"而且夏天和秋天时它们还太小，也没法这么活蹦乱跳。"}
+{"source":"I have to admit, I have gotten quite attached to these pups over the last few months.","translation":"我得承认，这几个月下来，我已经很舍不得这些小家伙了。"}
+{"source":"Haha, you do spend a lot of time with them now, sir.","translation":"哈哈，您现在确实经常陪着它们呢，先生。"}
+{"source":"I think the puppies might like you more than me actually!","translation":"说真的，我觉得这些小狗可能比喜欢我还更喜欢您！"}
+{"source":"Yeah, for some weird reason they like this old geezer. ","translation":"对，也不知道为什么，它们就是喜欢这个老头子。"}
+{"source":"Are you secretly bribing them with food like Sheriff Brokeback over here?","translation":"你是不是也像这边的Sheriff Brokeback一样，偷偷拿食物收买它们？"}
+{"source":"Haha not at all, Yoichi. I leave their care one hundred percent to you.","translation":"哈哈，完全没有，Yoichi。照顾它们的事我百分之百都交给你。"}
+{"source":"Maybe they just like the way Gramps smells.","translation":"也许它们只是喜欢Gramps身上的味道。"}
+{"source":"Gah! Stay away from my pups before you contaminate them with your old-man-stink!","translation":"呃啊！离我的小狗远点，别拿你的老人臭熏坏它们！"}
+{"source":"Yoichi has come a really long way since he first came here, hasn’t he?","translation":"Yoichi从刚来这里到现在，真的成长了很多，对吧？"}
+{"source":"Heh, when you first brought him, you had no idea how to handle him either, Yoshinori.","translation":"呵，你刚把他带来时，也完全不知道该怎么管他呢，Yoshinori。"}
+{"source":"I’m just glad you let me take him into the camp to begin with, sir.","translation":"我只是很庆幸，当初您愿意让我把他带进营地，先生。"}
+{"source":"It’s the least I could’ve done. I could tell you honestly wanted to do your best to help him.","translation":"那是我至少能做的。我看得出来，你是真心想尽力帮助他。"}
+{"source":"Aww~ You two are sounding like a proud dad and grand-dad~!","translation":"哎呀～你们俩听起来就像骄傲的爸爸和爷爷～！"}
+{"source":"*ehem* Well, back then I was so busy that I couldn’t be as responsible for Yoichi as Yoshinori was.","translation":"*咳咳* 当时我太忙了，确实没法像Yoshinori那样尽心照顾Yoichi。"}
+{"source":"Haha, Yoshi’s always had a knack for reaching out to people.","translation":"哈哈，Yoshi一直都很擅长向别人伸出援手。"}
+{"source":"Heck, just look at me – I wouldn’t even be here if Yoshi hadn’t bugged you to keep me around, Gramps!","translation":"可不是嘛，看看我就知道了——要不是Yoshi一直缠着你让我留下，我现在根本不会在这里，Gramps！"}
+{"source":"W-Well, if I see a situation where I can make a difference, I do my best to try and help.","translation":"这、这个嘛，只要看到自己能帮上忙的情况，我都会尽力去做。"}
+{"source":"Especially when I know I have people who have my back.","translation":"尤其是当我知道身后还有大家支持我的时候。"}
+{"source":"It’s thanks to that attitude that Yoichi is who he is today. ","translation":"正因为你有这样的态度，Yoichi才能成长为今天的样子。"}
+{"source":"And, quite frankly, why both myself and Camp Buddy are even still around.","translation":"坦白说，我和伙伴营今天还能存在，也是因为你。"}
+{"source":"Haha, Yoshi’s stuck his nose all over the place, huh?","translation":"哈哈，Yoshi还真是什么事都要插上一脚，对吧？"}
+{"source":"I-I wouldn’t phrase it like that, Aiden…","translation":"我、我不会这么形容，Aiden……"}
+{"source":"It’s true though, Yoshinori. You’ve been a fine leader to the scouts, and quite the father figure for Yoichi.","translation":"不过这确实是事实，Yoshinori。你既是童子军们出色的领袖，也像Yoichi的父亲一样。"}
+{"source":"I hope I’m able to help influence Yoichi’s growth in a positive way from here on out as well.","translation":"我也希望从今以后，自己能给Yoichi的成长带来积极的影响。"}
+{"source":"I’ve spent enough time detached from him and the rest of the camp, so hopefully I can earn his trust and respect too.","translation":"我已经和他以及营地里的其他人疏远得够久了，希望我也能赢得他的信任和尊重。"}
+{"source":"Aww, Gramps! I’m sure Yoichi already trusts and respects you – like I said, you’re basically as much his grandpa as Yoshi is his dad!","translation":"哎呀，Gramps！我肯定Yoichi早就信任也尊重你了——就像我说的，Yoshi像他爸爸，而你基本就是他Gramps！"}
+{"source":"Maybe. But I hope with patience—","translation":"也许吧。不过我希望只要耐心一点——"}
+{"source":"Oof!","translation":"噢！"}
+{"source":"Haha! That’s what you get for not paying attention to what’s around you, geezer!","translation":"哈哈！谁让你不注意周围的，老头子！"}
+{"source":"Y-Yoichi! Is that…","translation":"洋、Yoichi！那是……"}
+{"source":"Was that really a... yellow snowball? Uh-oh.","translation":"那真的是一颗……黄色雪球吗？糟了。"}
+{"source":"Hahaha! I told him he couldn’t tell me where to piss!","translation":"哈哈哈！我早说过，他别想管我在哪里撒尿！"}
+{"source":"LISTEN HERE, YOU BRAT! GET OVER HERE RIGHT NOW!","translation":"你给我听着，小混蛋！立刻滚过来！"}
+{"source":"Nyeeeh! Come and get me!","translation":"略略略！有本事来抓我啊！"}
+{"source":"I SAID GET OVER HERE, YOU FLEABAG!","translation":"我叫你滚过来，你这只跳蚤狗！"}
+{"source":"*sigh* Looks like Yoichi set him off.","translation":"*叹气* 看来Yoichi把他惹火了。"}
+{"source":"Hahaha, so much for patience, huh? That’s the first time I’ve seen Gramps blow a gasket in a while!","translation":"哈哈哈，说好的耐心呢？我已经好久没看到Gramps气成这样了！"}
+{"source":"Ahehe, I guess Yoichi does know how to push his buttons…","translation":"啊哈哈，看来Yoichi真的很知道该怎么惹他生气……"}
+{"source":"Come on, let’s go see if we can help him wrangle Yoichi and the pups.","translation":"走吧，我们去看看能不能帮他管住Yoichi和小狗们。"}
+{"source":"Haha, sure thing, Yoshi!","translation":"哈哈，没问题，Yoshi！"}
+{"source":"{i}Aiden and I helped Sir Goro get control of Yoichi and the pups, and then we actually stayed outside and played in the snow with them for a while.{/i}","translation":"{i}Aiden和我帮Goro先生控制住了Yoichi和小狗们，之后我们还留在外面陪他们玩了一会儿雪。{/i}"}
+{"source":"{i}Eventually, Sir Goro went to check on Mr. Clermont, and Aiden and I headed back to our cabin.{/i}","translation":"{i}最后，Goro先生去查看Clermont先生的情况，Aiden和我则回到了小屋。{/i}"}
+{"source":"Brrr… It’s really chilly. Lemme go and make us some hot soup.","translation":"嘶……真冷啊。我去给我们做点热汤。"}
+{"source":"Oh wait, Aiden. I almost forgot Jin’s here too. Why don’t we ask him if he wants some soup as well?","translation":"等等，Aiden。我差点忘了Jin也在这里。我们也问问他要不要喝汤吧？"}
+{"source":"Good morning, Jin!","translation":"早上好，Jin！"}
+{"source":"Uhh… He’s got his earphones on.","translation":"呃……他戴着耳机。"}
+{"source":"Oh crap… Don’t tell me I got the bad ending on this route…","translation":"糟了……别告诉我这条路线打出了坏结局……"}
+{"source":"He looks quite busy on his computer…","translation":"他好像正忙着弄电脑……"}
+{"source":"JIN! MY, MAN~! ","translation":"JIN！我的好兄弟～！"}
+{"source":"GWAAH…!! ","translation":"哇啊啊……！！"}
+{"source":"Wh-When did you guys get here?!","translation":"你、你们什么时候来的？！"}
+{"source":"Just now~! So, whatcha doin’? ","translation":"刚刚～！所以，你在干什么呀？"}
+{"source":"Come on, Aiden… Don’t disturb Jin’s work…","translation":"行了，Aiden……别打扰Jin工作……"}
+{"source":"Two guys hugging on screen doesn’t look like work to me~","translation":"屏幕上两个男人抱在一起，可不像是在工作～"}
+{"source":"G-Gah! This is embarrassing…","translation":"呃、呃啊！太尴尬了……"}
+{"source":"O-Oh… I’m guessing it’s one of those BL movies?","translation":"哦、哦……我猜这是那种BL电影？"}
+{"source":"A-Actually it’s a BL game this time… Yuri gave me a copy of one of her favorites, and I guess I got a bit too immersed…","translation":"其、其实这次是BL游戏……Yuri送了我一份她最喜欢的作品，我大概玩得太投入了……"}
+{"source":"Haha, are you really still embarrassed about it? We’re all so used to it by now!","translation":"哈哈，你还会为这个害羞吗？我们早就习惯了！"}
+{"source":"Besides, are you sure you wanna play a game when the real thing is right in front of you~?","translation":"再说，真人就在你面前，你还确定要玩游戏吗～？"}
+{"source":"GAHHHH!!! WHAAT?!!!","translation":"呃啊啊啊！！！什、什么？！！！"}
+{"source":"*sigh* Aiden… You ought to know he’s just teasing you by now, Jin.","translation":"*叹气* Aiden……Jin，你现在也该知道他只是在逗你了。"}
+{"source":"Still, every time it gives me a heart attack… {p=1.0}And each time I secretly hope it’s a real request…","translation":"可每次还是会把我吓得心脏骤停……{p=1.0}而且每次我都暗暗希望那真的是邀请……"}
+{"source":"You know, I never asked, but how did you and Yuri actually get into this stuff anyway?","translation":"说起来我一直没问，你和Yuri究竟是怎么喜欢上这些东西的？"}
+{"source":"Even before I knew her, this was one of her hobbies…","translation":"在我认识她之前，这就是她的爱好之一了……"}
+{"source":"Yeah, and that gives me another question!","translation":"对，这又让我想到另一个问题！"}
+{"source":"If you guys like dudes so much, why not go and get one~?","translation":"你们既然这么喜欢男人，为什么不真的找一个呢～？"}
+{"source":"You’re a cute guy, Jin, I bet you could find a boyfriend in no time!","translation":"你这么可爱，Jin，我敢说你很快就能找到男朋友！"}
+{"source":"For me, It’s the latter… BL is an escape from my ever-lingering social anxiety issues.","translation":"对我来说是后者……BL让我能暂时逃离一直困扰我的社交焦虑。"}
+{"source":"I’ve been alone my entire life and it’s mostly because I simply don’t know how to interact with people… ","translation":"我一辈子都很孤独，主要就是因为我根本不知道该怎么和别人相处……"}
+{"source":"I’ve tried a few times, but they all ended up in disappointment… The real world can be cruel and heartless sometimes…","translation":"我尝试过几次，可最后全都只剩失望……现实世界有时真的很残酷、很无情……"}
+{"source":"But by entering the fantasy world of BL, there are so many options! It’s vast, colorful, and full of any kind of romance you can think of!","translation":"可一旦进入BL的幻想世界，就会有无数选择！那里广阔又多彩，充满了你能想到的各种恋爱！"}
+{"source":"What was that last part?!","translation":"你最后说的是什么？！"}
+{"source":"And it’s all fiction, so there’s no reason to take anything seriously~!","translation":"而且全都是虚构的，所以根本没必要把任何东西当真～！"}
+{"source":"Call it delusional or cut from reality but it’s what makes me happy. It helped me not to feel alone.","translation":"你可以说这是妄想或脱离现实，但它确实能让我快乐，也让我不再感到孤单。"}
+{"source":"I see, I see… I kinda understand now. We all need an outlet after all!","translation":"原来如此……我大概明白了。毕竟我们都需要一个宣泄的出口！"}
+{"source":"In Yuri’s case, though… I think she just likes the art aspect of it… She is a very creative person.","translation":"不过Yuri的情况……我觉得她只是喜欢其中的艺术性……她是个很有创造力的人。"}
+{"source":"Whenever we look at BL together, she always appreciates the drawings, character designs and how well-written the stories are.","translation":"每次我们一起看BL，她总会欣赏画面、角色设计，还有故事写得有多好。"}
+{"source":"That makes sense… Yuri did like to draw and write back then. And she really encourages the scouts to have a creative outlet.","translation":"这就说得通了……Yuri以前确实喜欢画画和写作，而且她也很鼓励童子军们发挥创造力。"}
+{"source":"Thinking about it, She’s the only scoutmaster that does that… You and Gramps usually like the traditional stuff.","translation":"仔细想想，她是唯一会这么做的童子军长……你和Gramps通常都喜欢传统活动。"}
+{"source":"I always prefer the sporty stuff too, so I’ve got the athletic scouts covered!","translation":"我也一直更喜欢体育活动，所以擅长运动的童子军就交给我了！"}
+{"source":"Yeah, having Yuri around actually made me feel a lot more comfortable. She’s actually my first IRL friend that I can share the same interests with! ","translation":"是啊，有Yuri在身边真的让我自在了很多。她其实是我现实中第一个能分享同样兴趣的朋友！"}
+{"source":"Aww, Jin~ We’re your friends too! We don’t mind you telling us about your hobbies!","translation":"哎呀，Jin～我们也是你的朋友！我们不介意你和我们聊自己的爱好！"}
+{"source":"There’s no judgment here! C’mere!  ","translation":"这里没人会评判你！过来！"}
+{"source":"A-Aiden, I’m not sure if Jin—","translation":"艾、Aiden，我不确定Jin是不是——"}
+{"source":"Hush and just join in!","translation":"嘘，直接一起抱就是了！"}
+{"source":"Uhh… Okay?","translation":"呃……好吧？"}
+{"source":"Hnghh!!!","translation":"嗯呃！！！"}
+{"source":"I hope you don’t feel too pressured when interacting with us, Jin. ","translation":"希望你和我们相处时不会觉得压力太大，Jin。"}
+{"source":"Yeah! Maybe you can make Camp Buddy into your own fantasy world~","translation":"对啊！也许你可以把伙伴营变成属于自己的幻想世界～"}
+{"source":"Jin…?","translation":"Jin……？"}
+{"source":"W-Wahh… Big… Squishy… Pecs…","translation":"哇、哇啊……好大……好软……胸肌……"}
+{"source":"It’s like being smushed by two giant marshmallows… ","translation":"就像被两块巨大的棉花糖夹住一样……"}
+{"source":"I can die here now… This is definitely a real-life representation of my fantasies. ","translation":"我现在死在这里也值了……这绝对就是我的幻想在现实中的重现。"}
+{"source":"I think we broke him.","translation":"我觉得我们把他弄坏了。"}
+{"source":"Sh-Should we let go? He’s starting to grope my chest…","translation":"要、要不要放开？他开始摸我的胸了……"}
+{"source":"I-It’s so much better than my mousepad…","translation":"比、比我的鼠标垫手感好多了……"}
+{"source":"Nah, let him have his moment! He’s earned it!","translation":"不用，让他好好享受这一刻吧！这是他应得的！"}
+{"source":"*sigh* Alright…","translation":"*叹气* 好吧……"}
+{"source":"{i}After chatting with Jin, Aiden went to make some soup for all three of us.{/i}","translation":"{i}和Jin聊过之后，Aiden去给我们三个人做了些汤。{/i}"}
+{"source":"{i}We ate our meal, then decided to leave Jin to his business while Aiden and I headed back to our cabin.{/i}","translation":"{i}吃完饭后，我们决定让Jin继续忙自己的事，Aiden和我则回到了小屋。{/i}"}
+{"source":"Whew… It’s a good thing we’re having a sunny winter, especially after that storm.","translation":"呼……幸好这个冬天阳光不错，尤其是在那场暴风雪之后。"}
+{"source":"I can’t wait for this season to be over though. I really prefer the heat.","translation":"不过我已经等不及这个季节结束了，我还是更喜欢炎热的天气。"}
+{"source":"You know me too well.","translation":"你太了解我了。"}
+{"source":"Ugh! I can’t believe you! It’s literally the only thing I asked you to do!","translation":"呃！真不敢相信你！我明明就只让你做这一件事！"}
+{"source":"Hey! Don’t blame me! You’re the one who forgot it!","translation":"喂！别怪我！忘记的人明明是你！"}
+{"source":"Woah, woah! What are you two arguing about?","translation":"哇哦，哇哦！你们两个在吵什么？"}
+{"source":"I don’t know, ask this pink thing what’s grinding her gears!! ","translation":"我不知道，问问这个粉红色的家伙到底在气什么吧！！"}
+{"source":"Well, we brought the scouts back home and I thought it would be a good idea to do a grocery run on the way back.","translation":"我们把童子军们送回家后，我觉得可以在回程路上顺便买些日用品。"}
+{"source":"But Emilia over here forgot the shopping list!","translation":"可这边的Emilia忘了带购物清单！"}
+{"source":"For your information, I put it in your phone, and you left that too!","translation":"告诉你，我把清单存在你手机里了，而你连手机也忘了带！"}
+{"source":"And who in the world writes shopping lists on paper nowadays?!","translation":"而且现在到底还有谁会把购物清单写在纸上啊？！"}
+{"source":"Now, calm down both of you. Especially you, Emilia, you just recovered!","translation":"好了，你们两个都冷静点。尤其是你，Emilia，你才刚恢复！"}
+{"source":"Yeah! I kept telling her to stay behind and wait, but she insisted on coming along!","translation":"就是！我一直让她留下来等着，可她非要跟过来！"}
+{"source":"I told you all, I’m fine already! I’m not helpless!","translation":"我都跟你们说了，我已经没事了！我又不是生活不能自理！"}
+{"source":"I’m surprised you two even agreed to go out and do chores together…","translation":"真没想到你们两个居然会同意一起出门办事……"}
+{"source":"It’s not like I have much of a choice since she moved in with me!","translation":"她都搬来和我住了，我还能有什么选择！"}
+{"source":"Wait, you two are roommates now?","translation":"等等，你们现在是室友了？"}
+{"source":"Yeah, Emilia asked to stay with me so Mr. Clermont could stay in her room for now.","translation":"是啊，Emilia说要暂时和我住，这样Clermont先生就能住她的房间。"}
+{"source":"And to think, you were the one always demanding your own private space.","translation":"真没想到，你以前可是那个一直要求要有私人空间的人。"}
+{"source":"That’s only because I was hiding something. There’s no need to do that anymore~","translation":"那只是因为我当时有秘密要藏。现在已经没必要了～"}
+{"source":"Why are you saying that so confidently…?","translation":"你为什么能说得这么理直气壮……？"}
+{"source":"S-So how was your first night together?","translation":"那、那你们一起住的第一晚怎么样？"}
+{"source":"I suppose it was alright. I taught Yuri a thing or two about makeup since she clearly knows nothing.","translation":"还算可以吧。Yuri显然对化妆一窍不通，所以我教了她几招。"}
+{"source":"Hey! What’s that supposed to mean?","translation":"喂！你这是什么意思？"}
+{"source":"Well, it sounds to me like you two had fun at least.","translation":"好吧，至少听起来你们两个玩得很开心。"}
+{"source":"Yeah, so much so she’s staying permanently. ","translation":"是啊，开心到她准备永久住下来了。"}
+{"source":"Yup! I guess I can’t blame her, though, my room is a lot neater and cleaner than hers anyway~","translation":"没错！不过也不能怪她，毕竟我的房间比她的整洁干净多了～"}
+{"source":"Don’t make it sound like you hated the idea… You’re the one who’s been going on about having a gal-pal, finally!","translation":"别说得好像你很讨厌这个主意……一直念叨着终于有女性朋友的人明明是你！"}
+{"source":"You couldn’t stop showing me those fanfics of yours all night long!","translation":"你整晚都在不停给我看你写的那些同人小说！"}
+{"source":"W-Wait, you read her fanfics, Emilia…?","translation":"等、等等，你看了她的同人小说，Emilia……？"}
+{"source":"Yeah… I was confused at first, but I think I got the gist of it. But damn, you guys have no idea how much weird stuff this woman is into.","translation":"是啊……一开始我看得一头雾水，不过后来大概弄懂了。但天啊，你们根本不知道这个女人喜欢多少奇怪的东西。"}
+{"source":"I thought you liked my fanfics?! ","translation":"我还以为你喜欢我的同人小说？！"}
+{"source":"I mean, they were fine, but not great when it’s ten chapters in one sitting!","translation":"我是说，写得还行，但一口气让我看十章就没那么好了！"}
+{"source":"Can we just go get the groceries already?! I really don’t wanna spend all day outside on my feet…","translation":"我们能不能赶紧去买东西了？！我真的不想在外面站上一整天……"}
+{"source":"Oh, I actually know a nice foot spa recipe that’ll ease that right away! Add some cucumbers and a mud mask, and we’ll have a proper spa day!","translation":"哦，我正好知道一个很棒的足浴配方，马上就能缓解疲劳！再加上黄瓜片和泥膜，我们就能好好享受一次水疗日了！"}
+{"source":"Oooohhh~ That sounds nice! I’ll add those to the list!","translation":"哦哦哦～听起来真不错！我把这些也加进清单！"}
+{"source":"It’s crazy how close those two have gotten over the last few days…","translation":"真不可思议，这几天她们两个居然变得这么亲近……"}
+{"source":"Yeah, a week or two ago Yuri wanted to get rid of Emilia, and now they’re acting like besties.","translation":"是啊，一两周前Yuri还想赶走Emilia，现在却像最要好的闺蜜一样。"}
+{"source":"Anyway, are you ready to continue with our walk? We've just started the patrol.","translation":"总之，准备好继续散步了吗？我们的巡逻才刚开始。"}
+{"source":"Whoops! You're right – let's hope we don't run into anyone else to distract us, haha!","translation":"哎呀！你说得对——希望别再碰到什么人让我们分心了，哈哈！"}
+{"source":"*yawn* Today feels like it’s lasting forever – even after all the stuff we did, it’s still early.","translation":"*打哈欠* 今天感觉格外漫长——明明做了那么多事，时间居然还早。"}
+{"source":"Everyone else is busy doing their own thing out there.","translation":"其他人都在外面忙自己的事。"}
+{"source":"Yeah, I guess there’s not too much we can do without the other workers around.","translation":"是啊，其他工人不在，我们大概也做不了多少事。"}
+{"source":"You bet. And it’s too cold outside to do anything fun, unlike in the summer.","translation":"可不是嘛。而且外面太冷了，不像夏天那样能做些有趣的事。"}
+{"source":"Haha, at least it’s cozy in here with the heater on.","translation":"哈哈，至少开着暖气的屋里很舒服。"}
+{"source":"Hngh… I don’t wanna sound like a downer, but… I can’t wait for the winter to end.","translation":"嗯呃……我不想扫兴，可是……我真的等不及冬天结束了。"}
+{"source":"Hngh… I don’t wanna sound like a downer, but… I can’t wait for the winter to end.{fast}","translation":"嗯呃……我不想扫兴，可是……我真的等不及冬天结束了。{fast}"}
+{"source":"It'll be over soon.","translation":"很快就会结束的。"}
+{"source":"Just hang in there a little longer, Aiden. Time flies fast, and before you know it, it’ll be summer again.","translation":"再坚持一下，Aiden。时间过得很快，等你回过神来，夏天就又到了。"}
+{"source":"Ughh… I’m just so boooored…","translation":"呃啊……我实在太无聊了……"}
+{"source":"All this lying in bed is making it worse too.","translation":"一直躺在床上只会让我更无聊。"}
+{"source":"Work will be back soon.","translation":"很快就会复工。"}
+{"source":"Don’t worry, Aiden. Work will start up again soon, and before you know it, it’ll be summer.","translation":"别担心，Aiden。很快就会重新开工，等你回过神来，夏天也到了。"}
+{"source":"We can still have fun indoors.","translation":"待在室内也能找乐子。"}
+{"source":"Well, we can still make things fun even when we’re cooped up indoors.","translation":"就算只能闷在室内，我们也可以找点有趣的事情做。"}
+{"source":"Got any ideas?","translation":"有什么主意吗？"}
+{"source":"We can do something else to warm up.","translation":"我们可以做点别的来热身。"}
+{"source":"Well, how about we move around to warm up? All this lying around will just make you bored.","translation":"要不活动一下暖暖身子？一直躺着只会让你更无聊。"}
+{"source":"Hmm… How about we workout together? It’s been a while since we stretched our muscles, after all!","translation":"嗯……我们一起锻炼怎么样？毕竟我们也有一阵子没好好活动肌肉了！"}
+{"source":"Oho~ I like the sound of that~","translation":"哦吼～这主意我喜欢～"}
+{"source":"Even though we’ve been working at the site a lot lately, thanks to the snow I haven’t even been breaking a sweat.","translation":"虽然最近一直在工地干活，可拜积雪所赐，我连汗都没怎么出。"}
+{"source":"It’s about time we got down and dirty!","translation":"是时候狠狠干上一场了！"}
+{"source":"Now you got me hyped up! Grab some weights, and let’s get pumping already!","translation":"你把我的劲头都勾起来了！拿上哑铃，我们赶紧练起来！"}
+{"source":"Haha, alright, alright.","translation":"哈哈，好，好。"}
+{"source":"FLEX!{p=0.5}THOSE!! {p=0.5}GUNS!!!","translation":"绷紧！{p=0.5}你的！！{p=0.5}大炮！！！"}
+{"source":"Don’t go too fast, Aiden. You might pull a muscle.","translation":"别练得太猛，Aiden。小心拉伤肌肉。"}
+{"source":"*stretches* Oh don't worry, we'll get to the ‘pulling’ part later~","translation":"*伸展* 哦，别担心，待会儿我们会做到“拉”的那一部分～"}
+{"source":"*scoffs* Aiden…","translation":"*嗤笑* Aiden……"}
+{"source":"{i}(Watching Aiden get excited over the simplest things we do together really makes me happy.){/i}","translation":"{i}（看着Aiden因为我们一起做的这些简单小事而兴奋，我真的很开心。）{/i}"}
+{"source":"{i}(Even though he’s changed a lot physically, he’s still the same energetic guy I’ve always liked.){/i}","translation":"{i}（尽管他的外表改变了很多，他依然是我一直喜欢的那个充满活力的人。）{/i}"}
+{"source":"Sheesh, Yoshi. Did you only invite me to work out for the gunshow?","translation":"真是的，Yoshi。你叫我一起锻炼，就只是为了欣赏我的肌肉秀吗？"}
+{"source":"O-Oh, I was just thinking how much you’ve really bulked up over time.","translation":"哦、哦，我只是在想，这些年你真的壮了好多。"}
+{"source":"A lot can change in nine years, you know! ","translation":"九年时间当然能改变很多事情！"}
+{"source":"I realized back then that there’s so much more I could do to help if I was stronger and healthier.","translation":"我当时意识到，如果自己更强壮、更健康，就能帮上更多忙。"}
+{"source":"And of course, I sorta wanted to impress you when we met again. Hahaha!","translation":"当然，我也有点想在重逢时让你刮目相看。哈哈哈！"}
+{"source":"Well, I’ll be honest. I was shocked when you returned to Camp Buddy. I could barely recognize you.","translation":"老实说，你回到伙伴营时我吓了一跳，几乎都认不出你了。"}
+{"source":"Don’t get me wrong, I was just happy to see you back, buff or not!","translation":"别误会，不管你壮不壮，看到你回来我都很高兴！"}
+{"source":"Same! Although I didn't mind you turning into a hunk~","translation":"我也一样！不过你变成大帅哥，我当然也不介意～"}
+{"source":"But I could tell it was you right away thanks to that cheesy personality of yours!","translation":"不过多亏你那肉麻的性格，我一眼就认出是你了！"}
+{"source":"*sigh* So I’ve always been ‘cheesy’?","translation":"*叹气* 所以我一直都很“肉麻”？"}
+{"source":"Yup! That’s one thing I’m glad that’s never changed ’bout you, hahaha!","translation":"没错！我很高兴你这一点从来没变过，哈哈哈！"}
+{"source":"Anyway, I’m done with the weights! ","translation":"总之，哑铃我练完了！"}
+{"source":"Oh, that quickly?","translation":"哦，这么快？"}
+{"source":"Yeaaah, I’m still kinda sore from all the shoveling yesterday. I wanna focus on my core and lower body today!","translation":"是啊——昨天铲雪以后身体还有点酸。今天我想重点练核心和下半身！"}
+{"source":"Alright let’s do legs then!","translation":"好，那就练腿吧！"}
+{"source":"Alright, lemme stretch some!","translation":"好，让我先拉伸一下！"}
+{"source":"Nnnn…!","translation":"嗯呃……！"}
+{"source":"Phew… The cold’s really made my leg muscles stiff and tight!","translation":"呼……寒冷真的让我的腿部肌肉又僵又紧！"}
+{"source":"{i}(Sitting down to stretch across from Aiden, I could see that his legs were spread wide and open right in front of me…){/i}","translation":"{i}（我坐在Aiden对面拉伸，看见他的双腿就在我眼前大大张开……）{/i}"}
+{"source":"{i}(Not that it surprises me, but it’s easy to notice that he’s not wearing anything under his shorts…){/i}","translation":"{i}（虽然并不意外，但很容易看出他的短裤下面什么也没穿……）{/i}"}
+{"source":"Hey, Yoshi. Help me out some, will ya?","translation":"喂，Yoshi。帮我一下，好吗？"}
+{"source":"Hey, Yoshi. Help me out some, will ya?{fast}","translation":"喂，Yoshi。帮我一下，好吗？{fast}"}
+{"source":"Press on his arms.","translation":"按住他的手臂。"}
+{"source":"{i}(Pressing on Aiden’s arms, I felt him tense up under my hands. ){/i}","translation":"{i}（按住Aiden的手臂，我感觉他的身体在我的手下绷紧了。）{/i}"}
+{"source":"A-Ahehe… Copping a feel on my biceps, huh Yoshi?","translation":"啊、啊嘿嘿……在趁机摸我的肱二头肌吗，Yoshi？"}
+{"source":"{i}(I watched intently as the droplets of cold sweat started to drip down the crevices of his body…){/i}","translation":"{i}（我目不转睛地看着冰凉的汗珠沿着他身体的沟壑滴落……）{/i}"}
+{"source":"Mnghh…!","translation":"嗯呃……！"}
+{"source":"{i}(Noticing that I was getting carried away, I took my weight off of Aiden, making him exhale from all the pressure.){/i}","translation":"{i}（意识到自己有些忘乎所以，我移开压在Aiden身上的重量，让他从压力中长舒了一口气。）{/i}"}
+{"source":"Pull on his arms.","translation":"拉住他的手臂。"}
+{"source":"{i}(Pulling on Aiden’s arms, I could feel a little restraint from his body.){/i}","translation":"{i}（拉着Aiden的手臂，我能感觉到他的身体有些抗拒。）{/i}"}
+{"source":"A-Ahehe… Tryin’ to stretch me to my limits, huh Yoshi?","translation":"啊、啊嘿嘿……想把我拉到极限吗，Yoshi？"}
+{"source":"Press on his legs.","translation":"按住他的双腿。"}
+{"source":"{i}(Pressing against Aiden’s legs, I felt him tense up under my hands. ){/i}","translation":"{i}（按住Aiden的双腿，我感觉他的身体在我的手下绷紧了。）{/i}"}
+{"source":"Press on his back.","translation":"按住他的后背。"}
+{"source":"{i}(Pressing slowly but firmly, I felt the definition of Aiden’s back against my palms.){/i}","translation":"{i}（我缓慢而有力地按下，掌心清楚感受到Aiden背部肌肉的轮廓。）{/i}"}
+{"source":"Fwah~ That was a nice stretch! ","translation":"呼哇～拉伸得真舒服！"}
+{"source":"{i}After we finished our stretch, Aiden and I continued our workout.{/i}","translation":"{i}拉伸结束后，Aiden和我继续锻炼。{/i}"}
+{"source":"{i}I have to admit that I was having a hard time focusing with the teasing views and positions Aiden was doing… It almost ended up going in a different direction…{/i}","translation":"{i}我得承认，Aiden那些诱人的姿势和景象让我很难集中精神……事情差点就朝另一个方向发展了……{/i}"}
+{"source":"Whew~ Look at all this sweat! I can finally feel the burn!","translation":"呼～看看这一身汗！我终于感受到灼热感了！"}
+{"source":"Yeah… It’s getting really steamy in here. Let me just take my shirt off…","translation":"是啊……这里越来越闷热了。我把上衣脱掉吧……"}
+{"source":"Hehe, I couldn’t help it – look how drenched in sweat it is.","translation":"嘿嘿，我也没办法——你看它都被汗浸透了。"}
+{"source":"Normally it wouldn’t be this bad, but with the windows closed and the heater on, I feel like I’m starting to get sticky.","translation":"平时不会这么夸张，可窗户关着又开了暖气，我感觉身上都开始黏糊糊的了。"}
+{"source":"I dunno, I’m kinda digging it~","translation":"不知道为什么，我还挺喜欢的～"}
+{"source":"Dripping sweat, flexing muscles…","translation":"汗水淋漓，肌肉紧绷……"}
+{"source":"And my favorite part, that nice musky scent you give off ~!","translation":"还有我最喜欢的部分——你身上散发出的那股好闻的男性麝香味～！"}
+{"source":"My scent…? ","translation":"我的味道……？"}
+{"source":"Yeah! You have this manly, almost vanilla-like smell when you sweat. ","translation":"对啊！你出汗时有种很有男人味、又有点像香草的气味。"}
+{"source":"R-Really? Huh… Must be the soap I use.","translation":"真、真的吗？唔……一定是我用的香皂。"}
+{"source":"Nope, pretty sure it’s just your body. Trust me, you’ve had that since I first met you!","translation":"不是，我很确定那就是你的体味。相信我，从我第一次见到你时就有了！"}
+{"source":"And I really like it~","translation":"而且我真的很喜欢～"}
+{"source":"Haha, well I guess I won’t complain about that then.","translation":"哈哈，那我想自己也没什么可抱怨的了。"}
+{"source":"*sigh* Of course you’d take everything off…","translation":"*叹气* 果然，你连最后一点也全脱了……"}
+{"source":"What?? We’re the only ones here.","translation":"怎么了？？这里又只有我们两个。"}
+{"source":"Whew… Finally, some alone ti—","translation":"呼……终于能独处一会——"}
+{"source":"WHAT THE?!","translation":"搞什么？！"}
+{"source":"G-Gah, Sir Goro…!","translation":"呃、呃啊，Goro先生……！"}
+{"source":"Heya, Gramps! How’s it hanging?","translation":"嘿，Gramps！最近怎么样？"}
+{"source":"*sigh* Am I interrupting something here?","translation":"*叹气* 我是不是打扰你们了？"}
+{"source":"N-Not at all, sir…! Aiden I were just working out…!","translation":"完、完全没有，先生……！Aiden和我只是在锻炼……！"}
+{"source":"Yup! It got pretty sticky and steamy in here~","translation":"没错！这里变得又黏又闷热～"}
+{"source":"I can see that very clearly.","translation":"这我看得非常清楚。"}
+{"source":"Why don’t you come and join us? You look like you could use some sweating yourself~!","translation":"你为什么不加入我们？看起来你自己也该好好出一身汗了～！"}
+{"source":"Why don’t you come and join us? You look like you could use some sweating yourself~!{fast}","translation":"你为什么不加入我们？看起来你自己也该好好出一身汗了～！{fast}"}
+{"source":"Don't rope Sir Goro into this.","translation":"别把Goro先生也扯进来。"}
+{"source":"*sigh* Don’t rope Sir Goro into this, Aiden.","translation":"*叹气* 别把Goro先生也扯进来，Aiden。"}
+{"source":"I already got a work out in this morning.","translation":"我今天早上已经锻炼过了。"}
+{"source":"Besides, haven’t you two been working out the whole day? It’s already sunset.","translation":"而且，你们两个不是已经练了一整天吗？太阳都落山了。"}
+{"source":"Oh crap! I didn’t notice the time! Haha, guess we had too much fun, huh Yoshi?","translation":"糟了！我完全没注意时间！哈哈，看来我们玩得太开心了，对吧，Yoshi？"}
+{"source":"A-Ahehe… yeah…","translation":"啊、啊嘿嘿……是啊……"}
+{"source":"Well, why don’t you two head to the showers. You look like you could both use one.","translation":"好了，你们两个去洗澡吧。看起来都很需要冲洗一下。"}
+{"source":"Alright, alright. Let’s wash up, then!","translation":"好，好。那我们去洗干净吧！"}
+{"source":"{i}Even though it was embarrassing Sir Goro caught us, I’m glad Aiden and I got to work out together today.{/i}","translation":"{i}虽然被Goro先生撞见很尴尬，但我很高兴今天能和Aiden一起锻炼。{/i}"}
+{"source":"{i}However, I wonder what Aiden really meant when he asked Sir Goro to join in…{/i}","translation":"{i}不过，Aiden邀请Goro先生加入时，真正指的究竟是什么呢……{/i}"}
+{"source":"We're done working out.","translation":"我们已经锻炼完了。"}
+{"source":"W-Well, I thought we were about to go cool down, Aiden?","translation":"这、这个嘛，我以为我们正准备放松降温呢，Aiden？"}
+{"source":"Aww… I wanted to work out some more.","translation":"唉……我还想再练一会儿。"}
+{"source":"Haha, it’s already sunset though. I think we’ve worked out enough for today.","translation":"哈哈，可太阳都已经落山了。我觉得今天已经练得够多了。"}
+{"source":"I agree. You two look like you could use a shower too.","translation":"我同意。你们两个看起来也该洗个澡了。"}
+{"source":"As long as Sir Goro wants to, I don’t mind.","translation":"只要Goro先生愿意，我不介意。"}
+{"source":"C’mon, Gramps! You never do stuff with us!","translation":"来嘛，Gramps！你从来都不和我们一起活动！"}
+{"source":"What’s the matter? Worried to show us your dad bod?","translation":"怎么了？怕让我们看到你的老爸身材？"}
+{"source":"Hmph. Don’t get so full of yourself. You have a long way to go before you get as buff as I am.","translation":"哼，别太得意了。你离我这样的强壮身材还差得远。"}
+{"source":"Oh yeah? Why don’t you show us then?","translation":"是吗？那你为什么不展示给我们看看？"}
+{"source":"Hmph. Bigger’s always better.","translation":"哼，当然是越大越好。"}
+{"source":"What’s the point of size, if you don’t have any spunk left, Gramps?","translation":"光大有什么用，要是已经没精力了呢，Gramps？"}
+{"source":"I’ll have you know, I’m not as rusty as you think. I’m far more ‘experienced' than you.","translation":"告诉你，我可没你想的那么不中用。我的“经验”比你丰富多了。"}
+{"source":"Ohoho, you should ask Yoshi just how good I am in bed~","translation":"哦吼吼，你该问问Yoshi，我在床上有多厉害～"}
+{"source":"Are you challenging me again, kiddo?","translation":"你又在向我挑战吗，小子？"}
+{"source":"I’ve already beaten you once.","translation":"我已经赢过你一次了。"}
+{"source":"That wasn’t fair, you grabbed Yoshi before I could take him!","translation":"那次不公平，我还没来得及上Yoshi，你就把他抢走了！"}
+{"source":"Looks like we’ve got some unfinished business.","translation":"看来我们之间还有笔账没算完。"}
+{"source":"What’s the point? We both know, Yoshi’s gonna choose me again~","translation":"有什么意义？我们都知道，Yoshi还是会选我～"}
+{"source":"He didn’t choose you. You just ran off with him.","translation":"他没有选你，是你直接把他拐跑了。"}
+{"source":"W-Wait, what…?!","translation":"等、等等，什么……？！"}
+{"source":"The more, the merrier.","translation":"人越多越热闹。"}
+{"source":"The more, the merrier!","translation":"人越多越热闹！"}
+{"source":"Whew! I feel much better after that!","translation":"呼！做完以后舒服多了！"}
+{"source":"I just feel even more worn out…","translation":"我只觉得更累了……"}
+{"source":"Well, I have to say, Yoshinori… You’re a pretty good middle man.","translation":"不得不说，Yoshinori……你很适合夹在中间。"}
+{"source":"*sigh* I don’t know how to feel about that compliment.","translation":"*叹气* 我不知道该怎么理解这个夸奖。"}
+{"source":"So, I guess we can call this one a tie, right Gramps?","translation":"所以这次就算平手了，对吧，Gramps？"}
+{"source":"I’m pretty sure I got a double knockout.","translation":"我很确定自己一口气放倒了你们两个。"}
+{"source":"Smells like a rematch is underway.","translation":"看来很快就要再比一场了。"}
+{"source":"Wh-What?! I-I thought this was a one-time deal?!","translation":"什、什么？！我、我还以为只有这一次？！"}
+{"source":"Well, I’m down to that! Maybe next time we can try fitting us both into Yoshi!","translation":"我赞成！也许下次可以试试让我们两个一起塞进Yoshi里面！"}
+{"source":"GAH! NO! That’ll kill me!","translation":"呃啊！不要！那会要了我的命！"}
+{"source":"I have to say, I’m surprised you two aren’t exclusive. But then again, Aiden’s really not the possessive type.","translation":"不得不说，我很意外你们不是排他的关系。不过话说回来，Aiden确实不是占有欲很强的人。"}
+{"source":"Yeah! Sharing is caring!","translation":"没错！分享就是关爱！"}
+{"source":"There’s nothing caring about that…","translation":"那里面根本没有什么关爱……"}
+{"source":"That workout really got my blood pumping!","translation":"这场锻炼真的让我热血沸腾！"}
+{"source":"It’s a bummer Gramps barged in just when things were really heating up.","translation":"真扫兴，气氛刚热起来，Gramps就闯进来了。"}
+{"source":"*ehem* This is a shared cabin, you know?","translation":"*咳咳* 要知道，这是共用小屋。"}
+{"source":"Oh, hey Gramps! Didn’t see you there! Finished taking a dump? ","translation":"哦，嘿，Gramps！没看到你在那里！拉完屎了？"}
+{"source":"Listen here, boy—","translation":"你给我听着，小子——"}
+{"source":"Hnghh… My body’s all sore… You guys were too rough on me…","translation":"嗯呃……我全身都酸痛……你们几个太粗暴了……"}
+{"source":"Haha, you were moaning so loud too!","translation":"哈哈，你叫得也特别大声！"}
+{"source":"Well, we really pushed his body to the limit.","translation":"嗯，我们确实把他的身体逼到了极限。"}
+{"source":"Oho~ Sounds like you guys did something ‘fun’?","translation":"哦吼～听起来你们做了些“有趣”的事？"}
+{"source":"Hey there, you guys! Yeah, we just had a group workout after the site repairs today!","translation":"嘿，你们好！对啊，今天修完工地后，我们刚进行了一次集体锻炼！"}
+{"source":"Ah, we just finished a workout of our own too!","translation":"啊，我们也刚做完自己的锻炼！"}
+{"source":"Th-That explains the towel fanservice…","translation":"难、难怪你们只裹着毛巾卖福利……"}
+{"source":"I’m surprised you were able to drag Jin into it. I never pegged him as someone who’d be interested in fitness.","translation":"没想到你们居然能把Jin也拉进来。我从没觉得他会对健身感兴趣。"}
+{"source":"They told me they were going to work on my body… And I think I might have had a different idea before I agreed…","translation":"他们说要好好锻炼我的身体……而我答应之前，大概想成了别的事情……"}
+{"source":"I’d say it’s worth it! No pain, no gain!","translation":"我觉得很值得！没有痛苦就没有收获！"}
+{"source":"But all I gained was pain…","translation":"可我得到的只有痛苦……"}
+{"source":"It was quite the experience with you guys though…","translation":"不过和你们一起锻炼确实是很特别的体验……"}
+{"source":"Having two men being ‘hands-on’ really motivated me…!","translation":"让两个男人亲自对我“动手”，真的让我很有动力……！"}
+{"source":"Well, that’s a good start at least! If you keep it up, you’ll be fit in no time!","translation":"至少这是个好开始！只要坚持下去，你很快就会练出好身材！"}
+{"source":"We should do this all together next time, though! I wanna show off my favorite yoga pose!","translation":"不过下次我们应该一起练！我想展示自己最喜欢的瑜伽姿势！"}
+{"source":"You mean like the one you called… Downward Dog Style? ","translation":"你是说那个叫什么……下犬式的姿势？"}
+{"source":"That sounds like something else…","translation":"听起来像是另一种事情……"}
+{"source":"Hehe. You should see it in action. ","translation":"嘿嘿，你应该亲眼看看。"}
+{"source":"Anyone could walk back in you know. But then that’s not even a concern for you.","translation":"随时都可能有人进来。不过对你来说，这根本不算问题。"}
+{"source":"*ehem* Should we continue our work out then?","translation":"*咳咳* 那我们继续锻炼？"}
+{"source":"Sure thing! I feel extra loose like this~","translation":"当然！这样让我感觉特别放松～"}
+{"source":"I-I’ll lay down and do some crunches.","translation":"我、我躺下来做几个卷腹。"}
+{"source":"Well, don’t mind if I join in~","translation":"好啊，不介意我加入吧～"}
+{"source":"Well, don’t mind if I do some squats right over…","translation":"那么，不介意我就在这里做几个深蹲……"}
+{"source":"Here~","translation":"这里～"}
+{"source":"Now that’s what I call a workout! ","translation":"这才叫真正的锻炼！"}
+{"source":"That was a lot wilder than usual… I almost can’t feel my legs.","translation":"这次比平时疯狂多了……我的腿几乎都没知觉了。"}
+{"source":"My third leg’s pretty sore too~","translation":"我的第三条腿也很酸痛～"}
+{"source":"Goodness, Aiden… ","translation":"天哪，Aiden……"}
+{"source":"Hahaha! I do feel better after a hot shower, though!","translation":"哈哈哈！不过洗完热水澡后确实舒服多了！"}
+{"source":"It’s a good thing no one walked in on us, or that would’ve been—","translation":"幸好没人撞见我们，否则那就——"}
+{"source":"I thought he was going to pass out.","translation":"我还以为他要昏过去了。"}
+{"source":"I’m surprised we were able to drag Jin into it. I never pegged him as someone who’d be interested in fitness.","translation":"没想到我们居然能把Jin也拉进来。我从没觉得他会对健身感兴趣。"}
+{"source":"I think I had something different in mind when you guys said you were going to work on my body… ","translation":"你们说要好好锻炼我的身体时，我想的大概是另一回事……"}
+{"source":"I’d say it’s worth it!  No pain, no gain!","translation":"我觉得很值得！没有痛苦就没有收获！"}
+{"source":"Having three men being ‘hands-on’ really motivated me…!","translation":"让三个男人亲自对我“动手”，真的让我很有动力……！"}
+{"source":"Hehe. You should see it in action.","translation":"嘿嘿，你应该亲眼看看。"}
+{"source":"AAAAAH! What the hell?! Why are you all here?!","translation":"啊啊啊啊！搞什么鬼？！你们怎么全都在这里？！"}
+{"source":"Duh, it’s our bathroom! And you’re the one who barged in!","translation":"废话，这是我们的浴室！明明是你闯进来的！"}
+{"source":"I thought nobody was in here since the cabin was empty and the bathroom was unlocked…!","translation":"小屋里没人，浴室门又没锁，我还以为这里也是空的……！"}
+{"source":"Ever heard of knocking?","translation":"你没听说过要敲门吗？"}
+{"source":"Just for the record… What’s up with you guys’ room?! It totally reeks! ","translation":"顺便说一句……你们的房间到底怎么回事？！臭死了！"}
+{"source":"It smells like sweat and protein shakes…! Try opening up a window!","translation":"全是汗和蛋白奶昔的味道……！开一下窗户吧！"}
+{"source":"Haha, no can do! The cold messes up our workouts!","translation":"哈哈，那可不行！寒冷会影响我们锻炼！"}
+{"source":"What brings you here, Emilia? ","translation":"你来这里做什么，Emilia？"}
+{"source":"I-I’m here to get your dirty laundry.","translation":"我、我是来拿你们的脏衣服。"}
+{"source":"Ooh! Just in time! I have some over here! Catch!","translation":"哦！来得正好！我这里就有一些！接住！"}
+{"source":"Eek! ","translation":"呀！"}
+{"source":"Goodness gracious… This is your used underwear! I think I’m gonna puke!","translation":"老天啊……这是你穿过的内裤！我快吐了！"}
+{"source":"Heeey! I practice excellent hygiene, just so you know!","translation":"喂——！告诉你，我的个人卫生可是非常好的！"}
+{"source":"He does. He’s as clean as a baby.","translation":"确实。他干净得像个婴儿。"}
+{"source":"That comparison doesn’t help at all, Dar!","translation":"这个比喻一点帮助都没有，Dar！"}
+{"source":"Ugh… This is what my life has become… ","translation":"呃……我的生活居然变成了这样……"}
+{"source":"Oh, I was planning to bring all this to the laundry room later – why are you working on it, Emilia? ","translation":"哦，我本来打算晚点把这些拿到洗衣房——为什么是你在洗，Emilia？"}
+{"source":"I asked Yuri to teach me to do some chores today. But ugh… I didn’t sign up for… this.","translation":"我今天请Yuri教我做些家务。可是，呃……我可没答应做……这种事。"}
+{"source":"She probably knew I would hate this one and took advantage of my initiative! That witch!","translation":"她肯定知道我会讨厌洗这个，故意利用我的积极性！那个女巫！"}
+{"source":"Still, it’s good to see you willing to help. It shows how much you’ve grown.","translation":"不过，看到你愿意帮忙还是很好，这说明你成长了很多。"}
+{"source":"You know, I should be flattered by that statement…","translation":"知道吗，照理说我应该因为这句话感到高兴……"}
+{"source":"But you saying that while you’re handing me your sweat-soaked shirt kinda ruins the mood.","translation":"可你一边这么说，一边把汗湿的上衣递给我，气氛就全毁了。"}
+{"source":"Hehe, sorry about that.","translation":"嘿嘿，抱歉。"}
+{"source":"A-Anyway, I checked on Mr. Clermont a while ago and he’s already packing up to leave. ","translation":"总、总之，我刚才去看过Clermont先生，他已经在收拾东西准备离开了。"}
+{"source":"I was going to send him off, but I still have to work on this laundry.","translation":"我本来想去送他，可这些衣服还得处理。"}
+{"source":"You can leave Mr. Clermont to us! We just finished here too, anyways!","translation":"Clermont先生就交给我们吧！反正我们这里也刚结束！"}
+{"source":"Ooh, I’ll go make some dinner for him! I just had an idea!","translation":"哦，我去给他做顿晚餐！我刚想到一个点子！"}
+{"source":"H-Hey, Aiden! You’re not going out there in just a towel…!","translation":"喂、喂，Aiden！你不能只裹着毛巾就出去……！"}
+{"source":"*sigh* I’ll go with them just to make sure we don’t give a bad last impression…","translation":"*叹气* 我跟他们一起去，免得最后给人家留下坏印象……"}
+{"source":"Time for our shower then.","translation":"那我们该洗澡了。"}
+{"source":"AAAHHH, WHAT THE FUCK?!","translation":"啊啊啊，搞什么鬼？！"}
+{"source":"Oh, right. You’re still here...","translation":"哦，对。你还在这里……"}
+{"source":"*faints*","translation":"*昏倒*"}
+{"source":"Thanks for agreeing to one more meal before you leave, Mr. Clermont.","translation":"谢谢您愿意在离开前再和我们吃一顿饭，Clermont先生。"}
+{"source":"I’m the one who should be thanking you! You’ve all been so hospitable these last two days!","translation":"该道谢的人是我！这两天你们所有人都如此热情好客！"}
+{"source":"In fact, I’d say this is one of the best mini vacations I’ve taken in a long time!","translation":"事实上，我会说这是我很长时间以来度过的最棒的一次短假！"}
+{"source":"With everything going on at work, I needed a bit of time away from the stress, and the rustic lifestyle was perfect for me.","translation":"工作上发生了那么多事，我正需要暂时远离压力，而这种质朴的生活方式非常适合我。"}
+{"source":"Haha, we’re glad you enjoyed being here so much, sir. We wouldn’t have been able to clean up everything as quickly without your help, either. ","translation":"哈哈，很高兴您这么享受这里的生活，先生。没有您的帮助，我们也不可能这么快清理好一切。"}
+{"source":"Like I said, think nothing of it! It’s the least I could do. ","translation":"就像我说的，不必放在心上！这是我至少能做的。"}
+{"source":"I would like to extend my apologies again about what transpired with Ms. Komarova at the hotel, however. ","translation":"不过，对于Komarova女士在酒店发生的事，我还想再次表达歉意。"}
+{"source":"I was not aware of the severity of her well-being at the time… ","translation":"当时我并不知道她的状况如此严重……"}
+{"source":"It’s quite alright, sir. I don’t think any of us were aware, so you can’t be blamed.","translation":"没关系，先生。我想我们所有人当时都不知道，所以不能怪您。"}
+{"source":"Regardless, I am glad that she is surrounded by supportive people.","translation":"无论如何，我很高兴她身边有一群愿意支持她的人。"}
+{"source":"Order up! A very special meal for our lovely guest, Mr. Clermont! ","translation":"上菜啦！这是献给我们尊贵客人Clermont先生的特别大餐！"}
+{"source":"Don’t think I forgot about you guys either, Yoshi and Gramps! There’s plenty for everyone!","translation":"别以为我忘了你们，Yoshi、Gramps！每个人都有份！"}
+{"source":"My, my, what a way to end this trip! This looks delectable!","translation":"哎呀呀，用这样的方式结束旅程可真棒！看起来美味极了！"}
+{"source":"Whoa, the plating looks just like in the hotel restaurant! You made this, Aiden?!","translation":"哇，摆盘简直和酒店餐厅里一样！这是你做的，Aiden？！"}
+{"source":"I picked up a trick or two from that fancy hotel! You know what they say, if you can’t beat ’em, join them!","translation":"我从那家高级酒店学了几招！俗话说得好，打不过就加入他们！"}
+{"source":"Well I think I speak for all of us when I say I can’t wait to try it!","translation":"我想我可以代表大家说，我们都等不及要尝尝了！"}
+{"source":"Haha, I hope it meets your expectations!","translation":"哈哈，希望不会辜负你们的期待！"}
+{"source":"Good heavens! This is delicious! ","translation":"天哪！太美味了！"}
+{"source":"Glad you like it, Mr. Clermont!","translation":"很高兴您喜欢，Clermont先生！"}
+{"source":"As someone who’s eaten in restaurants around the world, I can say your cooking is still one of the best I’ve ever had! ","translation":"作为一个吃遍世界各地餐厅的人，我可以说你的厨艺依然是我尝过的顶尖水平！"}
+{"source":"Aww, thanks Mr. Clermont… I’m flattered! But are you sure you’re not just hungry?","translation":"哎呀，谢谢您，Clermont先生……您过奖了！不过您确定不是单纯饿了吗？"}
+{"source":"I’m pretty sure. I think you’re underestimating yourself, lad.","translation":"我很确定。我觉得你低估自己了，小伙子。"}
+{"source":"I’m curious, where did you learn to cook?","translation":"我很好奇，你在哪里学的烹饪？"}
+{"source":"From my dad! He used to be the cook here at Camp Buddy when it first opened.","translation":"跟我爸爸学的！伙伴营刚开办时，他就是这里的厨师。"}
+{"source":"Ah, was your father a professional chef of some kind?","translation":"啊，你父亲曾是专业厨师吗？"}
+{"source":"Ahehe, not at all – cooking was just his passion! And he just passed it down to me!","translation":"啊嘿嘿，完全不是——烹饪只是他的热爱！而他又把这份热爱传给了我！"}
+{"source":"No culinary background, and yet this talented! Very interesting.","translation":"没有专业烹饪背景，却有如此才华！非常有意思。"}
+{"source":"On that note, I think you have what it takes to pursue the culinary arts. All that’s missing is a certification.","translation":"说到这里，我认为你具备投身烹饪行业的一切条件，唯一缺少的就是专业认证。"}
+{"source":"And considering your skills, that would be quite easy to acquire if you put in the work and time! ","translation":"以你的水平，只要投入时间和努力，取得认证应该相当容易！"}
+{"source":"As a food connoisseur, I actually have quite a few connections with the best chefs and their masterclasses from around the world, if you’re interested~","translation":"作为美食鉴赏家，我认识不少世界顶尖厨师，也能联系到他们的大师课程——如果你感兴趣的话～"}
+{"source":"W-wait, are you serious…?","translation":"等、等等，您是认真的吗……？"}
+{"source":"Of course! I pride myself on cultivating talent!","translation":"当然！我一直以发掘和培养人才为荣！"}
+{"source":"Ehh… I-I’m really flattered you think that, Mr. Clermont… But I don’t think I’m cut out for the big time…","translation":"呃……您能这么看我，我、我真的很荣幸，Clermont先生……但我觉得自己不适合登上那么大的舞台……"}
+{"source":"Not only that, but phew, the prices for classes are something else… ","translation":"而且，呼，那些课程的价格也实在吓人……"}
+{"source":"I’m sure that could be negotiated! ","translation":"我相信这个可以商量！"}
+{"source":"A-Ahh… Well…","translation":"啊、啊……这个……"}
+{"source":"A-Ahh… Well…{fast}","translation":"啊、啊……这个……{fast}"}
+{"source":"The answer is obvious.","translation":"答案很明显。"}
+{"source":"The answer is obvious, Aiden!","translation":"答案很明显，Aiden！"}
+{"source":"I dunno… Maybe I should think about it some more…?","translation":"我不知道……也许我该再考虑一下……？"}
+{"source":"You should go for it.","translation":"你应该把握机会。"}
+{"source":"You should go for it, Aiden!","translation":"你应该把握机会，Aiden！"}
+{"source":"There's no pressure.","translation":"不用有压力。"}
+{"source":"There’s no pressure, Aiden! You don’t have to decide right away.","translation":"不用有压力，Aiden！你不必马上决定。"}
+{"source":"You don't need to answer right now.","translation":"你不必现在回答。"}
+{"source":"You don’t need an answer right now, do you, Mr. Clermont?","translation":"您不需要他现在就答复，对吧，Clermont先生？"}
+{"source":"Of course not! ","translation":"当然不需要！"}
+{"source":"I understand that it’s a sudden offer, and a rather intimidating prospect, so please take your time to consider!","translation":"我明白这个邀请来得突然，前景也令人忐忑，所以请慢慢考虑！"}
+{"source":"I agree. I think it’s worth giving it some more thought, Aiden. This is a huge decision, after all.","translation":"我同意。我觉得值得再认真考虑一下，Aiden。毕竟这是个重大的决定。"}
+{"source":"Either way, my line is always open whenever you decide! Just give me a call!","translation":"无论如何，等你做出决定，随时都可以联系我！给我打电话就行！"}
+{"source":"Thanks for the opportunity, Mr. Clermont! I’ll think about it!","translation":"谢谢您给我这个机会，Clermont先生！我会认真考虑！"}
+{"source":"Great! And with that, I think it’s about time for me to leave.","translation":"很好！那么，我想自己也差不多该离开了。"}
+{"source":"Oh? Don’t you wanna stay for dessert? I can whip up something fancy again!","translation":"哦？您不留下吃甜点吗？我还能再做一道精致的！"}
+{"source":"It’s alright! I’m quite full already. Besides, I have several appointments tomorrow, too!","translation":"没关系！我已经很饱了。况且明天还有几个约会安排！"}
+{"source":"Ah, we understand! We’re glad to have had you around, sir!","translation":"啊，我们明白！很高兴这几天有您在，先生！"}
+{"source":"Once again, thank you all for your hospitality! I hope that I didn’t put you out too much.","translation":"再次感谢各位的热情款待！希望我没有给你们添太多麻烦。"}
+{"source":"Oh, not at all, Mr. Clermont! You’re welcome here at the camp anytime you want!","translation":"哦，完全没有，Clermont先生！无论什么时候，营地都欢迎您！"}
+{"source":"That’s right! Please feel free to come back and visit, sir!","translation":"没错！欢迎您随时回来看看，先生！"}
+{"source":"Thank you, your kindness is greatly appreciated.","translation":"谢谢，我非常感激各位的好意。"}
+{"source":"In addition, if Camp Buddy comes upon a concern or issue, especially in the case of the project, please do let me know right away!","translation":"另外，如果伙伴营遇到任何困难或问题，尤其是这个项目方面，请立刻告诉我！"}
+{"source":"I’m always happy to assist!","translation":"我随时乐意提供帮助！"}
+{"source":"We’ll keep that in mind, sir.","translation":"我们会记住的，先生。"}
+{"source":"Well, my driver just arrived! I hope to see you all again sometime soon, and hopefully for good news!","translation":"好了，我的司机刚到！希望很快能再次见到各位，而且带来的是好消息！"}
+{"source":"Oh, and Mr. Flynn, please do let me know! I have high hopes for you!","translation":"哦，还有Flynn先生，请一定要告诉我你的决定！我非常看好你！"}
+{"source":"Ciao~","translation":"再会～"}
+{"source":"{i}I couldn’t believe what an amazing opportunity Mr. Clermont was offering Aiden… {/i}","translation":"{i}我简直不敢相信，Clermont先生竟然给了Aiden这么棒的机会……{/i}"}
+{"source":"{i}I’m sure he’s excited for the chance! I’m so happy for him!{/i}","translation":"{i}他一定也为这个机会感到兴奋！我真替他高兴！{/i}"}
+{"source":"{i}After Mr. Clermont left, Sir Goro headed over to the construction site to inspect the work for the day, while Aiden and I started to clean up at the kitchen.{/i}","translation":"{i}Clermont先生离开后，Goro先生前往工地检查当天的工作，Aiden和我则开始收拾厨房。{/i}"}
+{"source":"I really gotta hand it to you, Aiden. You really impressed Mr. Clermont with your cooking.","translation":"我真的很佩服你，Aiden。你的厨艺给Clermont先生留下了深刻印象。"}
+{"source":"Ahehe, I didn’t expect he would dig it that much!","translation":"啊嘿嘿，我没想到他会这么喜欢！"}
+{"source":"I’d say I’m not surprised, but you caught me off guard as well. ","translation":"我很想说自己并不意外，可你连我也吓了一跳。"}
+{"source":"I thought we were just having a regular dinner, but you came out there with that really fancy dish.","translation":"我以为只是普通晚餐，没想到你端出了那么精致的一道菜。"}
+{"source":"I’m really glad you all liked it! I wasn’t sure if it’s just because of the presentation or something.","translation":"你们都喜欢，我真的很高兴！我还不确定是不是只有摆盘好看。"}
+{"source":"Our plates were almost licked clean. I think that speaks for itself, haha!","translation":"我们的盘子都快被舔干净了，这已经很能说明问题了，哈哈！"}
+{"source":"I guess it was a good idea to take a risk and try something new, huh?","translation":"看来冒险尝试新东西是个好主意，对吧？"}
+{"source":"Yeah, definitely! It really looked crazy fancy, just like the stuff at the hotel!","translation":"对，绝对是！看起来真的高级极了，就像酒店里的菜！"}
+{"source":"Whew… I’m just happy I pulled it off…. I was trying so hard to remember how it looked, hahaha! ","translation":"呼……我只是很高兴成功做出来了……我可是拼命回想它当时的样子，哈哈哈！"}
+{"source":"I was wondering though, what made you decide to do that all of a sudden…?","translation":"不过我很好奇，是什么让你突然决定这么做……？"}
+{"source":"Well, at first, I thought I’d make something extra special for Mr. Clermont on his last day. He’s done a lot for us and the camp, after all.","translation":"一开始，我只是想在Clermont先生离开的这天做点特别的东西。毕竟他为我们和营地做了很多。"}
+{"source":"But if I’m gonna be honest, ever since that whole fiasco back at the hotel, I’ve been wanting to try some new things.","translation":"但说实话，自从酒店那场闹剧之后，我就一直想尝试些新东西。"}
+{"source":"I thought there’s no time like the present to pick up some skills!","translation":"我觉得学习新本事，最好的时机就是现在！"}
+{"source":"Oh, I see…! I hope you’re not stressing yourself out, though.","translation":"哦，原来如此……！不过希望你没有给自己太大压力。"}
+{"source":"Not at all! I’m making sure I’m taking things at my own pace and having fun with it! ","translation":"完全没有！我会按照自己的节奏来，而且一直都很享受！"}
+{"source":"And I’ll let you in on a little secret! That dish I made… was actually my dad’s specialty!","translation":"再告诉你一个小秘密！我做的那道菜……其实是爸爸的拿手菜！"}
+{"source":"I just fancied it up on the plate and added my own twist!","translation":"我只是把摆盘弄得更精致，又加了自己的改良！"}
+{"source":"Oh, wow…!","translation":"哦，哇……！"}
+{"source":"I never tried making it before, ’cause I knew I couldn’t cook it the same way my Dad did… But I’d say it was pretty close!","translation":"我以前从没试过做这道菜，因为我知道自己做不出爸爸的味道……不过这次应该很接近了！"}
+{"source":"You know… I’ve always wondered, how did you and Mr. Andre get so good at cooking?","translation":"说起来……我一直很好奇，你和Andre先生是怎么练出这么好厨艺的？"}
+{"source":"Oh yeah… I don’t think I told you, but it was actually my dad’s dream to become a chef.","translation":"哦，对了……我好像没告诉过你，其实爸爸的梦想就是成为厨师。"}
+{"source":"But things didn’t work out for him ’cause he couldn’t afford to get a degree even though he was pretty good at it.","translation":"但事情没能如愿。虽然他很有天赋，却负担不起取得学位的费用。"}
+{"source":"It was already hard enough trying to raise me, keep a roof over our heads and put food on the table all by himself!","translation":"他一个人要抚养我、让我们有地方住、有饭吃，就已经够辛苦了！"}
+{"source":"…I can’t imagine how difficult that was.","translation":"……我无法想象那有多么艰难。"}
+{"source":"But the thing is… I don’t see it as all that bad!","translation":"但问题是……我并不觉得那段日子有多糟！"}
+{"source":"Even though we never had much, Dad always made things work. I never felt like I was missing out on anything growing up.","translation":"虽然我们从来不富裕，爸爸却总能把一切安排妥当。我成长时从没觉得自己缺少什么。"}
+{"source":"Dad always made sure to cook something special for me after coming home from work.","translation":"爸爸每次下班回家，都会特意为我做些特别的食物。"}
+{"source":"I was always so amazed at how he could turn the simplest and cheapest stuff into something amazing, so I got interested in it too.","translation":"他总能把最简单、最便宜的食材变成美味佳肴，这让我十分惊叹，也渐渐产生了兴趣。"}
+{"source":"Eventually, I started doing it for dad ‘cause I know how tired he always was from work.","translation":"后来，我开始为爸爸做饭，因为我知道他工作回来总是很累。"}
+{"source":"After that, it became something we’d always bond over. He started calling me his ‘little chef’ and we’d always cook and eat together!","translation":"从那以后，烹饪成了维系我们感情的活动。他开始叫我“小厨师”，我们总是一起做饭、一起吃！"}
+{"source":"No matter how difficult our life was, Dad would always smile whenever I made something for him.","translation":"无论生活多么艰难，只要我为爸爸做了东西，他总会露出笑容。"}
+{"source":"He’s the reason why I always try to look on the bright side and cherish what I have!","translation":"正因为他，我才总是努力看到光明的一面，珍惜自己拥有的一切！"}
+{"source":"And I guess you know the rest, since after that we got to Camp Buddy!","translation":"之后我们来到伙伴营，剩下的事你应该都知道了！"}
+{"source":"Yeah… It’s amazing how far you’ve come since then, Aiden.","translation":"是啊……从那以后你走了这么远，真的很了不起，Aiden。"}
+{"source":"I do kinda wish my old man was still here to see all this…","translation":"我确实有点希望老爸还在，能亲眼看到这一切……"}
+{"source":"If he heard about me having an opportunity to become a pro chef, he’d be over the moon.","translation":"如果他听说我有机会成为专业厨师，一定会欣喜若狂。"}
+{"source":"I’m sure he’d be so proud of you right now…!","translation":"我相信他现在一定会为你感到无比骄傲……！"}
+{"source":"Yeah, I never thought I’d get a real shot to chase after something I felt was never meant for me.","translation":"是啊，我从没想过自己真能有机会追求那种仿佛永远不属于我的梦想。"}
+{"source":"Yeah, I never thought I’d get a real shot to chase after something I felt was never meant for me.{fast}","translation":"是啊，我从没想过自己真能有机会追求那种仿佛永远不属于我的梦想。{fast}"}
+{"source":"You can take things to a new level!","translation":"你可以让人生迈上新台阶！"}
+{"source":"This is the perfect opportunity to change that, Aiden!","translation":"这正是改变一切的绝佳机会，Aiden！"}
+{"source":"Well, it is a really big change though…","translation":"不过，这确实是非常巨大的改变……"}
+{"source":"Yeah, but that’s how it goes, and I know you’d be successful at it!","translation":"是啊，但人生就是这样，而且我知道你一定会成功！"}
+{"source":"Do it for your dad!","translation":"为了你爸爸去做吧！"}
+{"source":"It used to be your dad’s dream, and now you get to fulfill that for him!","translation":"这曾是你爸爸的梦想，现在你可以替他实现！"}
+{"source":"Ahehe… Thanks a lot, pops. Now the pressure’s on me!","translation":"啊嘿嘿……真谢谢你啊，老爸。现在压力全到我身上了！"}
+{"source":"Don't miss the chance.","translation":"别错过这个机会。"}
+{"source":"That’s why you shouldn’t miss this chance, Aiden!","translation":"所以你不该错过这个机会，Aiden！"}
+{"source":"It’s perfect for you, and you’d be a huge success at it!","translation":"它非常适合你，而且你一定能取得巨大成功！"}
+{"source":"Yeah, you’re right, Yoshi!","translation":"是啊，你说得对，Yoshi！"}
+{"source":"You have everything it takes!","translation":"你拥有成功需要的一切！"}
+{"source":"Haha, you already had everything you needed to succeed from the start.","translation":"哈哈，其实从一开始，你就具备了成功所需的一切。"}
+{"source":"You’re talented and hard-working, so now all you have to do is take that next step!","translation":"你既有天赋又肯努力，现在要做的只是迈出下一步！"}
+{"source":"Aww, Yoshi… ","translation":"哎呀，Yoshi……"}
+{"source":"Alright, I made up my mind! I’m going for it!","translation":"好，我决定了！我要把握这个机会！"}
+{"source":"You know, I thought I’d need a lot longer to think about it…","translation":"知道吗，我原以为自己需要考虑很久……"}
+{"source":"’Cause as thrilled as I was to hear about the offer, I felt it was too good to be true.","translation":"因为听到这个邀请时，虽然无比兴奋，我却觉得好得不像真的。"}
+{"source":"But now, knowing that there’s nothing to lose and everything to gain, I can finally make a choice for myself!","translation":"但现在，我知道自己没有什么可失去，反而能收获一切，终于可以为自己做一次选择！"}
+{"source":"I’m glad you see it that way! ","translation":"很高兴你能这么想！"}
+{"source":"I’m really glad I talked to you about it. Thanks for always believing in me, Yoshi!","translation":"我真的很高兴和你谈了这件事。谢谢你一直相信我，Yoshi！"}
+{"source":"I’ll always be here for you, Aiden!","translation":"我永远都会支持你，Aiden！"}
+{"source":"{i}Seeing Aiden with a newfound determination was proof of how much he’s changed… He’s finally making the effort to pursue something for his own future. {/i}","translation":"{i}看到Aiden拥有了全新的决心，证明他已经改变了许多……他终于开始为了自己的未来努力追求某样东西。{/i}"}
+{"source":"{i}I’m gonna make sure I help him in every way I can!{/i}","translation":"{i}我一定会尽自己所能，从各个方面帮助他！{/i}"}
