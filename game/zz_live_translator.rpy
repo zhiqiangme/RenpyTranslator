@@ -43,7 +43,7 @@ init 999 python:
         "enabled": True,
         "base_url": "https://api.openai.com/v1",
         "api_key": "",
-        "api_key_env": "REN_TRANSLATOR_API_KEY",
+        "api_key_encrypted": "",
         "model": "your-model-name",
         "font": "C:/Windows/Fonts/msyh.ttc",
         "batch_size": 8,
@@ -437,19 +437,92 @@ init 999 python:
             pass
         return False
 
+    def _live_translator_decrypt_api_key(encrypted_text):
+        # 使用 Windows DPAPI 解密安装脚本写入的 API Key，
+        # 密钥绑定当前 Windows 用户，仅本机本用户可解密。
+        try:
+            import ctypes as _ctypes_module
+            from ctypes import wintypes as _wintypes_module
+            import base64 as _base64_module
+
+            class _LiveTranslatorBlob(_ctypes_module.Structure):
+                _fields_ = [
+                    ("cbData", _wintypes_module.DWORD),
+                    ("pbData", _ctypes_module.c_void_p)
+                ]
+
+            encrypted_bytes = _base64_module.b64decode(
+                encrypted_text.encode("ascii")
+            )
+            buffer = _ctypes_module.create_string_buffer(
+                encrypted_bytes, len(encrypted_bytes)
+            )
+            blob_in = _LiveTranslatorBlob(
+                len(encrypted_bytes),
+                _ctypes_module.cast(
+                    buffer, _ctypes_module.c_void_p
+                )
+            )
+            blob_out = _LiveTranslatorBlob(0, None)
+            crypt32 = _ctypes_module.windll.crypt32
+            # 显式声明签名，保证 64 位指针按引用正确传递。
+            _CryptUnprotectData = crypt32.CryptUnprotectData
+            _CryptUnprotectData.argtypes = [
+                _ctypes_module.POINTER(_LiveTranslatorBlob),
+                _ctypes_module.c_void_p,
+                _ctypes_module.c_void_p,
+                _ctypes_module.c_void_p,
+                _ctypes_module.c_void_p,
+                _wintypes_module.DWORD,
+                _ctypes_module.POINTER(_LiveTranslatorBlob)
+            ]
+            _CryptUnprotectData.restype = _wintypes_module.BOOL
+            if not _CryptUnprotectData(
+                _ctypes_module.byref(blob_in),
+                None,
+                None,
+                None,
+                None,
+                0,
+                _ctypes_module.byref(blob_out)
+            ):
+                return u""
+            try:
+                data_size = int(blob_out.cbData)
+                decrypted_bytes = _ctypes_module.string_at(
+                    blob_out.pbData, data_size
+                )
+                return decrypted_bytes.decode("utf-8", "replace")
+            finally:
+                if blob_out.pbData:
+                    # 显式声明参数类型，避免 64 位指针被当作 int 截断。
+                    _LocalFree = _ctypes_module.windll.kernel32.LocalFree
+                    _LocalFree.argtypes = [_wintypes_module.HLOCAL]
+                    _LocalFree.restype = _wintypes_module.HLOCAL
+                    _LocalFree(blob_out.pbData)
+        except Exception:
+            return u""
+
     def _live_translator_api_key():
+        # 优先读取 DPAPI 加密的密钥；明文 api_key 字段仅作兼容回退。
+        encrypted_key = _live_translator_to_text(
+            _live_translator_config.get("api_key_encrypted", "")
+        ).strip()
+        if encrypted_key:
+            decrypted_key = _live_translator_decrypt_api_key(encrypted_key)
+            if decrypted_key:
+                return decrypted_key
+            _live_translator_log(
+                "LiveTranslator: DPAPI 解密 API Key 失败，"
+                "请重新运行 Configure-Api.ps1 设置密钥"
+            )
+            return u""
         configured_key = _live_translator_to_text(
             _live_translator_config.get("api_key", "")
         ).strip()
-        # 示例占位文本不应触发无效请求；仍允许环境变量提供真实密钥。
         if configured_key and u"这里填写" not in configured_key:
             return configured_key
-        environment_name = _live_translator_config.get(
-            "api_key_env", "REN_TRANSLATOR_API_KEY"
-        )
-        return _live_translator_to_text(
-            _live_translator_os_module.environ.get(environment_name, "")
-        ).strip()
+        return u""
 
     def _live_translator_runtime_api_ready():
         model = _live_translator_to_text(
