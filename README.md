@@ -1,9 +1,11 @@
-<table>
-  <tr>
-    <td><h1>Ren'Py 实时翻译器</h1></td>
-    <td align="right"><a href="README_EN.md"><kbd>English</kbd></a> <kbd><b>中文</b></kbd></td>
-  </tr>
-</table>
+<div align="right">
+
+[![中文](https://img.shields.io/badge/中文-当前阅读-FF6B6B?style=for-the-badge)](README.md)
+[![English](https://img.shields.io/badge/English-Switch-1E90FF?style=for-the-badge)](README_EN.md)
+
+</div>
+
+# Ren'Py 实时翻译器
 
 适用于 Windows 版 Ren'Py 游戏。当前目标游戏已确认使用 Ren'Py 7.8.4。
 

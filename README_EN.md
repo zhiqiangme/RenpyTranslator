@@ -1,9 +1,11 @@
-<table>
-  <tr>
-    <td><h1>Ren'Py Live Translator</h1></td>
-    <td align="right"><kbd><b>English</b></kbd> <a href="README.md"><kbd>中文</kbd></a></td>
-  </tr>
-</table>
+<div align="right">
+
+[![中文](https://img.shields.io/badge/中文-切换-FF6B6B?style=for-the-badge)](README.md)
+[![English](https://img.shields.io/badge/English-Current-1E90FF?style=for-the-badge)](README_EN.md)
+
+</div>
+
+# Ren'Py Live Translator
 
 A real-time translation mod for Windows Ren'Py games. The current target game is confirmed to use Ren'Py 7.8.4.
 
