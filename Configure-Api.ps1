@@ -134,5 +134,10 @@ try {
     Write-Host ""
     Write-Host "配置失败，已停止：" -ForegroundColor Yellow
     Write-Host "$_" -ForegroundColor Red
+    # 停留 3 秒让用户看清错误信息再关闭窗口。
+    Start-Sleep -Seconds 3
     exit 1
 }
+
+# 运行成功也停留 3 秒，避免窗口一闪而过。
+Start-Sleep -Seconds 3
