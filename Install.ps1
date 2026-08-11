@@ -48,7 +48,7 @@ if ([string]::IsNullOrWhiteSpace($FontChoice)) {
 # ---------- 3. 输入 DeepSeek API Key ----------
 if ([string]::IsNullOrWhiteSpace($ApiKey)) {
     Write-Host ""
-    $apiKeyInput = Read-Host "请输入 DeepSeek API Key（直接回车：已有配置则保留原值，新安装则留空）"
+    $apiKeyInput = Read-Host "请输入 DeepSeek API Key（直接回车：已有配置则保留原值，新安装则留空；将使用 DPAPI 加密保存）"
     $apiKeyInput = $apiKeyInput.Trim()
 } else {
     $apiKeyInput = $ApiKey.Trim()
@@ -126,11 +126,35 @@ switch ($fontChoice) {
     }
 }
 
-# API Key：输入非空才覆盖；空回车保留原值（新装 config 时为示例占位，一并清空）
+# API Key：DPAPI 加密后写入 api_key_encrypted，config.json 不再保存明文。
+# 输入非空才覆盖；空回车保留原值（新装 config 时留空）。
+# ProtectedData 类型在 Windows PowerShell 5.1 默认可用，无需 Add-Type。
 if (-not [string]::IsNullOrWhiteSpace($apiKeyInput)) {
-    $config.api_key = $apiKeyInput
-} elseif ([string]::IsNullOrWhiteSpace($config.api_key)) {
-    # 新安装且用户不填：确保是空字符串而非示例占位文本，避免误发请求
+    $keyBytes = [System.Text.Encoding]::UTF8.GetBytes($apiKeyInput)
+    $encrypted = [System.Security.Cryptography.ProtectedData]::Protect(
+        $keyBytes,
+        $null,
+        [System.Security.Cryptography.DataProtectionScope]::CurrentUser
+    )
+    $config.api_key_encrypted = [Convert]::ToBase64String($encrypted)
+    $config.api_key = ""
+    Write-Host "API Key 已使用 DPAPI 加密保存（绑定当前 Windows 用户）"
+} elseif ([string]::IsNullOrWhiteSpace($config.api_key_encrypted)) {
+    # 无新输入且无加密密钥：若存在旧明文 key 则加密迁移，否则清空避免误发请求
+    $oldKey = [string]$config.api_key
+    if (-not [string]::IsNullOrWhiteSpace($oldKey) -and
+        $oldKey -notmatch "这里填写" -and $oldKey -notmatch "不要在这里填") {
+        $keyBytes = [System.Text.Encoding]::UTF8.GetBytes($oldKey)
+        $encrypted = [System.Security.Cryptography.ProtectedData]::Protect(
+            $keyBytes,
+            $null,
+            [System.Security.Cryptography.DataProtectionScope]::CurrentUser
+        )
+        $config.api_key_encrypted = [Convert]::ToBase64String($encrypted)
+        Write-Host "已将旧明文 API Key 加密迁移到 api_key_encrypted"
+    } else {
+        $config.api_key_encrypted = ""
+    }
     $config.api_key = ""
 }
 
@@ -154,6 +178,7 @@ Write-Host ""
 Write-Host "安装完成：$targetScript"
 Write-Host "配置文件：$targetConfig"
 Write-Host "游戏内快捷键：F9 开关翻译，F10 查看状态。"
+Write-Host "如需修改 API Key 或切换模型服务商，请运行 Configure-Api.ps1。"
 
 # ---------- 更新检测 ----------
 $updateScript = Join-Path $projectRoot "Update.ps1"

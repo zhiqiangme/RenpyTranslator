@@ -1,8 +1,8 @@
 {
   "enabled": true,
   "base_url": "https://api.deepseek.com",
-  "api_key": "这里填写具体API Key，保留双引号，例如sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-  "api_key_env": "REN_TRANSLATOR_API_KEY",
+  "api_key": "不要在这里填API KEY",
+  "api_key_encrypted": "由 Install.ps1/Configure-Api.ps1 用 DPAPI 加密写入，请勿手动填写",
   "model": "deepseek-v4-flash",
   "font": "C:/Windows/Fonts/msyh.ttc",
   "batch_size": 8,
