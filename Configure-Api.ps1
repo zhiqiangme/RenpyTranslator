@@ -15,12 +15,16 @@ $ErrorActionPreference = "Stop"
 # ---------- 0. 检查 PowerShell 7 (pwsh) ----------
 # 本脚本的 API Key 加密（DPAPI）依赖 pwsh 7；Windows PowerShell 5 下该类型不可用。
 # 未安装 pwsh 时先询问是否自动安装（winget），用户不同意则不安装。
+# 否定词白名单：回车=安装，n/N/不/取消/停止 等=跳过。
+$pwshDeclineWords = @("n", "no", "不", "不装", "不安装", "不同意", "不要",
+    "取消", "停止", "退出", "跳过", "跳过安装", "stop", "exit", "quit",
+    "cancel", "skip")
 if (-not (Get-Command pwsh -ErrorAction SilentlyContinue)) {
     Write-Host ""
     Write-Host "未检测到 PowerShell 7（pwsh）。" -ForegroundColor Yellow
     Write-Host "本脚本的 API Key 加密功能需要 pwsh 7，Windows PowerShell 5 下无法使用。" -ForegroundColor Yellow
-    $pwshChoice = Read-Host "按回车自动安装 pwsh；输入 n 跳过（不安装）"
-    if ($pwshChoice.Trim().ToLower() -ne "n") {
+    $pwshChoice = Read-Host "按回车自动安装 pwsh；输入 n/不/取消 等跳过（不安装）"
+    if ($pwshDeclineWords -notcontains $pwshChoice.Trim().ToLower()) {
         if (Get-Command winget -ErrorAction SilentlyContinue) {
             Write-Host "正在通过 winget 安装 PowerShell 7 ..."
             winget install --id Microsoft.PowerShell --source winget `
