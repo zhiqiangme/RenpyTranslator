@@ -1,4 +1,9 @@
-# Ren'Py 实时翻译器
+<table>
+  <tr>
+    <td><h1>Ren'Py 实时翻译器</h1></td>
+    <td align="right"><a href="README_EN.md"><kbd>English</kbd></a> <kbd><b>中文</b></kbd></td>
+  </tr>
+</table>
 
 适用于 Windows 版 Ren'Py 游戏。当前目标游戏已确认使用 Ren'Py 7.8.4。
 
