@@ -15,6 +15,33 @@ $projectRoot = [System.IO.Path]::GetDirectoryName(
 
 $defaultGamePath = "D:\Program Files\Steam\steamapps\common\Camp Buddy Scoutmaster Season"
 
+# ---------- 0. 检查 PowerShell 7 (pwsh) ----------
+# 本脚本的 API Key 加密（DPAPI）依赖 pwsh 7；Windows PowerShell 5 下该类型不可用。
+# 未安装 pwsh 时先询问是否自动安装（winget），用户不同意则不安装。
+if (-not (Get-Command pwsh -ErrorAction SilentlyContinue)) {
+    Write-Host ""
+    Write-Host "未检测到 PowerShell 7（pwsh）。" -ForegroundColor Yellow
+    Write-Host "本脚本的 API Key 加密功能需要 pwsh 7，Windows PowerShell 5 下无法使用。" -ForegroundColor Yellow
+    $pwshChoice = Read-Host "按回车自动安装 pwsh；输入 n 跳过（不安装）"
+    if ($pwshChoice.Trim().ToLower() -ne "n") {
+        if (Get-Command winget -ErrorAction SilentlyContinue) {
+            Write-Host "正在通过 winget 安装 PowerShell 7 ..."
+            winget install --id Microsoft.PowerShell --source winget `
+                --accept-package-agreements --accept-source-agreements
+            Write-Host "pwsh 安装完成，请用 PowerShell 7 重新运行本脚本。" -ForegroundColor Cyan
+            exit 0
+        } else {
+            Write-Host "未找到 winget，无法自动安装。请手动下载安装：" -ForegroundColor Yellow
+            Write-Host "https://github.com/PowerShell/PowerShell/releases" -ForegroundColor Cyan
+            Write-Host "安装完成后用 PowerShell 7 重新运行本脚本。"
+            exit 1
+        }
+    } else {
+        Write-Host "已跳过 pwsh 安装。" -ForegroundColor Yellow
+        Write-Host "警告：未安装 pwsh 时，API Key 加密在 Windows PowerShell 5 下无法完成，安装可能中断。" -ForegroundColor Yellow
+    }
+}
+
 # ---------- 1. 输入游戏目录 ----------
 if ([string]::IsNullOrWhiteSpace($GamePath)) {
     Write-Host "默认游戏目录：$defaultGamePath"
@@ -128,7 +155,7 @@ switch ($fontChoice) {
 
 # API Key：DPAPI 加密后写入 api_key_encrypted，config.json 不再保存明文。
 # 输入非空才覆盖；空回车保留原值（新装 config 时留空）。
-# ProtectedData 类型在 Windows PowerShell 5.1 默认可用，无需 Add-Type。
+# 要求 pwsh 7 环境（脚本开头已检查并引导安装）；5.1 下 ProtectedData 不可用。
 if (-not [string]::IsNullOrWhiteSpace($apiKeyInput)) {
     $keyBytes = [System.Text.Encoding]::UTF8.GetBytes($apiKeyInput)
     $encrypted = [System.Security.Cryptography.ProtectedData]::Protect(
