@@ -140,3 +140,11 @@ D:\Program Files\Steam\steamapps\common\Camp Buddy Scoutmaster Season
 ```powershell
 .\Uninstall.ps1 -RemoveData
 ```
+
+## 许可证
+
+本项目基于 MIT License 发布，详见 [LICENSE](LICENSE)。
+
+> **中文**：本项目为第三方爱好者制作的翻译模组，与游戏开发商无关。译文仅供学习交流，请支持正版。任何再分发、销售或商业化行为均由使用者自行承担全部法律责任，原作者不承担任何连带责任。如版权方要求，原作者将配合移除相关内容。
+>
+> **English**: This project is a translation mod created by third-party fans and is not affiliated with the game developer. The translations are provided for learning and communication purposes only. Please support the official release. Any redistribution, sale, or commercial use is solely the responsibility of the user; the original author assumes no joint or several liability. If requested by the copyright holder, the original author will cooperate in removing the relevant content.
