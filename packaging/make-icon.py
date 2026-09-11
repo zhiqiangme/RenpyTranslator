@@ -192,11 +192,12 @@ def apply_rounded(rgba, size, radius):
         qy = abs(y + 0.5 - half) - inner
         for x in range(size):
             qx = abs(x + 0.5 - half) - inner
-            # 标准圆角矩形 SDF：角区为到圆心的距离减半径，边内外为直线距离。
+            # 标准圆角矩形 SDF：角区为到圆心的距离减半径；
+            # 非角区取单轴超出量减半径（两轴都在内方框内时 max 为负，即深处）。
             if qx > 0 and qy > 0:
                 d = math.hypot(qx, qy) - radius
             else:
-                d = min(max(qx, qy), 0.0)
+                d = max(qx, qy) - radius
             a = round((0.5 - d) * 255)
             if a < 255:
                 o = (y * size + x) * 4 + 3
