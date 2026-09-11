@@ -54,12 +54,31 @@ internal static class Program
         }
     }
     private static bool testing;
+    // 与管理器自检一致：tests 下的模拟目录按创建时间只保留最近若干份，避免逐次自检无限堆积。
+    private const int TestRetention = 4;
+    /// <summary>按创建时间删除超出保留份数的旧测试目录；失败一律忽略，不影响自检流程。</summary>
+    private static void PruneTests(string home)
+    {
+        var root = Path.Combine(home, "tests");
+        if (!Directory.Exists(root)) return;
+        try
+        {
+            foreach (var dir in Directory.GetDirectories(root).OrderByDescending(Directory.GetCreationTimeUtc).Skip(TestRetention))
+            {
+                try { Directory.Delete(dir, true); }
+                catch (IOException) { }                  // 被占用时留到下次清理
+                catch (UnauthorizedAccessException) { }
+            }
+        }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
+    }
     private static int SelfTest()
     {
         testing = true;
         var home = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "RenpyTranslator");
         var root = Path.Combine(home, "tests", "updater-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(root); var log = new List<string>();
+        Directory.CreateDirectory(root); PruneTests(home); var log = new List<string>();
         try
         {
             void Fixture(string dir, bool broken)

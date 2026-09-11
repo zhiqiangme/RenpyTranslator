@@ -8,9 +8,29 @@ namespace RenpyTranslator;
 
 public static class SelfTest
 {
+    // tests 目录留存每次自检的模拟游戏目录供排查，单份约 25MB（主要是内置字体副本），
+    // 不设上限会随自检次数无限堆积，故按创建时间只保留最近若干份（约两轮 Publish 产物）。
+    private const int TestRetention = 4;
+    /// <summary>按创建时间删除超出保留份数的旧测试目录；失败一律忽略，不影响自检流程。</summary>
+    private static void PruneTests()
+    {
+        var root = Path.Combine(Core.Home, "tests");
+        if (!Directory.Exists(root)) return;
+        try
+        {
+            foreach (var dir in Directory.GetDirectories(root).OrderByDescending(Directory.GetCreationTimeUtc).Skip(TestRetention))
+            {
+                try { Directory.Delete(dir, true); }
+                catch (IOException) { }                  // 被占用时留到下次清理
+                catch (UnauthorizedAccessException) { }
+            }
+        }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
+    }
     public static int Run()
     {
-        var root = Path.Combine(Core.Home, "tests", Guid.NewGuid().ToString("N")); Directory.CreateDirectory(root);
+        var root = Path.Combine(Core.Home, "tests", Guid.NewGuid().ToString("N")); Directory.CreateDirectory(root); PruneTests();
         var log = new List<string>();
         void Assert(bool condition, string name) { if (!condition) throw new Exception(name); log.Add("PASS " + name); }
         try
