@@ -73,7 +73,7 @@ GitHub Actions 支持手动构建；推送 `desktop-v*` 标签时自动构建、
 
 ## 旧版归档
 
-旧版 PowerShell 入口及中英文说明已原样移入 `Archive/legacy-scripts`，包含归档哈希，不删除。该目录用于保留历史实现；旧脚本仍依赖原根目录布局，不应直接在归档目录运行。
+旧版 PowerShell 入口及中英文说明已原样移入 `archive/legacy-scripts`，包含归档哈希，不删除。该目录用于保留历史实现；旧脚本仍依赖原根目录布局，不应直接在归档目录运行。
 
 `game`、`translations`、`fonts` 继续作为新版资源使用；`tools` 保留开发用途；既有 `backups`、`translations_bak`、`work`、`temp` 未搬迁或清理。
 

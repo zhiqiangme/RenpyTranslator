@@ -14,4 +14,4 @@ Updates require a GitHub Release containing `RenpyTranslator-win-x64.zip` and it
 
 Build on Windows with .NET 10 SDK using `packaging/Publish.ps1`. This creates a self-contained package and runs isolated installation, rollback, API protocol and updater tests without launching a game or calling a real model. GitHub Actions builds manually or publishes tags matching `desktop-v*`.
 
-Legacy scripts and documentation are preserved byte-for-byte in `Archive/legacy-scripts`. They require the original repository layout and are reference material, not the new application entry point. See [the Chinese guide](README.md) for detailed operations and backup recovery. The existing [license](LICENSE) applies.
+Legacy scripts and documentation are preserved byte-for-byte in `archive/legacy-scripts`. They require the original repository layout and are reference material, not the new application entry point. See [the Chinese guide](README.md) for detailed operations and backup recovery. The existing [license](LICENSE) applies.
