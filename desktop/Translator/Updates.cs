@@ -17,7 +17,7 @@ public static class Updates
     public static async Task<Release> Check()
     {
         using var client = Client();
-        using var response = await client.GetAsync("https://api.github.com/repos/zhiqiangme/renpy-translator/releases/latest");
+        using var response = await client.GetAsync("https://api.github.com/repos/zhiqiangme/RenpyTranslator/releases/latest");
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound) return new(false, "仓库尚未发布桌面版本。", "", "");
         response.EnsureSuccessStatusCode();
         var obj = JsonNode.Parse(await response.Content.ReadAsStringAsync())!.AsObject();
@@ -46,7 +46,7 @@ public static class Updates
     {
         if (!release.Available) throw new IOException("没有可安装的更新。");
         foreach (var url in new[] { release.ZipUrl, release.HashUrl })
-            if (!url.StartsWith("https://github.com/zhiqiangme/renpy-translator/releases/download/", StringComparison.Ordinal)) throw new IOException("更新资源来源不匹配。");
+            if (!url.StartsWith("https://github.com/zhiqiangme/RenpyTranslator/releases/download/", StringComparison.Ordinal)) throw new IOException("更新资源来源不匹配。");
         var root = Path.Combine(Core.Home, "updates", Guid.NewGuid().ToString("N")); Directory.CreateDirectory(root);
         using var client = Client(); var zip = Path.Combine(root, "release.zip");
         await using (var source = await client.GetStreamAsync(release.ZipUrl))
