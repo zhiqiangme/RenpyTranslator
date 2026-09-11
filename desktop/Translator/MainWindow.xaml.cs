@@ -8,6 +8,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using Microsoft.Win32;
 
 namespace RenpyTranslator;
@@ -25,16 +26,17 @@ public partial class MainWindow : Window
         InitializeComponent();
         Directory.CreateDirectory(Core.Home);
         foreach (var provider in Providers.All) Provider.Items.Add(provider.Name);
-        foreach (var (key, label) in new[] { ("batch_size", "每批条数"), ("batch_wait_ms", "批量等待（毫秒）"), ("request_timeout_seconds", "请求超时（秒）"), ("retry_cooldown_seconds", "重试冷却（秒）"), ("temperature", "温度"), ("max_output_tokens", "最大输出 token"), ("system_prompt", "翻译提示词"), ("protected_names", "保护人名（JSON 数组）"), ("skip_patterns", "跳过规则（JSON 数组）") })
+        // 参数控件统一在 MainWindow.xaml 中声明（便于套用主题），此处只建立「配置键 → 控件」映射。
+        foreach (var (key, box) in new (string Key, TextBox Box)[]
         {
-            Advanced.Children.Add(new TextBlock { Text = label });
-            var box = new TextBox { TextWrapping = TextWrapping.Wrap, MinHeight = key == "system_prompt" ? 100 : 35 };
-            fields[key] = box; Advanced.Children.Add(box);
-        }
-        foreach (var (key, label) in new[] { ("enabled", "启用翻译"), ("thinking_enabled", "启用思考模式"), ("json_response_format", "请求 JSON 格式") })
-        { var box = new CheckBox { Content = label, Margin = new Thickness(0, 8, 0, 8) }; flags[key] = box; Advanced.Children.Add(box); }
-        var save = new Button { Content = "保存配置" }; save.Click += Save; Advanced.Children.Add(save);
-        var defaults = new Button { Content = "恢复翻译参数默认值" }; defaults.Click += (_, _) => { var basic = Core.Defaults(); foreach (var key in fields.Keys.Concat(flags.Keys)) config[key] = basic[key]?.DeepClone(); ShowConfig(); }; Advanced.Children.Add(defaults);
+            ("batch_size", FieldBatchSize), ("batch_wait_ms", FieldBatchWaitMs), ("request_timeout_seconds", FieldTimeout),
+            ("retry_cooldown_seconds", FieldRetryCooldown), ("temperature", FieldTemperature), ("max_output_tokens", FieldMaxTokens),
+            ("system_prompt", FieldSystemPrompt), ("protected_names", FieldProtectedNames), ("skip_patterns", FieldSkipPatterns)
+        }) fields[key] = box;
+        foreach (var (key, box) in new (string Key, CheckBox Box)[]
+        {
+            ("enabled", FlagEnabled), ("thinking_enabled", FlagThinking), ("json_response_format", FlagJsonFormat)
+        }) flags[key] = box;
         try { var state = Path.Combine(Core.Home, "games.json"); if (File.Exists(state)) foreach (var item in JsonNode.Parse(File.ReadAllText(state))!.AsArray()) Games.Items.Add(item!.GetValue<string>()); } catch { Log("历史目录读取失败，可重新添加。"); }
         ResourceVersion.Text = "内置资源 " + File.ReadAllText(Path.Combine(Core.Resources, "version.txt")).Trim();
         ManagerVersion.Text = "管理器 " + Core.ManagerVersion + " · Windows x64";
@@ -115,6 +117,14 @@ public partial class MainWindow : Window
         await Task.Run(() => Core.Uninstall(root, clear)); await LoadGame(); Log("汉化已卸载，原始游戏文件和存档未修改。");
     });
     private async void Save(object sender, RoutedEventArgs e) => await Run(async () => { var root = Root(); var next = Form(); await Task.Run(() => Core.SaveConfig(root, next)); config = next; ShowConfig(); Log("配置已保存，请重新启动游戏生效。"); });
+    // 恢复默认只改动编辑区，需再点保存才写入游戏，避免误覆盖用户配置。
+    private void RestoreDefaults(object sender, RoutedEventArgs e)
+    {
+        var basic = Core.Defaults();
+        foreach (var key in fields.Keys.Concat(flags.Keys)) config[key] = basic[key]?.DeepClone();
+        ShowConfig();
+        Log("已载入默认参数，点保存后写入游戏目录。");
+    }
     private async void TestApi(object sender, RoutedEventArgs e) => await Run(async () => { var next = Form(); Log("正在发送测试请求…"); await Api.Test(next); Log("连接成功，翻译响应格式有效。"); });
     private async void ValidateTranslations(object sender, RoutedEventArgs e) => await Run(async () => { var result = await Task.Run(() => Core.Merge(Path.Combine(Core.Resources, "translations"))); Log($"校验通过：{result.Count} 条译文，无重复原文。"); });
     private async void ExportCache(object sender, RoutedEventArgs e) => await Run(() => { var path = Path.Combine(Core.Data(Root()), "cache.jsonl"); if (!File.Exists(path)) throw new IOException("当前没有缓存。"); var dialog = new SaveFileDialog { FileName = "cache-export.jsonl", Filter = "JSONL|*.jsonl" }; if (dialog.ShowDialog(this) == true) { File.Copy(path, dialog.FileName, true); Log("缓存已导出。"); } return Task.CompletedTask; });
@@ -126,13 +136,47 @@ public partial class MainWindow : Window
     private async void ExportLog(object sender, RoutedEventArgs e) => await Run(() => { var dialog = new SaveFileDialog { FileName = "translator.log", Filter = "日志|*.log" }; if (dialog.ShowDialog(this) == true) Core.AtomicWrite(dialog.FileName, LogBox.Text); return Task.CompletedTask; });
     private async void CheckUpdate(object sender, RoutedEventArgs e) => await Run(async () => { release = await Updates.Check(); ReleaseNotes.Text = release.Notes; UpdateButton.IsEnabled = release.Available; Log(release.Available ? "发现桌面更新。" : "没有可安装的桌面更新。"); });
     private async void ApplyUpdate(object sender, RoutedEventArgs e) => await Run(async () => { if (release is null) return; Log("正在下载并校验更新…"); await Updates.Stage(release); busy = false; Application.Current.Shutdown(); });
-    public void SaveSnapshot()
+    /// <summary>截图回归用：预置一个游戏目录并完成一次读取，使界面处于真实数据状态。</summary>
+    public async Task PrimeAsync(string game)
     {
-        for (int i = 0; i < Pages.Items.Count; i++)
+        Games.Text = game;
+        await Run(LoadGame);
+    }
+
+    /// <summary>
+    /// 把每个页面渲染为 PNG，用于界面回归核对。
+    /// 参数可以是 "all"（缺省）或单个页索引；结果写入 snapshot.log，失败原因不再被吞掉。
+    /// </summary>
+    public async void SaveSnapshot(string? pages)
+    {
+        var report = new List<string>();
+        try
         {
-            Pages.SelectedIndex = i; UpdateLayout(); var bitmap = new RenderTargetBitmap((int)ActualWidth, (int)ActualHeight, 96, 96, PixelFormats.Pbgra32); bitmap.Render(this);
-            var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap)); using var stream = File.Create(Path.Combine(Core.Home, $"preview-{i}.png")); encoder.Save(stream);
+            Directory.CreateDirectory(Core.Home);
+            var targets = new List<int>();
+            if (int.TryParse(pages, out var only) && only >= 0 && only < Pages.Items.Count) targets.Add(only);
+            else for (var i = 0; i < Pages.Items.Count; i++) targets.Add(i);
+            foreach (var index in targets)
+            {
+                Pages.SelectedIndex = index;
+                // 等布局与渲染管线跑完，否则 RenderTargetBitmap 会抓到未上屏的空白帧。
+                await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ContextIdle);
+                UpdateLayout();
+                // 只渲染客户区根元素：直接渲染 Window 会带上非客户区偏移，底部留出空白带。
+                var surface = Content as FrameworkElement ?? this;
+                var width = (int)Math.Round(surface.ActualWidth); var height = (int)Math.Round(surface.ActualHeight);
+                if (width <= 0 || height <= 0) throw new InvalidOperationException($"窗口尺寸无效（{width}×{height}），无法截图。");
+                var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+                bitmap.Render(surface);
+                var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
+                using var buffer = new MemoryStream(); encoder.Save(buffer);
+                var path = Path.Combine(Core.Home, $"preview-{index}.png");
+                File.WriteAllBytes(path, buffer.ToArray());
+                report.Add("PASS " + path);
+            }
         }
+        catch (Exception ex) { report.Add("FAIL " + ex); }
+        File.WriteAllLines(Path.Combine(Core.Home, "snapshot.log"), report);
         Application.Current.Shutdown();
     }
 }
