@@ -17,13 +17,20 @@ public static class Updates
     public static async Task<Release> Check()
     {
         using var client = Client();
-        using var response = await client.GetAsync("https://api.github.com/repos/zhiqiangme/RenpyTranslator/releases/latest");
+        // 桌面发行统一打 desktop-v* 标签。不能用 /releases/latest：它会返回旧模组时代的 v* 发行版。
+        using var response = await client.GetAsync("https://api.github.com/repos/zhiqiangme/RenpyTranslator/releases?per_page=20");
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound) return new(false, "仓库尚未发布桌面版本。", "", "");
         response.EnsureSuccessStatusCode();
-        var obj = JsonNode.Parse(await response.Content.ReadAsStringAsync())!.AsObject();
-        var tag = Core.ReadString(obj, "tag_name");
-        var notes = tag + "\n\n" + Core.ReadString(obj, "body");
-        var assets = obj["assets"]!.AsArray();
+        // 列表按创建时间倒序，第一个非预发行的 desktop-v* 即最新桌面版。
+        var latest = JsonNode.Parse(await response.Content.ReadAsStringAsync())!.AsArray()
+            .Select(node => node?.AsObject())
+            .FirstOrDefault(obj => obj != null
+                && Core.ReadString(obj, "tag_name").StartsWith("desktop-v", StringComparison.Ordinal)
+                && obj["prerelease"]?.GetValue<bool>() != true);
+        if (latest is null) return new(false, "仓库尚未发布桌面版本。", "", "");
+        var tag = Core.ReadString(latest, "tag_name");
+        var notes = tag + "\n\n" + Core.ReadString(latest, "body");
+        var assets = latest["assets"]!.AsArray();
         string Url(string name) => assets.FirstOrDefault(x => x?["name"]?.GetValue<string>() == name)?["browser_download_url"]?.GetValue<string>() ?? "";
         var zip = Url(AssetName); var hash = Url(AssetName + ".sha256");
         if (zip.Length == 0 || hash.Length == 0) return new(false, notes + "\n\n此发行版没有桌面包及校验文件，不能安装。", "", "");
