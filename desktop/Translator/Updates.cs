@@ -14,18 +14,20 @@ public static class Updates
     {
         var client = new HttpClient { Timeout = TimeSpan.FromMinutes(10) }; client.DefaultRequestHeaders.UserAgent.ParseAdd("RenpyTranslator/" + Core.ManagerVersion); return client;
     }
+    // 桌面发行标签形如 v26.9.11；只认 v + 数字开头，避免匹配非版本标签。
+    private static bool IsReleaseTag(string tag) => tag.Length > 1 && tag[0] == 'v' && char.IsDigit(tag[1]);
     public static async Task<Release> Check()
     {
         using var client = Client();
-        // 桌面发行统一打 desktop-v* 标签。不能用 /releases/latest：它会返回旧模组时代的 v* 发行版。
+        // 桌面发行统一打 v* 标签（如 v26.9.11）。仍拉取列表而非 /releases/latest，以便跳过预发布并按版本号比较新旧。
         using var response = await client.GetAsync("https://api.github.com/repos/zhiqiangme/RenpyTranslator/releases?per_page=20");
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound) return new(false, "仓库尚未发布桌面版本。", "", "");
         response.EnsureSuccessStatusCode();
-        // 列表按创建时间倒序，第一个非预发行的 desktop-v* 即最新桌面版。
+        // 列表按创建时间倒序，第一个非预发行的 v* 即最新桌面版。
         var latest = JsonNode.Parse(await response.Content.ReadAsStringAsync())!.AsArray()
             .Select(node => node?.AsObject())
             .FirstOrDefault(obj => obj != null
-                && Core.ReadString(obj, "tag_name").StartsWith("desktop-v", StringComparison.Ordinal)
+                && IsReleaseTag(Core.ReadString(obj, "tag_name"))
                 && obj["prerelease"]?.GetValue<bool>() != true);
         if (latest is null) return new(false, "仓库尚未发布桌面版本。", "", "");
         var tag = Core.ReadString(latest, "tag_name");
@@ -34,7 +36,7 @@ public static class Updates
         string Url(string name) => assets.FirstOrDefault(x => x?["name"]?.GetValue<string>() == name)?["browser_download_url"]?.GetValue<string>() ?? "";
         var zip = Url(AssetName); var hash = Url(AssetName + ".sha256");
         if (zip.Length == 0 || hash.Length == 0) return new(false, notes + "\n\n此发行版没有桌面包及校验文件，不能安装。", "", "");
-        var version = tag.Replace("desktop-v", "").TrimStart('v');
+        var version = tag.TrimStart('v');
         bool newer = Version.TryParse(version, out var remote) && remote > Version.Parse(Core.ManagerVersion);
         return new(newer, notes, zip, hash);
     }
