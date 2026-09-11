@@ -1,3 +1,9 @@
+<div align="right">
+
+**简体中文** | [English](README_EN.md)
+
+</div>
+
 # Ren'Py 汉化管理器
 
 Windows x64 桌面程序：用图形界面安装、升级和卸载汉化，配置 OpenAI 兼容模型 API，管理译文缓存并更新软件。
