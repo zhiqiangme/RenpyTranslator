@@ -1,2 +1,2 @@
 # 归档保留原始换行字节，避免检出时破坏 SHA256SUMS 校验。
-Archive/legacy-scripts/* -text
+archive/legacy-scripts/* -text
