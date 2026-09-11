@@ -122,6 +122,9 @@ public partial class MainWindow : Window
     {
         var basic = Core.Defaults();
         foreach (var key in fields.Keys.Concat(flags.Keys)) config[key] = basic[key]?.DeepClone();
+        // 保护人名随资源包：专属译文恢复内置完整名单，通用模式保持为空，避免误清 Camp Buddy 配置。
+        if (Pack.SelectedIndex == 1)
+            config["protected_names"] = Core.ReadJson(Path.Combine(Core.Resources, "config.default.json"))["protected_names"]!.DeepClone();
         ShowConfig();
         Log("已载入默认参数，点保存后写入游戏目录。");
     }

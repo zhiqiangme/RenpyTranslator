@@ -1,5 +1,8 @@
 using System.IO;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
 namespace RenpyTranslator;
 
 public partial class App : Application
@@ -8,6 +11,9 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        // ComboBox 聚焦后滚轮会直接切换选中项，滚动页面时极易误改服务商、游戏目录等选项。
+        // 下拉未展开时拦截滚轮并转发给外层 ScrollViewer；展开后保留原生滚轮浏览。
+        EventManager.RegisterClassHandler(typeof(ComboBox), UIElement.PreviewMouseWheelEvent, new MouseWheelEventHandler(ForwardComboBoxWheel));
         // 未处理异常先落盘再提示，避免进程静默退出后无从排查。
         DispatcherUnhandledException += (_, args) =>
         {
@@ -31,6 +37,18 @@ public partial class App : Application
                 window.SaveSnapshot(ValueOf(e.Args, "--snapshot"));
             };
         }
+    }
+    /// <summary>吞掉未展开 ComboBox 的滚轮事件，并转发给最近的 ScrollViewer 以维持页面滚动。</summary>
+    private static void ForwardComboBoxWheel(object sender, MouseWheelEventArgs args)
+    {
+        if (sender is not ComboBox { IsDropDownOpen: false } box) return;
+        args.Handled = true;
+        for (var parent = VisualTreeHelper.GetParent(box); parent is not null; parent = VisualTreeHelper.GetParent(parent))
+            if (parent is ScrollViewer viewer)
+            {
+                viewer.RaiseEvent(new MouseWheelEventArgs(args.MouseDevice, args.Timestamp, args.Delta) { RoutedEvent = UIElement.MouseWheelEvent });
+                return;
+            }
     }
     /// <summary>取 --名字 紧跟的取值；不存在或下一个仍是开关时返回 null。</summary>
     private static string? ValueOf(string[] args, string name)
