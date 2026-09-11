@@ -41,7 +41,7 @@ Windows x64 桌面程序：用图形界面安装、升级和卸载汉化，配�
 
 ## 更新
 
-“更新”页面检测 `zhiqiangme/renpy-translator` 的最新 GitHub Release。可用桌面版本必须包含：
+“更新”页面检测 `zhiqiangme/RenpyTranslator` 的最新 GitHub Release。可用桌面版本必须包含：
 
 - `RenpyTranslator-win-x64.zip`
 - `RenpyTranslator-win-x64.zip.sha256`

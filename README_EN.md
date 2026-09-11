@@ -1,4 +1,4 @@
-# Ren'Py Translation Manager
+# RenpyTranslator
 
 A Windows x64 WPF desktop app for installing, repairing and removing the translation mod, configuring compatible model APIs, managing caches and downloading desktop updates.
 
