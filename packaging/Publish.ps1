@@ -1,8 +1,15 @@
-﻿param([string]$OutputDirectory = "", [string]$Version = "1.0.0", [switch]$SkipTests, [switch]$KeepStage)
+﻿param([string]$OutputDirectory = "", [string]$Version = "", [switch]$SkipTests, [switch]$KeepStage)
 $ErrorActionPreference = "Stop"
 $repo = Split-Path -Parent $PSScriptRoot
+# 版本号唯一来源：packaging/version.txt。手动打包默认取它，CI 打 desktop-v* 标签时由标签覆盖。
+# 该值经 -p:Version 注入程序集，因此管理器版本与内置资源版本必然一致，无需人工对齐。
+$versionFile = Join-Path $PSScriptRoot "version.txt"
+if (-not $Version) {
+    if (-not (Test-Path -LiteralPath $versionFile)) { throw "缺少版本文件：$versionFile" }
+    $Version = (Get-Content -LiteralPath $versionFile -Raw).Trim()
+}
 if ($env:GITHUB_REF_NAME -like 'desktop-v*') { $Version = $env:GITHUB_REF_NAME.Substring(9) }
-if ($Version -notmatch '^\d+\.\d+\.\d+$') { throw '版本必须为 major.minor.patch' }
+if ($Version -notmatch '^\d+\.\d+\.\d+$') { throw "版本必须为 major.minor.patch（当前：$Version）" }
 if (-not $OutputDirectory) { $OutputDirectory = Join-Path $repo "dist" }
 $output = [IO.Path]::GetFullPath($OutputDirectory)
 # 使用独立暂存目录，避免旧产物混入发行包。目录统一在收尾的 finally 中回收。
