@@ -65,7 +65,7 @@ Windows x64 桌面程序：用图形界面安装、升级和卸载汉化，配�
 dotnet build desktop/Translator/Translator.csproj -c Release
 ```
 
-应用图标由 `packaging/make-icon.py` 从 `desktop/Translator/Assets/app-icon.png` 生成 `Assets/app.ico`（纯标准库，自行解码 PNG 并打包 16~256 七档尺寸）。替换素材后重新运行该脚本即可，无需改动工程文件。
+应用图标由 `packaging/make-icon.py` 从 `desktop/Translator/Assets/app-icon.png` 生成 `Assets/app.ico`（纯标准库，自行解码 PNG，四角裁圆角并按 16~256 七档尺寸独立抗锯齿）。替换素材后重新运行该脚本即可，无需改动工程文件；第三个可选参数为圆角比例（0~0.5，默认 0.2，传 0 恢复直角）。
 
 生成自包含发行包并执行隔离测试：
 
