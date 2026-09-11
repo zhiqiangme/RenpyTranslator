@@ -1,4 +1,4 @@
-﻿param([string]$OutputDirectory = "", [string]$Version = "", [switch]$SkipTests, [switch]$KeepStage)
+param([string]$OutputDirectory = "", [string]$Version = "", [switch]$SkipTests, [switch]$SkipInstaller, [switch]$KeepStage)
 $ErrorActionPreference = "Stop"
 $repo = Split-Path -Parent $PSScriptRoot
 # 版本号唯一来源：packaging/version.txt。手动打包默认取它，CI 打 desktop-v* 标签时由标签覆盖。
@@ -33,6 +33,18 @@ try {
     $hash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
     [IO.File]::WriteAllText("$zip.sha256", "$hash  RenpyTranslator-win-x64.zip`n", [Text.UTF8Encoding]::new($false))
     Write-Output "Release: $zip"
+    # 安装包：从同一份暂存目录编译单文件安装程序。ZIP 仍是应用内更新器的下载源，
+    # 安装包只是首次安装的便捷入口，两者随同一次构建产出，保证内容一致。
+    if (-not $SkipInstaller) {
+        $iscc = "C:\Program Files\Inno Setup 6\ISCC.exe"
+        if (-not (Test-Path -LiteralPath $iscc)) { throw "未找到 Inno Setup：$iscc（无安装包需求时可加 -SkipInstaller）" }
+        & $iscc "/DVersion=$Version" "/DSourceDir=$stage" "/DOutputDir=$output" (Join-Path $PSScriptRoot "installer.iss") | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "安装包编译失败" }
+        $setup = Join-Path $output "RenpyTranslator-Setup-win-x64.exe"
+        $setupHash = (Get-FileHash -LiteralPath $setup -Algorithm SHA256).Hash.ToLowerInvariant()
+        [IO.File]::WriteAllText("$setup.sha256", "$setupHash  RenpyTranslator-Setup-win-x64.exe`n", [Text.UTF8Encoding]::new($false))
+        Write-Output "Installer: $setup"
+    }
 }
 finally {
     # 暂存目录只在本次运行内有意义：单次约 226MB(stage) + 71MB(helper)，
