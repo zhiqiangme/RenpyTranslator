@@ -4,7 +4,12 @@ Windows x64 桌面程序：用图形界面安装、升级和卸载汉化，配�
 
 ## 运行
 
-下载桌面发行包 `RenpyTranslator-win-x64.zip`，完整解压到当前用户可写的目录，双击 `RenpyTranslator.exe`。保留同目录的 `Resources` 和 `RenpyTranslator.Updater.exe`。发行包包含 .NET 运行环境，使用者无需安装 Python、PowerShell 7 或 .NET SDK。
+两种方式，任选其一。发行包包含 .NET 运行环境，使用者无需安装 Python、PowerShell 7 或 .NET SDK。
+
+- **安装包（推荐）**：下载 `RenpyTranslator-Setup-win-x64.exe` 双击安装。安装到 `%LOCALAPPDATA%\Programs\RenpyTranslator`，无需管理员权限，可选开始菜单与桌面快捷方式。卸载不会删除 `%LOCALAPPDATA%\RenpyTranslator` 中的配置、缓存、译文与备份。
+- **绿色版**：下载 `RenpyTranslator-win-x64.zip`，完整解压到当前用户可写的目录，双击 `RenpyTranslator.exe`。保留同目录的 `Resources` 和 `RenpyTranslator.Updater.exe`。
+
+两种方式安装的程序相同，应用内“更新”功能均可用（更新器直接替换安装目录文件，因此安装位置必须当前用户可写）。安装后：
 
 1. 在“游戏管理”中浏览游戏根目录，或选择历史目录后点击“读取 / 检查状态”。目录应包含 `game` 和 `renpy` 文件夹。
 2. 选择资源：通用模式不导入游戏专属译文；内置专属译文仅适用于 **Camp Buddy Scoutmaster Season**。通用模式不会删除游戏已有的预译文。
@@ -70,9 +75,11 @@ dotnet build desktop/Translator/Translator.csproj -c Release
 ./packaging/Publish.ps1 -Version 26.10.1
 # 需要保留解包后的 EXE 时
 ./packaging/Publish.ps1 -KeepStage
+# 只出 ZIP、不编译安装包时
+./packaging/Publish.ps1 -SkipInstaller
 ```
 
-输出在 `dist`，包括 ZIP 与 SHA-256 校验文件。构建用的暂存目录会在结束时自动回收，加 `-KeepStage` 可保留。测试仅操作 `%LOCALAPPDATA%/RenpyTranslator/tests` 下模拟游戏目录，API 测试使用本机模拟服务，不打开游戏、不调用真实模型。
+输出在 `dist`，包括 ZIP、安装包 `RenpyTranslator-Setup-win-x64.exe` 与各自的 SHA-256 校验文件。安装包由 Inno Setup 6 编译（脚本 `packaging/installer.iss`，本机与 GitHub Actions 的 windows-latest 均已预装），安装到用户目录、无需管理员权限。构建用的暂存目录会在结束时自动回收，加 `-KeepStage` 可保留。测试仅操作 `%LOCALAPPDATA%/RenpyTranslator/tests` 下模拟游戏目录，API 测试使用本机模拟服务，不打开游戏、不调用真实模型。
 
 版本号唯一来源是 `packaging/version.txt`：发布脚本默认读它，并通过 `-p:Version` 注入程序集，因此管理器版本与内置资源版本必然一致，不需要人工对齐。推送 `desktop-v*` 标签时由标签覆盖版本号，自动构建、测试并发布 Release。本地提交不会自动发布，需另行推送标签。
 
