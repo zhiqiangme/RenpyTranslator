@@ -1,157 +1,82 @@
-<div align="right">
+# Ren'Py 汉化管理器
 
-[![中文](https://img.shields.io/badge/中文-当前阅读-FF6B6B?style=for-the-badge)](README.md)
-[![English](https://img.shields.io/badge/English-Switch-1E90FF?style=for-the-badge)](README_EN.md)
+Windows x64 桌面程序：用图形界面安装、升级和卸载汉化，配置 OpenAI 兼容模型 API，管理译文缓存并更新软件。
 
-</div>
+## 运行
 
-# Ren'Py 实时翻译器
+下载桌面发行包 `RenpyTranslator-win-x64.zip`，完整解压到当前用户可写的目录，双击 `RenpyTranslator.exe`。保留同目录的 `Resources` 和 `RenpyTranslator.Updater.exe`。发行包包含 .NET 运行环境，使用者无需安装 Python、PowerShell 7 或 .NET SDK。
 
-适用于 Windows 版 Ren'Py 游戏。当前目标游戏已确认使用 Ren'Py 7.8.4。
+1. 在“游戏管理”中浏览游戏根目录，或选择历史目录后点击“读取 / 检查状态”。目录应包含 `game` 和 `renpy` 文件夹。
+2. 选择资源：通用模式不导入游戏专属译文；内置专属译文仅适用于 **Camp Buddy Scoutmaster Season**。通用模式不会删除游戏已有的预译文。
+3. 根据需要在“模型 API”填写地址、模型与密钥，然后点击“安装 / 升级 / 修复汉化”。只使用预译文时可以不填写密钥。
+4. 安装完成后可关闭管理器。游戏中的实时翻译仍由 `game/zz_live_translator.rpy` 执行。F9 开关翻译，F10 查看状态；配置更改后需重新启动游戏。
 
-## 工作方式
+管理器不会启动游戏。原模组已有的兼容性范围仍适用；尚未实测的 Ren'Py 版本不能保证兼容。图片内的英文不在文本翻译范围内。
 
-- 使用 Ren'Py 的对话/菜单早期过滤器精确匹配带标签和变量的完整原文，
-  普通 UI 文本继续通过 `config.replace_text` 处理。
-- 后台批量调用 OpenAI 兼容的 `/chat/completions` 接口，不阻塞游戏。
-- 优先读取由本项目人工维护的分卷译文，未命中时再使用运行时 API。
-- 首次出现时先显示英文，译文返回后自动刷新；之后从本地缓存即时显示中文。
-- 默认使用随模组内置的鸿蒙字体 HarmonyOS Sans SC，避免原游戏字体缺少中文字形。
+## API 与配置
 
-图片中烘焙进去的英文不属于 Ren'Py 文本，不能通过此模组翻译，需要额外 OCR 或替换图片。
+- 支持自定义 OpenAI 兼容 `/chat/completions` 接口，地址可填写到端点或其上一级。
+- 服务商预设沿用旧版，模型名、端点与账户可用性需以服务商实际支持为准；订阅端点也可手动填写。
+- API Key 留空表示保留，清除密钥需勾选对应选项。密钥通过 Windows DPAPI CurrentUser 加密，与旧 PowerShell 配置兼容，跨用户或跨机器需重新填写。
+- “测试连接 / 翻译”发送一条 Hello 请求，可能产生少量费用；不会保存测试译文到游戏缓存。
+- 高级设置支持批量大小、等待、超时、冷却、输出 token、温度、提示词、人名和跳过规则。恢复默认值仅修改编辑区，点击保存后才写入游戏。
+- 每个游戏独立保存配置。未知配置字段会保留。地址要求 HTTPS，本机回环服务可用 HTTP。
 
-## 安装
+## 安装、卸载与数据
 
-在 PowerShell 中运行：
+安装前校验译文格式及重复原文，写入前备份被覆盖文件，失败后恢复原始字节。安装目录中的配置、运行时缓存和用户其他文件不会被软件自更新覆盖。
 
-```powershell
-.\Install.ps1
-```
+默认卸载只删除模组 `.rpy`、`.rpyc` 和桌面安装记录，保留配置、缓存、译文及字体。勾选“同时清理”后会删除 `game/live_translator` 内的数据文件，操作前仍会备份。原游戏文件、存档和其他目录不属于清理范围。
 
-安装脚本会交互式询问游戏目录、显示字体，并可填写 API Key。默认安装到：
+管理器数据位于 `%LOCALAPPDATA%/RenpyTranslator`：
 
-```text
-D:\Program Files\Steam\steamapps\common\Camp Buddy Scoutmaster Season
-```
+| 位置 | 内容 |
+| --- | --- |
+| `games.json` | 已添加游戏目录 |
+| `backups/<操作编号>/` | 修改前文件，`target.txt` 标明游戏根目录 |
+| `updates/<操作编号>/previous/` | 软件更新前版本备份 |
+| `self-test.log`、`updater-test.log` | 自动验证结果 |
 
-若游戏路径不同，可跳过交互直接指定：
-
-```powershell
-.\Install.ps1 -GamePath "D:\Games\YourRenPyGame"
-```
-
-安装脚本自动完成：
-
-1. 备份游戏目录里已有的 `zz_live_translator.rpy`。
-2. 复制最新模组脚本。
-3. 合并 `translations/*.jsonl` 到 `game/live_translator/pretranslated.jsonl`。
-4. 写入字体配置；`config.json` 中已有配置（base_url/model/缓存）不会被覆盖。
-
-## API Key 配置（DPAPI 加密）
-
-**API Key 不会明文保存在配置文件中。** 安装脚本（`Install.ps1`）或独立配置脚本
-（`Configure-Api.ps1`）会把 Key 用 Windows DPAPI 加密后写入
-`config.json` 的 `api_key_encrypted` 字段（绑定当前 Windows 用户，仅本机可解密），
-并清空旧的明文 `api_key` 字段。请勿手动向 `config.json` 填写明文 Key——模组不会读取它。
-
-推荐使用独立配置脚本管理 API Key、服务商与模型：
-
-```powershell
-.\Configure-Api.ps1
-```
-
-交互流程：选择游戏目录 → 选择模型服务商 → 选择计费方式（官方 API / Token Plan 订阅，
-仅支持订阅端点的服务商显示）→ 确认 API 地址（预设自动填入，可改）→ 填写 API Key（加密保存）
-→ 确认模型名（预填该服务商性价比默认模型，可改）。
-
-内置 10 家服务商预设（按序，默认模型为各家最新款性价比模型）：
-
-| 服务商 | 默认模型 | 订阅端点 |
-| --- | --- | --- |
-| DeepSeek | deepseek-v4-flash | — |
-| OpenAI | gpt-5.6-luna | — |
-| 小米 MiMo | mimo-v2.5 | 有 |
-| MiniMax | minimax-m3 | 有 |
-| 腾讯混元 | hy3 | — |
-| Google Gemini | gemini-3.6-flash | — |
-| 阿里通义千问 | qwen-flash | 有 |
-| 智谱 GLM | glm-4.7-flash | 有 |
-| Kimi（月之暗面） | kimi-k2.6 | 有 |
-| 字节豆包 | doubao-seed-2.0-lite | 有 |
-
-另有「自定义」选项，可手动输入 API 地址与模型名（如使用中转站或自建服务）。
-
-## 使用
-
-- `F9`：临时开启或关闭翻译。
-- `F10`：显示配置、缓存或最近一次请求错误。
-- 项目分卷译文：`translations\interface.jsonl`、`translations\day01.jsonl` 等。
-- 游戏合并译文：`game\live_translator\pretranslated.jsonl`。
-- 运行时缓存：`game\live_translator\cache.jsonl`。
-
-加载顺序是先读预翻译、再读运行时缓存，因此后者可以覆盖同一条预翻译，
-便于人工修正。删除运行时缓存后，已存在于预翻译文件中的文本仍会直接显示中文。
-
-`translations` 中的文件只包含原文和中文译文，不包含 API Key。执行安装脚本时
-会自动校验重复项并合并到游戏目录；翻译清单和提取出的剧情源码只保存在已忽略的
-`work` 目录中。
-
-模组对部分动态文本（如存档位编号、星期、图片缺失报错）做了本地确定性翻译，
-命中时不会调用 API。
+“数据与日志”页面可导出缓存、备份并清空缓存、打开备份目录和导出本次操作日志。恢复备份时先关闭游戏，按备份内的相对路径复制回 `target.txt` 对应游戏的 `game` 文件夹。备份不会自动清理。
 
 ## 更新
 
-更新脚本会检测 GitHub 仓库 `zhiqiangme/renpy-translator` 的发行版，
-有新版本时下载并覆盖项目文件（模组代码 + 译文），本地私有文件
-（`config.json`、`cache.jsonl`、`work`、`backups`、`translations_bak`）不受影响。
+“更新”页面检测 `zhiqiangme/renpy-translator` 的最新 GitHub Release。可用桌面版本必须包含：
 
-双击运行：
+- `RenpyTranslator-win-x64.zip`
+- `RenpyTranslator-win-x64.zip.sha256`
+- 版本标签 `desktop-v1.0.0` 或兼容的三段数字版本标签
 
-```powershell
-.\Update.ps1
-```
+下载后校验 SHA-256，由独立更新器等待管理器退出、备份旧文件、替换发行文件并重启管理器；替换失败会尝试恢复旧文件。旧发行版的多余内置资源会移除，避免旧译文混入。校验文件用于检测下载损坏，不等同于代码签名。
 
-或者只检测不更新（供脚本复用）：
+软件与内置资源随同一个发行包分发，管理器版本和资源版本分别显示。更新后，在游戏管理页面对需要更新的游戏点击“安装 / 升级”，即可应用新模组和译文，无需运行脚本。
 
-```powershell
-.\Update.ps1 -CheckOnly
-```
+## 开发与发布
 
-`Install.ps1` 在安装完成后也会自动检查一次更新：无异常且无更新时直接结束；
-检测到新版本时按回车立即更新，输入「不更新」跳过。网络不可用或仓库暂未发布时
-静默跳过，不影响安装。
-
-版本号取自 GitHub 发行版的标签（如 `v1.0.0`），本地记录在根目录
-`version.txt`。更新完成后**需要重新运行一次安装脚本**，才会把新译文
-合并进游戏目录的 `pretranslated.jsonl`。
-
-## 公开译文范围
-
-公开仓库保留全部 JSONL 分卷，其余大部分人工译文仍可直接使用。
-
-遇到公开译文中缺失的句子时：
-
-- 正确填写大模型 API 后，会在后台翻译并写入本地运行时缓存。
-- 未填写有效 API（或 DPAPI 解密失败）时，不会发送网络请求，游戏直接显示英文原文。
-
-## 卸载
-
-仅移除模组，保留配置和缓存：
+需要 Windows 和 .NET 10 SDK。开发构建：
 
 ```powershell
-.\Uninstall.ps1
+dotnet build desktop/Translator/Translator.csproj -c Release
 ```
 
-连同配置和缓存一起移除：
+生成自包含发行包并执行隔离测试：
 
 ```powershell
-.\Uninstall.ps1 -RemoveData
+./packaging/Publish.ps1
+# 后续版本
+./packaging/Publish.ps1 -Version 1.0.1
 ```
+
+输出在 `dist`，包括 ZIP、SHA-256 校验文件和独立暂存目录下的 EXE。测试仅操作 `%LOCALAPPDATA%/RenpyTranslator/tests` 下模拟游戏目录，API 测试使用本机模拟服务，不打开游戏、不调用真实模型。
+
+GitHub Actions 支持手动构建；推送 `desktop-v*` 标签时自动构建、测试并发布 Release。资源变更时同步更新根目录 `version.txt`。本地提交不会自动发布，需另行推送标签。
+
+## 旧版归档
+
+旧版 PowerShell 入口及中英文说明已原样移入 `Archive/legacy-scripts`，包含归档哈希，不删除。该目录用于保留历史实现；旧脚本仍依赖原根目录布局，不应直接在归档目录运行。
+
+`game`、`translations`、`fonts` 继续作为新版资源使用；`tools` 保留开发用途；既有 `backups`、`translations_bak`、`work`、`temp` 未搬迁或清理。
 
 ## 许可证
 
-本项目基于 MIT License 发布，详见 [LICENSE](LICENSE)。
-
-> **中文**：本项目为第三方爱好者制作的翻译模组，与游戏开发商无关。译文仅供学习交流，请支持正版。任何再分发、销售或商业化行为均由使用者自行承担全部法律责任，原作者不承担任何连带责任。如版权方要求，原作者将配合移除相关内容。
->
-> **English**: This project is a translation mod created by third-party fans and is not affiliated with the game developer. The translations are provided for learning and communication purposes only. Please support the official release. Any redistribution, sale, or commercial use is solely the responsibility of the user; the original author assumes no joint or several liability. If requested by the copyright holder, the original author will cooperate in removing the relevant content.
+沿用项目 [LICENSE](LICENSE)。本项目是第三方翻译模组，与游戏开发商无关，请支持正版游戏。
