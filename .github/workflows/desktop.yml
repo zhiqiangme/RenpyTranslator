@@ -13,6 +13,19 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
+      - name: Install Inno Setup 6
+        shell: pwsh
+        run: |
+          choco install innosetup -y --no-progress
+          # runner 未预装 Inno Setup；装完在此解析 ISCC.exe 真实路径，写入 GITHUB_ENV 供 Publish.ps1 使用。
+          $iscc = @(
+            "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
+            "$env:ProgramFiles\Inno Setup 6\ISCC.exe",
+            (Get-Command iscc.exe -ErrorAction SilentlyContinue).Source
+          ) | Where-Object { $_ -and (Test-Path -LiteralPath $_) } | Select-Object -First 1
+          if (-not $iscc) { throw "Inno Setup 安装后仍未找到 ISCC.exe" }
+          "ISCC=$iscc" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "Resolved ISCC: $iscc"
       - name: Build and test
         shell: pwsh
         run: ./packaging/Publish.ps1
