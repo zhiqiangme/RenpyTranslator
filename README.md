@@ -51,7 +51,7 @@ Windows x64 桌面程序：用图形界面安装、升级和卸载汉化，配�
 
 - `RenpyTranslator-win-x64.zip`
 - `RenpyTranslator-win-x64.zip.sha256`
-- 版本标签 `desktop-v26.9.11` 或兼容的三段数字版本标签
+- 版本标签 `v26.9.11`（三段数字版本）
 
 下载后校验 SHA-256，由独立更新器等待管理器退出、备份旧文件、替换发行文件并重启管理器；替换失败会尝试恢复旧文件。旧发行版的多余内置资源会移除，避免旧译文混入。校验文件用于检测下载损坏，不等同于代码签名。
 
@@ -81,7 +81,7 @@ dotnet build desktop/Translator/Translator.csproj -c Release
 
 输出在 `dist`，包括 ZIP、安装包 `RenpyTranslator-Setup-win-x64.exe` 与各自的 SHA-256 校验文件。安装包由 Inno Setup 6 编译（脚本 `packaging/installer.iss`，本机与 GitHub Actions 的 windows-latest 均已预装），安装到用户目录、无需管理员权限。构建用的暂存目录会在结束时自动回收，加 `-KeepStage` 可保留。测试仅操作 `%LOCALAPPDATA%/RenpyTranslator/tests` 下模拟游戏目录，API 测试使用本机模拟服务，不打开游戏、不调用真实模型。
 
-版本号唯一来源是 `packaging/version.txt`：发布脚本默认读它，并通过 `-p:Version` 注入程序集，因此管理器版本与内置资源版本必然一致，不需要人工对齐。推送 `desktop-v*` 标签时由标签覆盖版本号，自动构建、测试并发布 Release。本地提交不会自动发布，需另行推送标签。
+版本号唯一来源是 `packaging/version.txt`：发布脚本默认读它，并通过 `-p:Version` 注入程序集，因此管理器版本与内置资源版本必然一致，不需要人工对齐。推送 `v*` 标签时由标签覆盖版本号，自动构建、测试并发布 Release。本地提交不会自动发布，需另行推送标签。
 
 ## 旧版归档
 
