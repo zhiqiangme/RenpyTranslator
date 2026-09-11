@@ -44,7 +44,7 @@ public static class Core
         ? ReadJson(Path.Combine(Data(root), "config.json")) : Defaults();
     public static JsonObject Defaults()
     {
-        var config = ReadJson(Path.Combine(Resources, "config.example.json"));
+        var config = ReadJson(Path.Combine(Resources, "config.default.json"));
         config["api_key"] = ""; config["api_key_encrypted"] = "";
         config["protected_names"] = new JsonArray(); return config;
     }
@@ -127,7 +127,7 @@ public static class Core
         var merged = bundled ? Merge(Path.Combine(Resources, "translations")) : ("", 0);
         var script = File.ReadAllText(Path.Combine(Resources, "game", "zz_live_translator.rpy"));
         NormalizeKey(config);
-        if (bundled) config["protected_names"] = ReadJson(Path.Combine(Resources, "config.example.json"))["protected_names"]!.DeepClone();
+        if (bundled) config["protected_names"] = ReadJson(Path.Combine(Resources, "config.default.json"))["protected_names"]!.DeepClone();
         config["font"] = font == "HarmonyOS" ? "live_translator/fonts/HarmonyOS_Sans_SC.ttf" : font.Replace('\\', '/');
         if (font != "HarmonyOS" && !File.Exists(font)) throw new IOException("所选字体不存在。");
         Transaction(root, InstalledFiles, () =>
