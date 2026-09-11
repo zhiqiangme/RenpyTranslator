@@ -31,7 +31,7 @@
 - `dotnet build -c Debug`：0 错误 0 警告。
 - `packaging/Publish.ps1`：管理器与更新器 Release 单文件发布成功，两项自检全部通过。
 - `--self-test`：15 项检查全部 PASS，运行于模拟目录 `%LOCALAPPDATA%/RenpyTranslator/tests`。
-- 五个页面在「已安装 · 资源 26.8.11 · 文件完整」的真实数据状态下逐页渲染核对，截图见 `temp/ui-after/`（`temp/` 不入库）。
+- 五个页面在「已安装 · 资源 26.8.11 · 文件完整」的真实数据状态下逐页渲染核对；截图可用 `RenpyTranslator.exe --snapshot [页索引]` 随时重新生成，不入库。
 - 单文件发行包内嵌图标 7 种尺寸（16 ~ 256）逐一校验存在。
 
 界面核对使用模拟目录 `%LOCALAPPDATA%/RenpyTranslator/ui-check`；未启动游戏，未修改实际游戏安装。
