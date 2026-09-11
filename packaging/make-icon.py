@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """从 PNG 素材生成桌面端应用图标 desktop/Translator/Assets/app.ico。
 
-仅依赖标准库：自行解码 PNG（面积平均缩放）→ 逐档编码 PNG → 打包为标准 ICO。
+仅依赖标准库：自行解码 PNG（面积平均缩放）→ 圆角遮罩 → 逐档编码 PNG → 打包为标准 ICO。
 不引入 Pillow 等第三方包，保证在任何装有 Python 的机器上都能复现图标。
 
 支持 8/16 位、非隔行的灰度 / RGB / 调色板 / 灰度+Alpha / RGBA；16 位取高字节。
 非正方形素材会先按中心裁成正方形，再做面积平均（大比例缩小时等价于理想低通，不会摩尔纹）。
+四角默认裁为圆角（比例可调，传 0 恢复直角）；遮罩按每档目标尺寸独立计算，抗锯齿边缘干净。
 
-用法：python packaging/make-icon.py [源图] [输出ico]
+用法：python packaging/make-icon.py [源图] [输出ico] [圆角比例0~0.5，默认0.2]
 """
+import math
 import struct
 import sys
 import zlib
@@ -177,6 +179,31 @@ def box_downscale(rows, src_size, dst_size):
     return bytes(out)
 
 
+def apply_rounded(rgba, size, radius):
+    """把方形图像四角裁为圆角：按圆角矩形的带符号距离做线性抗锯齿 alpha 遮罩。
+
+    每档 ICO 尺寸独立计算（而非先遮罩再缩放），保证 16px 小图的圆角边缘同样干净；
+    距离场在 1px 过渡带内线性映射到 alpha，等价于 2x~3x 超采样的观感且无整数倍限制。
+    """
+    out = bytearray(rgba)
+    half = size / 2.0
+    inner = half - radius  # 角圆心到中轴线的距离
+    for y in range(size):
+        qy = abs(y + 0.5 - half) - inner
+        for x in range(size):
+            qx = abs(x + 0.5 - half) - inner
+            # 标准圆角矩形 SDF：角区为到圆心的距离减半径，边内外为直线距离。
+            if qx > 0 and qy > 0:
+                d = math.hypot(qx, qy) - radius
+            else:
+                d = min(max(qx, qy), 0.0)
+            a = round((0.5 - d) * 255)
+            if a < 255:
+                o = (y * size + x) * 4 + 3
+                out[o] = a if a > 0 else 0
+    return bytes(out)
+
+
 def encode_png(size, rgba):
     raw = bytearray()
     stride = size * 4
@@ -206,6 +233,9 @@ def encode_ico(images):
 def main():
     source = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_SOURCE
     target = Path(sys.argv[2]) if len(sys.argv) > 2 else DEFAULT_TARGET
+    corner_ratio = float(sys.argv[3]) if len(sys.argv) > 3 else 0.2
+    if not 0.0 <= corner_ratio <= 0.5:
+        raise SystemExit("圆角比例须在 0~0.5 之间（当前：%s）" % corner_ratio)
     if not source.is_file():
         raise SystemExit("找不到源图：%s" % source)
 
@@ -214,10 +244,14 @@ def main():
     side, rows = center_crop_square(width, height, rows)
     if side != width:
         print("  非正方形，已按中心裁为 %d × %d" % (side, side))
+    print("  圆角比例：%.0f%%" % (corner_ratio * 100) if corner_ratio else "  直角（未裁圆角）")
 
     images = []
     for size in ICO_SIZES:
         scaled = box_downscale(rows, side, size) if side != size else b"".join(rows)
+        radius = int(round(size * corner_ratio))
+        if radius >= 1:
+            scaled = apply_rounded(scaled, size, radius)
         images.append((size, encode_png(size, scaled)))
         print("  已生成 %3d × %3d" % (size, size))
 
