@@ -9,3 +9,7 @@ __pycache__/
 *.pyc
 *.rpyc
 *.bak
+**/bin/
+**/obj/
+/dist/
+/temp/
