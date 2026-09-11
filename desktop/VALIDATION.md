@@ -13,3 +13,27 @@
 遵循用户要求：没有启动游戏，也没有修改实际游戏安装。上述游戏目录均为 `%LOCALAPPDATA%/RenpyTranslator/tests` 下的模拟目录。游戏内显示效果、特定 Ren'Py 版本兼容性、真实模型 API 和线上 GitHub Release 更新尚未实测。
 
 复现：运行 `packaging/Publish.ps1`。测试日志为 `%LOCALAPPDATA%/RenpyTranslator/self-test.log` 与 `updater-test.log`；测试目录和备份保留用于排查。
+
+## 界面改版验证（2026-09-11）
+
+范围：桌面管理器界面重做，零新增依赖，未引入任何第三方 UI 库。
+
+改动：
+
+- 新增 `Themes/Tokens.xaml`（颜色 / 圆角 / 字号令牌）、`Themes/Controls.xaml`（按钮、输入框、密码框、复选框、下拉框、滚动条、进度条、TabControl 八类控件的 ControlTemplate，均含常态 / 悬停 / 按下 / 禁用 / 键盘焦点五态）、`Themes/Icons.xaml`（线性矢量图标）。
+- `MainWindow.xaml` 的顶部 TabControl 经模板重塑为左侧导航栏，页面由裸堆叠改为卡片分组；「高级设置」页控件由代码动态生成改为 XAML 声明，`MainWindow.xaml.cs` 只保留「配置键 → 控件」映射。
+- 新增 `packaging/make-icon.py`（仅标准库）生成 `desktop/Translator/Assets/app.ico`，同一文件用于窗口图标与可执行文件图标。
+- 修复缺陷：`--snapshot` 原先既不退出进程也不产出图片；现挂在 `ContentRendered` 上，逐页等待渲染管线完成，并写出 `snapshot.log` 记录每页结果。同时新增 `--snapshot <页索引>` 与 `--game <目录>`，可在载入真实游戏数据的状态下出图。
+- 新增全局未处理异常处理：写入 `%LOCALAPPDATA%/RenpyTranslator/error.log` 并弹出提示，不再静默退出。
+
+验证结果：
+
+- `dotnet build -c Debug`：0 错误 0 警告。
+- `packaging/Publish.ps1`：管理器与更新器 Release 单文件发布成功，两项自检全部通过。
+- `--self-test`：15 项检查全部 PASS，运行于模拟目录 `%LOCALAPPDATA%/RenpyTranslator/tests`。
+- 五个页面在「已安装 · 资源 26.8.11 · 文件完整」的真实数据状态下逐页渲染核对，截图见 `temp/ui-after/`（`temp/` 不入库）。
+- 单文件发行包内嵌图标 7 种尺寸（16 ~ 256）逐一校验存在。
+
+界面核对使用模拟目录 `%LOCALAPPDATA%/RenpyTranslator/ui-check`；未启动游戏，未修改实际游戏安装。
+
+未做：游戏内实际显示效果、深色主题、`dist/` 发行包重新生成（仍为旧界面产物）。
