@@ -186,7 +186,7 @@ public partial class MainWindow : Window
 public record Provider(string Name, string Url, string Model);
 public static class Providers
 {
-    public static readonly Provider[] All = [new("自定义", "", ""), new("DeepSeek", "https://api.deepseek.com", "deepseek-flash"), new("OpenAI", "https://api.openai.com/v1", "gpt-5.6-luna"), new("小米 MiMo", "https://api.xiaomimimo.com/v1", "mimo-v2.5"), new("MiniMax", "https://api.minimax.chat/v1", "minimax-m3"), new("腾讯混元", "https://api.hunyuan.cloud.tencent.com/v1", "hy3"), new("Google Gemini", "https://generativelanguage.googleapis.com/v1beta/openai", "gemini-3.6-flash"), new("阿里通义千问", "https://dashscope.aliyuncs.com/compatible-mode/v1", "qwen-flash"), new("智谱 GLM", "https://open.bigmodel.cn/api/paas/v4", "glm-4.7-flash"), new("Kimi", "https://api.moonshot.cn/v1", "kimi-k2.6"), new("字节豆包", "https://ark.cn-beijing.volces.com/api/v3", "doubao-seed-2.0-lite")];
+    public static readonly Provider[] All = [new("自定义", "", ""), new("DeepSeek", "https://api.deepseek.com", "deepseek-flash"), new("智谱 GLM", "https://open.bigmodel.cn/api/paas/v4", "glm-5.3-flash"), new("OpenAI", "https://api.openai.com/v1", "gpt-5.6-luna"), new("小米 MiMo", "https://api.xiaomimimo.com/v1", "mimo-v2.5"), new("MiniMax", "https://api.minimax.chat/v1", "minimax-m3"), new("腾讯混元", "https://api.hunyuan.cloud.tencent.com/v1", "hy3"), new("Google Gemini", "https://generativelanguage.googleapis.com/v1beta/openai", "gemini-3.6-flash"), new("阿里通义千问", "https://dashscope.aliyuncs.com/compatible-mode/v1", "qwen-flash"), new("Kimi", "https://api.moonshot.cn/v1", "kimi-k2.6"), new("字节豆包", "https://ark.cn-beijing.volces.com/api/v3", "doubao-seed-2.0-lite")];
 }
 public static class Api
 {
