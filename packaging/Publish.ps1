@@ -36,8 +36,16 @@ try {
     # 安装包：从同一份暂存目录编译单文件安装程序。ZIP 仍是应用内更新器的下载源，
     # 安装包只是首次安装的便捷入口，两者随同一次构建产出，保证内容一致。
     if (-not $SkipInstaller) {
-        $iscc = "C:\Program Files\Inno Setup 6\ISCC.exe"
-        if (-not (Test-Path -LiteralPath $iscc)) { throw "未找到 Inno Setup：$iscc（无安装包需求时可加 -SkipInstaller）" }
+        # ISCC 定位：优先 ISCC 环境变量（CI 装完 Inno Setup 后会写入），其次 PATH，最后常见安装目录。
+        # 本机装在 Program Files，choco/CI 常装在 Program Files (x86)，两处都要覆盖。
+        $iscc = $env:ISCC
+        if (-not $iscc) { $iscc = (Get-Command iscc.exe -ErrorAction SilentlyContinue).Source }
+        if (-not $iscc) {
+            $iscc = @("C:\Program Files\Inno Setup 6\ISCC.exe", "C:\Program Files (x86)\Inno Setup 6\ISCC.exe") |
+                Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+        }
+        if (-not $iscc -or -not (Test-Path -LiteralPath $iscc)) { throw "未找到 Inno Setup ISCC.exe（可设 ISCC 环境变量指定路径，或加 -SkipInstaller 跳过安装包）" }
+        Write-Output "ISCC: $iscc"
         & $iscc "/DVersion=$Version" "/DSourceDir=$stage" "/DOutputDir=$output" (Join-Path $PSScriptRoot "installer.iss") | Out-Null
         if ($LASTEXITCODE -ne 0) { throw "安装包编译失败" }
         $setup = Join-Path $output "RenpyTranslator-Setup-win-x64.exe"
