@@ -128,7 +128,7 @@ public partial class MainWindow : Window
         ShowConfig();
         Log("已载入默认参数，点保存后写入游戏目录。");
     }
-    private async void TestApi(object sender, RoutedEventArgs e) => await Run(async () => { var next = Form(); Log("正在发送测试请求…"); await Api.Test(next); Log("连接成功，翻译响应格式有效。"); });
+    private async void TestApi(object sender, RoutedEventArgs e) => await Run(async () => { if (MessageBox.Show(this, "将向所填接口发送一条 Hello 翻译请求，可能产生少量费用，是否继续？", "测试连接", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return; var next = Form(); Log("正在发送测试请求…"); await Api.Test(next); Log("连接成功，翻译响应格式有效。"); });
     private async void ValidateTranslations(object sender, RoutedEventArgs e) => await Run(async () => { var result = await Task.Run(() => Core.Merge(Path.Combine(Core.Resources, "translations"))); Log($"校验通过：{result.Count} 条译文，无重复原文。"); });
     private async void ExportCache(object sender, RoutedEventArgs e) => await Run(() => { var path = Path.Combine(Core.Data(Root()), "cache.jsonl"); if (!File.Exists(path)) throw new IOException("当前没有缓存。"); var dialog = new SaveFileDialog { FileName = "cache-export.jsonl", Filter = "JSONL|*.jsonl" }; if (dialog.ShowDialog(this) == true) { File.Copy(path, dialog.FileName, true); Log("缓存已导出。"); } return Task.CompletedTask; });
     private async void ClearCache(object sender, RoutedEventArgs e) => await Run(async () => { var root = Root(); if (MessageBox.Show(this, "备份并清空运行时缓存？已有预译文仍会保留。", "清空缓存", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return; await Task.Run(() => Core.Transaction(root, ["live_translator/cache.jsonl"], () => Core.AtomicWrite(Path.Combine(Core.Data(root), "cache.jsonl"), ""))); Log("缓存已备份并清空。"); });
