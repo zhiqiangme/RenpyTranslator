@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType><TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>
+    <AssemblyName>RenpyTranslator</AssemblyName><Version>1.0.0</Version>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="../../game/**/*.rpy" Link="Resources/game/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../translations/**/*.jsonl" Link="Resources/translations/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../fonts/**" Link="Resources/fonts/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../config.example.json;../../version.txt;../../LICENSE" Link="Resources/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup><Content Update="../../fonts/**" CopyToPublishDirectory="Always" ExcludeFromSingleFile="true" /></ItemGroup>
+</Project>
