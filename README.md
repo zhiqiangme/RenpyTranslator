@@ -60,7 +60,11 @@ Windows x64 桌面程序：用图形界面安装、升级和卸载汉化，配�
 
 ## 更新
 
-“更新”页面检测 `zhiqiangme/RenpyTranslator` 的最新 GitHub Release。可用桌面版本必须包含：
+“更新”页面检测 `zhiqiangme/RenpyTranslator` 的最新 GitHub Release。
+
+仅版本号高于当前版本时提供下载；相同或更旧的版本显示“已是最新版本”，不展示旧发布说明。新版本说明使用 Markdown 排版，支持标题、列表、代码、表格与网页链接。
+
+可用桌面版本必须包含：
 
 - `RenpyTranslator-win-x64.zip`
 - `RenpyTranslator-win-x64.zip.sha256`
@@ -102,6 +106,10 @@ dotnet build desktop/Translator/Translator.csproj -c Release
 
 `game`、`translations`、`fonts` 继续作为新版资源使用；`tools` 保留开发用途。完整翻译版本（含旧安装脚本）已归档到 `archive/translations_bak`；`backups` 保存历史快照与归档包；两者均被 `.gitignore` 排除，不进入版本控制。`dist` 只保留发行 ZIP 与解包目录，发布脚本每次运行结束会自动回收自己的暂存目录。
 
+现有 Camp Buddy Scoutmaster Season 译文统一位于 `translations/camp-buddy-scoutmaster/`，管理器的专属安装与译文校验只读取该游戏目录。后续其他游戏的译文应使用各自子目录。
+
 ## 许可证
 
 沿用项目 [LICENSE](LICENSE)。本项目是第三方翻译模组，与游戏开发商无关，请支持正版游戏。
+
+Markdown 解析使用开源 [Markdig](https://github.com/xoofx/markdig)（BSD-2-Clause）；其许可证随发行包置于 `Resources/licenses/Markdig-LICENSE.txt`。
