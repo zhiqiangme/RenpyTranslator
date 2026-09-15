@@ -19,7 +19,11 @@ Select a game root containing `game` and `renpy`, load its configuration, choose
 
 Keys remain DPAPI-encrypted under the current Windows user, compatible with legacy settings. An empty key field preserves the stored key. The API test sends one Hello request and may incur a small charge. Provider defaults are inherited from the old scripts, not a guarantee of current account support.
 
-Default uninstall preserves configuration, cache, translations and fonts. Explicit data removal backs up and clears the translator data files. Backups and application state live in `%LOCALAPPDATA%/RenpyTranslator`.
+Generic mode preserves the game's original confirmation screen. Only the Camp Buddy pack installs its dedicated confirmation script; switching back removes that script and its compiled cache. Custom font paths are displayed and preserved unless another font is selected.
+
+Default uninstall preserves configuration, cache, translations and fonts. Explicit data removal backs up and recursively deletes **all files** under `game/live_translator`, including files stored there by the user. Backups and application state live in `%LOCALAPPDATA%/RenpyTranslator`.
+
+At startup and before downloading an update, the manager retains the latest two update directories and removes older ones, including their `previous` backups. Directories younger than one day or currently in use are skipped; failed cleanup is retried later.
 
 Updates require a GitHub Release containing `RenpyTranslator-win-x64.zip` and its `.sha256` file. The updater backs up and replaces application resources, restoring changed files if replacement fails. After updating the manager, apply the new mod to each game using the install/upgrade button.
 
