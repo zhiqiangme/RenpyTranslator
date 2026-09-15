@@ -6,7 +6,7 @@ using System.Security.Cryptography;
 using System.Text.Json.Nodes;
 namespace RenpyTranslator;
 
-public record Release(bool Available, string Notes, string ZipUrl, string HashUrl);
+public record Release(bool Available, string Notes, string ZipUrl, string HashUrl, string Status = "");
 public static class Updates
 {
     private const string AssetName = "RenpyTranslator-win-x64.zip";
@@ -50,8 +50,12 @@ public static class Updates
     {
         var client = new HttpClient { Timeout = TimeSpan.FromMinutes(10) }; client.DefaultRequestHeaders.UserAgent.ParseAdd("RenpyTranslator/" + Core.ManagerVersion); return client;
     }
-    // 桌面发行标签形如 v26.9.11；只认 v + 数字开头，避免匹配非版本标签。
-    private static bool IsReleaseTag(string tag) => tag.Length > 1 && tag[0] == 'v' && char.IsDigit(tag[1]);
+    // 缺省修订号按零处理，26.9.11 与 26.9.11.0 是同一版本。
+    private static Version? ParseVersion(string value)
+    {
+        if (!Version.TryParse(value, out var version) || version.Build < 0) return null;
+        return new Version(version.Major, version.Minor, version.Build, Math.Max(0, version.Revision));
+    }
     public static async Task<Release> Check()
     {
         using var client = Client();
@@ -59,22 +63,26 @@ public static class Updates
         using var response = await client.GetAsync("https://api.github.com/repos/zhiqiangme/RenpyTranslator/releases?per_page=20");
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound) return new(false, "仓库尚未发布桌面版本。", "", "");
         response.EnsureSuccessStatusCode();
-        // 列表按创建时间倒序，第一个非预发行的 v* 即最新桌面版。
-        var latest = JsonNode.Parse(await response.Content.ReadAsStringAsync())!.AsArray()
-            .Select(node => node?.AsObject())
-            .FirstOrDefault(obj => obj != null
-                && IsReleaseTag(Core.ReadString(obj, "tag_name"))
-                && obj["prerelease"]?.GetValue<bool>() != true);
-        if (latest is null) return new(false, "仓库尚未发布桌面版本。", "", "");
-        var tag = Core.ReadString(latest, "tag_name");
-        var notes = tag + "\n\n" + Core.ReadString(latest, "body");
-        var assets = latest["assets"]!.AsArray();
+        return SelectRelease(JsonNode.Parse(await response.Content.ReadAsStringAsync())!.AsArray(), Core.ManagerVersion);
+    }
+    internal static Release SelectRelease(JsonArray releases, string currentVersion)
+    {
+        // 按版本排序，旧维护版本后发布也不能遮住较新的版本。
+        var latest = releases.OfType<JsonObject>()
+            .Where(obj => obj["prerelease"]?.GetValue<bool>() != true && obj["draft"]?.GetValue<bool>() != true)
+            .Select(obj => (Object: obj, Tag: Core.ReadString(obj, "tag_name")))
+            .Where(item => item.Tag.StartsWith('v'))
+            .Select(item => (item.Object, item.Tag, Version: ParseVersion(item.Tag[1..])))
+            .Where(item => item.Version is not null).OrderByDescending(item => item.Version).FirstOrDefault();
+        if (latest.Object is null) return new(false, "仓库尚未发布桌面版本。", "", "", "仓库尚未发布桌面版本。");
+        if (latest.Version! <= ParseVersion(currentVersion)!)
+            return new(false, $"当前版本 {currentVersion} 已是最新版本。", "", "", "已是最新版本。");
+        var notes = "# " + latest.Tag + "\n\n" + Core.ReadString(latest.Object, "body");
+        var assets = latest.Object["assets"] as JsonArray ?? new JsonArray();
         string Url(string name) => assets.FirstOrDefault(x => x?["name"]?.GetValue<string>() == name)?["browser_download_url"]?.GetValue<string>() ?? "";
         var zip = Url(AssetName); var hash = Url(AssetName + ".sha256");
-        if (zip.Length == 0 || hash.Length == 0) return new(false, notes + "\n\n此发行版没有桌面包及校验文件，不能安装。", "", "");
-        var version = tag.TrimStart('v');
-        bool newer = Version.TryParse(version, out var remote) && remote > Version.Parse(Core.ManagerVersion);
-        return new(newer, notes, zip, hash);
+        if (zip.Length == 0 || hash.Length == 0) return new(false, notes + "\n\n此发行版没有桌面包及校验文件，不能安装。", "", "", "新版本缺少桌面包或校验文件。");
+        return new(true, notes, zip, hash, "发现新版本 " + latest.Tag);
     }
     public static void Extract(string zip, string target)
     {

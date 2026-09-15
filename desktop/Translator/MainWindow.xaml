@@ -220,7 +220,8 @@
          <Button Content="检查 GitHub 更新" Click="CheckUpdate"/>
          <Button x:Name="UpdateButton" Content="下载并重启更新" Click="ApplyUpdate" IsEnabled="False" Style="{StaticResource PrimaryButton}"/>
         </StackPanel>
-        <TextBox x:Name="ReleaseNotes" Style="{StaticResource MonitorBox}" IsReadOnly="True" Height="240" Margin="0,12,0,0" Text="更新来源：zhiqiangme/RenpyTranslator。新版本必须包含桌面发行包与校验文件。"/>
+        <TextBlock x:Name="UpdateStatus" Text="更新来源：zhiqiangme/RenpyTranslator" Margin="0,12,0,0"/>
+        <FlowDocumentScrollViewer x:Name="ReleaseNotes" Height="300" Margin="0,12,0,0" VerticalScrollBarVisibility="Auto" IsToolBarVisible="False" FocusVisualStyle="{x:Null}" Visibility="Collapsed"/>
        </StackPanel>
       </Border>
 

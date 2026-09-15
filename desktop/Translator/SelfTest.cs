@@ -42,6 +42,30 @@ public static class SelfTest
         }
         try
         {
+            // 模拟发行列表，覆盖同版本、修订号等价、乱序和预发布筛选，不访问 GitHub。
+            JsonObject ReleaseFixture(string version, bool prerelease = false, bool complete = true) => new()
+            {
+                ["tag_name"] = version, ["body"] = "## 修复\n\n- **说明**",
+                ["prerelease"] = prerelease,
+                ["assets"] = complete ? new JsonArray(
+                    new JsonObject { ["name"] = "RenpyTranslator-win-x64.zip", ["browser_download_url"] = "https://example.com/release.zip" },
+                    new JsonObject { ["name"] = "RenpyTranslator-win-x64.zip.sha256", ["browser_download_url"] = "https://example.com/release.sha256" }) : new JsonArray()
+            };
+            foreach (var same in new[] { "v26.9.11", "v26.9.11.0", "v26.9.10" })
+            {
+                var result = Updates.SelectRelease(new JsonArray(ReleaseFixture(same)), "26.9.11");
+                Assert(!result.Available && result.ZipUrl == "" && result.Status.Contains("最新") && !result.Notes.Contains("## 修复"), "Same or older version does not advertise update: " + same);
+            }
+            var newer = Updates.SelectRelease(new JsonArray(ReleaseFixture("v26.9.10"), ReleaseFixture("v26.10.1"), ReleaseFixture("v27.1.1", true)), "26.9.11");
+            Assert(newer.Available && newer.Notes.StartsWith("# v26.10.1"), "Select highest stable version rather than first release");
+            Assert(!Updates.SelectRelease(new JsonArray(ReleaseFixture("v26.10.1", complete: false)), "26.9.11").Available, "Missing release assets disable download");
+            var markdown = MarkdownView.Render("# 标题\n\n**加粗** 和 `代码`\n\n- 项目\n\n```text\n示例\n```\n\n[链接](https://example.com)");
+            var paragraphs = markdown.Blocks.OfType<System.Windows.Documents.Paragraph>().ToArray();
+            Assert(paragraphs[0].FontSize > markdown.FontSize && markdown.Blocks.OfType<System.Windows.Documents.List>().Any(), "Markdown renders headings and real list blocks");
+            Assert(paragraphs.Any(p => p.Inlines.OfType<System.Windows.Documents.Hyperlink>().Any()) && !new System.Windows.Documents.TextRange(markdown.ContentStart, markdown.ContentEnd).Text.Contains("**"), "Markdown renders hyperlinks and removes formatting markers");
+            var focusStyle = (System.Windows.Style)System.Windows.Application.Current.FindResource(System.Windows.SystemParameters.FocusVisualStyleKey);
+            var focusTemplate = (System.Windows.Controls.ControlTemplate)focusStyle.Setters.OfType<System.Windows.Setter>().Single(s => s.Property == System.Windows.Controls.Control.TemplateProperty).Value;
+            Assert(focusTemplate.LoadContent() is null, "Default keyboard focus visual has no dotted border");
             Directory.CreateDirectory(Path.Combine(root, "game")); Directory.CreateDirectory(Path.Combine(root, "renpy"));
             Assert(Core.Game(root + "\\") == root && Core.Game(root + "/") == root, "Normalize trailing game separators");
             Assert(Core.IsInside("D:\\", "D:\\game\\test.exe") && !Core.IsInside(root, root + "-other\\test.exe"), "Path containment handles drive roots and sibling prefixes");
