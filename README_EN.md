@@ -33,10 +33,14 @@ The manager does not launch the game. The original mod's compatibility limits st
 - Advanced settings include batch size, wait time, timeout, cooldown, output tokens, temperature, prompts, names and skip patterns. Restoring defaults only changes the editor; settings are written to the game when saved.
 - Each game has its own configuration. Unknown configuration fields are preserved. Endpoints must use HTTPS; local loopback services may use HTTP.
 - Loading configuration displays and preserves custom font paths. Installation only replaces the font when another font is selected. Relative paths are resolved from the game's `game` directory.
+- Skip patterns are limited to basic regex syntax supported by both the manager and the game: literals, character classes, common escapes, anchors, alternatives, ordinary groups, non-capturing groups and quantifiers. Named groups, backreferences, lookarounds, inline options and extended escapes are unsupported. For example, `^(?:Hello|World)\s+\d{2,}$` is supported.
+- When translation is disabled, confirmation dialogs preserve the source text and unsent batches are not sent. Requests already sent may finish. After translation is enabled again, untranslated text can be queued again.
 
 ## Installation, Uninstallation and Data
 
 Before installation, translation format and duplicate source strings are checked. Files to be overwritten are backed up before writing, and their original bytes are restored on failure. Software updates do not overwrite configuration, runtime caches or unrelated user files in the installation directory.
+
+If the installation record is damaged or lacks required checksum entries, the manager shows a repairable status while allowing valid configuration to load and installation / repair to proceed. A recognized resource mode is retained; otherwise generic mode is selected by default, so confirm the mode before repairing. Damage to the configuration file itself, file permission errors or link errors must still be resolved first.
 
 Default uninstallation only removes the generic and dedicated mod's `.rpy` and `.rpyc` files and the desktop installation record. Configuration, caches, translations and fonts are preserved. Selecting Delete All Files Under game/live_translator During Uninstallation (卸载时删除 game/live_translator 内全部文件) recursively deletes every file in that directory, including configuration, caches, translations, fonts and files stored there by the user. Files are still backed up before deletion. Original game files, saves and other directories are outside the cleanup scope.
 
