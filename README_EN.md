@@ -60,7 +60,11 @@ Software update directories are cleaned at manager startup and when preparing an
 
 ## Updates
 
-The Updates page (更新) checks the latest GitHub Release from `zhiqiangme/RenpyTranslator`. An eligible desktop release must include:
+The Updates page (更新) checks the latest GitHub Release from `zhiqiangme/RenpyTranslator`.
+
+Downloads are offered only for versions newer than the current version. Equal or older versions show “Already up to date” without displaying old release notes. New release notes are formatted as Markdown, supporting headings, lists, code, tables and web links.
+
+An eligible desktop release must include:
 
 - `RenpyTranslator-win-x64.zip`
 - `RenpyTranslator-win-x64.zip.sha256`
@@ -102,6 +106,10 @@ The legacy PowerShell entry points and Chinese and English documentation have be
 
 `game`, `translations` and `fonts` remain resources for the new version; `tools` is retained for development. The complete translated version, including the old installation scripts, is archived under `archive/translations_bak`. `backups` stores historical snapshots and archives. Both are excluded by `.gitignore` and are not version-controlled. `dist` retains only release ZIPs and unpacked directories; the release script removes its own staging directories at the end of each run.
 
+Existing Camp Buddy Scoutmaster Season translations are stored under `translations/camp-buddy-scoutmaster/`. Dedicated installation and translation validation read only that game's directory. Translations for other games should use separate subdirectories.
+
 ## License
 
 The project's [LICENSE](LICENSE) continues to apply. This is a third-party translation mod, unaffiliated with the game developers. Please support legitimate copies of the games.
+
+Markdown parsing uses the open-source [Markdig](https://github.com/xoofx/markdig) library (BSD-2-Clause). Its license is included in release packages at `Resources/licenses/Markdig-LICENSE.txt`.
