@@ -13,6 +13,7 @@ internal static class Program
     {
         if (args is ["--self-test"]) return SelfTest();
         var originals = new Dictionary<string, string?>();
+        FileStream? lease = null;
         try
         {
             if (args.Length != 3) throw new IOException("更新参数不完整。");
@@ -20,6 +21,8 @@ internal static class Program
             if (!File.Exists(Path.Combine(target, "RenpyTranslator.exe"))) throw new IOException("目标不是桌面程序目录。");
             // 最多等待两分钟，避免因退出失败而永久驻留。
             try { using var parent = Process.GetProcessById(int.Parse(args[0])); if (!parent.WaitForExit(120000)) throw new IOException("管理器未退出，更新已取消。"); } catch (ArgumentException) { }
+            // 接管管理器已释放的租约，替换和回滚期间禁止新进程回收此更新目录。
+            lease = new FileStream(Path.Combine(Path.GetDirectoryName(stage)!, "active.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
             var backup = Path.Combine(Path.GetDirectoryName(stage)!, "previous"); Directory.CreateDirectory(backup);
             // 先移走新版本不再包含的资源，避免旧译文残留导致重复或错误匹配。
             var resourceRoot = Path.Combine(target, "Resources");
@@ -52,6 +55,7 @@ internal static class Program
                 try { if (saved is null) { if (File.Exists(path)) File.Delete(path); } else File.Copy(saved, path, true); } catch { recovery.Add(path); }
             if (!testing) MessageBox(IntPtr.Zero, "更新失败：" + ex.Message + (recovery.Count == 0 ? "\n已恢复被修改文件。" : "\n部分文件未能恢复，请使用更新目录中的 previous 备份：\n" + string.Join("\n", recovery)), "Ren'Py 汉化管理器", 0x10); return 1;
         }
+        finally { lease?.Dispose(); }
     }
     private static bool testing;
     // 与管理器自检一致：tests 下的模拟目录按创建时间只保留最近若干份，避免逐次自检无限堆积。

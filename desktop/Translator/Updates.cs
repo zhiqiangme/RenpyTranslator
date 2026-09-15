@@ -10,6 +10,42 @@ public record Release(bool Available, string Notes, string ZipUrl, string HashUr
 public static class Updates
 {
     private const string AssetName = "RenpyTranslator-win-x64.zip";
+    // 保留最近两份供回退；一天内的目录不动，覆盖下载到更新器接管之间的交接窗口。
+    internal static void PruneUpdates(string root)
+    {
+        if (!Directory.Exists(root)) return;
+        try
+        {
+            Core.NoLinks(root);
+            var directories = Directory.GetDirectories(root)
+                .Where(path => Guid.TryParseExact(Path.GetFileName(path), "N", out _))
+                .OrderByDescending(Directory.GetCreationTimeUtc).Skip(2);
+            foreach (var directory in directories)
+            {
+                if (Directory.GetCreationTimeUtc(directory) > DateTime.UtcNow.AddDays(-1)) continue;
+                try
+                {
+                    // 只清理受管理目录，拒绝链接；独占租约防止清理正在使用的备份。
+                    void CheckTree(string path)
+                    {
+                        Core.NoLinks(path);
+                        foreach (var entry in Directory.EnumerateFileSystemEntries(path))
+                        {
+                            Core.NoLinks(entry);
+                            if (Directory.Exists(entry)) CheckTree(entry);
+                        }
+                    }
+                    CheckTree(directory);
+                    using var lease = new FileStream(Path.Combine(directory, "active.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Delete);
+                    Directory.Delete(directory, true);
+                }
+                catch (IOException) { } // 占用或无权限时留到下次启动清理。
+                catch (UnauthorizedAccessException) { }
+            }
+        }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
+    }
     private static HttpClient Client()
     {
         var client = new HttpClient { Timeout = TimeSpan.FromMinutes(10) }; client.DefaultRequestHeaders.UserAgent.ParseAdd("RenpyTranslator/" + Core.ManagerVersion); return client;
@@ -56,7 +92,9 @@ public static class Updates
         if (!release.Available) throw new IOException("没有可安装的更新。");
         foreach (var url in new[] { release.ZipUrl, release.HashUrl })
             if (!url.StartsWith("https://github.com/zhiqiangme/RenpyTranslator/releases/download/", StringComparison.Ordinal)) throw new IOException("更新资源来源不匹配。");
-        var root = Path.Combine(Core.Home, "updates", Guid.NewGuid().ToString("N")); Directory.CreateDirectory(root);
+        var updates = Path.Combine(Core.Home, "updates"); PruneUpdates(updates);
+        var root = Path.Combine(updates, Guid.NewGuid().ToString("N")); Directory.CreateDirectory(root);
+        using var lease = new FileStream(Path.Combine(root, "active.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
         using var client = Client(); var zip = Path.Combine(root, "release.zip");
         await using (var source = await client.GetStreamAsync(release.ZipUrl))
         await using (var dest = File.Create(zip)) await source.CopyToAsync(dest);

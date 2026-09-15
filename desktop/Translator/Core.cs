@@ -14,8 +14,43 @@ public static class Core
     public static readonly string Home = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "RenpyTranslator");
     public static readonly string Resources = Path.Combine(AppContext.BaseDirectory, "Resources");
     public static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
-    public static string ReadString(JsonObject obj, string key) => obj[key]?.GetValue<string>() ?? "";
-    public static JsonObject ReadJson(string path) => JsonNode.Parse(File.ReadAllText(path))?.AsObject() ?? throw new IOException("配置为空。");
+    public static string ReadString(JsonObject obj, string key)
+    {
+        if (obj[key] is null) return "";
+        if (obj[key] is JsonValue value && value.TryGetValue<string>(out var text)) return text;
+        throw new IOException($"配置字段 {key} 必须是字符串。");
+    }
+    public static JsonObject ReadJson(string path)
+    {
+        try { return JsonNode.Parse(File.ReadAllText(path)) as JsonObject ?? throw new IOException($"配置文件必须是 JSON 对象：{Path.GetFileName(path)}"); }
+        catch (JsonException ex) { throw new IOException($"配置 JSON 错误：{Path.GetFileName(path)}，第 {(ex.LineNumber ?? 0) + 1} 行。", ex); }
+    }
+    public static JsonArray StringArray(string text, string key)
+    {
+        var label = key == "skip_patterns" ? "跳过规则" : "保护人名";
+        try
+        {
+            var array = JsonNode.Parse(text) as JsonArray ?? throw new IOException($"{label}必须是 JSON 字符串数组。");
+            foreach (var item in array)
+            {
+                if (item is not JsonValue value || !value.TryGetValue<string>(out var entry)) throw new IOException($"{label}的每个元素必须是字符串。");
+                if (key == "skip_patterns") _ = new System.Text.RegularExpressions.Regex(entry);
+            }
+            return array;
+        }
+        catch (JsonException ex) { throw new IOException($"{label} JSON 格式错误，第 {(ex.LineNumber ?? 0) + 1} 行。", ex); }
+        catch (ArgumentException ex) { throw new IOException($"{label}包含无效的正则表达式。", ex); }
+    }
+    // 只识别完整预设路径，自定义字体不能因文件名包含 msyh 等字样而被替换。
+    public static int FontPreset(string font)
+    {
+        var normalized = font.Replace('\\', '/');
+        if (string.IsNullOrWhiteSpace(font) || normalized.Equals("live_translator/fonts/HarmonyOS_Sans_SC.ttf", StringComparison.OrdinalIgnoreCase)) return 0;
+        var fonts = Environment.GetFolderPath(Environment.SpecialFolder.Fonts).Replace('\\', '/');
+        if (normalized.Equals(fonts + "/msyh.ttc", StringComparison.OrdinalIgnoreCase)) return 1;
+        if (normalized.Equals(fonts + "/simsun.ttc", StringComparison.OrdinalIgnoreCase)) return 2;
+        return 3;
+    }
     public static void AtomicWrite(string path, string text)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
@@ -37,7 +72,7 @@ public static class Core
         if (!Directory.Exists(Path.Combine(full, "game")) || !Directory.Exists(Path.Combine(full, "renpy")))
             throw new IOException("请选择包含 game 和 renpy 文件夹的游戏根目录。");
         NoLinks(Path.Combine(full, "game", "live_translator"));
-        return full;
+        return Path.TrimEndingDirectorySeparator(full);
     }
     public static string Data(string root) => Path.Combine(Game(root), "game", "live_translator");
     public static JsonObject Config(string root) => File.Exists(Path.Combine(Data(root), "config.json"))
@@ -67,10 +102,13 @@ public static class Core
             foreach (var line in File.ReadLines(path))
             {
                 n++; if (string.IsNullOrWhiteSpace(line)) continue;
-                JsonObject obj;
-                try { obj = JsonNode.Parse(line)!.AsObject(); }
-                catch { throw new IOException($"译文 JSON 错误：{Path.GetFileName(path)}:{n}"); }
-                var source = ReadString(obj, "source"); var translated = ReadString(obj, "translation");
+                string source, translated;
+                try
+                {
+                    var obj = JsonNode.Parse(line) as JsonObject ?? throw new IOException("译文必须是 JSON 对象。");
+                    source = ReadString(obj, "source"); translated = ReadString(obj, "translation");
+                }
+                catch (Exception ex) when (ex is JsonException or IOException) { throw new IOException($"译文 JSON 错误：{Path.GetFileName(path)}:{n}", ex); }
                 if (string.IsNullOrWhiteSpace(source) || string.IsNullOrWhiteSpace(translated) || !seen.Add(source))
                     throw new IOException($"译文为空或原文重复：{Path.GetFileName(path)}:{n}");
                 lines.Add(line);
@@ -81,18 +119,25 @@ public static class Core
     }
     public static void EnsureStopped(string root)
     {
+        root = Game(root);
         foreach (var process in Process.GetProcesses())
         {
             using (process)
             {
                 string? file = null;
                 try { file = process.MainModule?.FileName; } catch { }
-                if (file?.StartsWith(Game(root) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) == true)
+                if (file is not null && IsInside(root, file))
                     throw new IOException("请先关闭该游戏，再修改汉化文件。");
             }
         }
     }
-    public static readonly string[] InstalledFiles = ["zz_live_translator.rpy", "zz_live_translator.rpyc", "live_translator/pretranslated.jsonl", "live_translator/fonts/HarmonyOS_Sans_SC.ttf", "live_translator/config.json", "live_translator/installation.json"];
+    // 相对路径判断同时兼容尾随分隔符与盘符根目录，并排除同名前缀的相邻目录。
+    internal static bool IsInside(string root, string file)
+    {
+        var relative = Path.GetRelativePath(root, file);
+        return !Path.IsPathRooted(relative) && relative != ".." && !relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal);
+    }
+    public static readonly string[] InstalledFiles = ["zz_live_translator.rpy", "zz_live_translator.rpyc", "zz_live_translator_camp_buddy.rpy", "zz_live_translator_camp_buddy.rpyc", "live_translator/pretranslated.jsonl", "live_translator/fonts/HarmonyOS_Sans_SC.ttf", "live_translator/config.json", "live_translator/installation.json"];
     // 备份保留份数。单次事务会把待覆盖文件整份备份，其中内置字体约 20MB，
     // 不设上限时 backups 目录会随每次安装/自检持续堆积，故只保留最近若干份。
     private const int BackupRetention = 10;
@@ -150,18 +195,24 @@ public static class Core
         NormalizeKey(config);
         if (bundled) config["protected_names"] = ReadJson(Path.Combine(Resources, "config.default.json"))["protected_names"]!.DeepClone();
         config["font"] = font == "HarmonyOS" ? "live_translator/fonts/HarmonyOS_Sans_SC.ttf" : font.Replace('\\', '/');
-        if (font != "HarmonyOS" && !File.Exists(font)) throw new IOException("所选字体不存在。");
+        if (font != "HarmonyOS" && !File.Exists(Path.IsPathRooted(font) ? font : Path.Combine(Game(root), "game", font))) throw new IOException("所选字体不存在。");
         Transaction(root, InstalledFiles, () =>
         {
             var game = Path.Combine(Game(root), "game"); var data = Data(root);
             AtomicWrite(Path.Combine(game, "zz_live_translator.rpy"), script);
             if (File.Exists(Path.Combine(game, "zz_live_translator.rpyc"))) File.Delete(Path.Combine(game, "zz_live_translator.rpyc"));
+            // 专属屏幕独立安装；切回通用模式时一并清除其编译缓存，恢复原游戏屏幕。
+            var confirm = Path.Combine(game, "zz_live_translator_camp_buddy.rpy");
+            if (bundled) AtomicWrite(confirm, File.ReadAllText(Path.Combine(Resources, "game", "zz_live_translator_camp_buddy.rpy")));
+            else if (File.Exists(confirm)) File.Delete(confirm);
+            if (File.Exists(confirm + "c")) File.Delete(confirm + "c");
             if (font == "HarmonyOS") { Directory.CreateDirectory(Path.Combine(data, "fonts")); File.Copy(Path.Combine(Resources, "fonts", "HarmonyOS_Sans_SC.ttf"), Path.Combine(data, "fonts", "HarmonyOS_Sans_SC.ttf"), true); }
             // 通用模式不覆盖用户已有译文；首装不注入其他游戏的专属资源。
             if (bundled) AtomicWrite(Path.Combine(data, "pretranslated.jsonl"), merged.Item1);
             WriteJson(Path.Combine(data, "config.json"), config);
             var hashes = new JsonObject();
             var owned = new List<string> { "zz_live_translator.rpy" };
+            if (bundled) owned.Add("zz_live_translator_camp_buddy.rpy");
             if (bundled) owned.Add("live_translator/pretranslated.jsonl");
             if (font == "HarmonyOS") owned.Add("live_translator/fonts/HarmonyOS_Sans_SC.ttf");
             foreach (var item in owned) if (File.Exists(Path.Combine(game, item))) hashes[item] = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(Path.Combine(game, item))));
@@ -184,7 +235,7 @@ public static class Core
             Collect(Data(root));
         }
         // 常规卸载只移除执行模组，保留译文、字体及用户数据，兼容旧版卸载语义。
-        var targets = removeData ? files.Distinct().ToArray() : new[] { "zz_live_translator.rpy", "zz_live_translator.rpyc", "live_translator/installation.json" };
+        var targets = removeData ? files.Distinct().ToArray() : new[] { "zz_live_translator.rpy", "zz_live_translator.rpyc", "zz_live_translator_camp_buddy.rpy", "zz_live_translator_camp_buddy.rpyc", "live_translator/installation.json" };
         Transaction(root, targets, () => { foreach (var item in targets) { var path = Path.Combine(Game(root), "game", item); if (File.Exists(path)) File.Delete(path); } });
     }
     public static string Status(string root)
@@ -194,11 +245,13 @@ public static class Core
         var manifest = Path.Combine(Data(root), "installation.json");
         if (!File.Exists(manifest)) return "已安装旧版汉化 · 可直接升级";
         var obj = ReadJson(manifest); int changed = 0;
-        foreach (var pair in obj["files"]!.AsObject())
+        if (obj["files"] is not JsonObject hashes) throw new IOException("安装记录 installation.json 的 files 必须是 JSON 对象，请重新安装 / 修复汉化。");
+        foreach (var pair in hashes)
         {
             if (!InstalledFiles.Contains(pair.Key)) continue;
             var path = Path.Combine(Game(root), "game", pair.Key); NoLinks(path);
-            if (!File.Exists(path) || Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))) != pair.Value!.GetValue<string>()) changed++;
+            if (pair.Value is not JsonValue value || !value.TryGetValue<string>(out var expected)) throw new IOException($"安装记录 installation.json 的文件校验值无效：{pair.Key}，请重新安装 / 修复汉化。");
+            if (!File.Exists(path) || Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))) != expected) changed++;
         }
         return $"已安装 · 资源 {ReadString(obj, "resource_version")} · " + (changed == 0 ? "文件完整" : $"{changed} 个文件需要修复");
     }
