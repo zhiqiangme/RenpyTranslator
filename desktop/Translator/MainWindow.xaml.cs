@@ -89,17 +89,16 @@ public partial class MainWindow : Window
     }
     private async Task LoadGame()
     {
-        var root = Root(); var result = await Task.Run(() => (Core.Config(root), Core.Status(root)));
-        config = result.Item1; loadedRoot = root; GameStatus.Text = result.Item2; ShowConfig();
-        var manifest = Path.Combine(Core.Data(root), "installation.json");
-        Pack.SelectedIndex = File.Exists(manifest) && Core.ReadString(Core.ReadJson(manifest), "pack") == "camp-buddy-scoutmaster" ? 1 : 0;
+        var root = Root(); var result = await Task.Run(() => (Core.Config(root), Core.InspectInstallation(root)));
+        config = result.Item1; loadedRoot = root; GameStatus.Text = result.Item2.Status; ShowConfig();
+        Pack.SelectedIndex = result.Item2.Bundled ? 1 : 0;
         var font = Core.ReadString(config, "font");
         if (FontChoice.Items.Count > 3) FontChoice.Items.RemoveAt(3);
         if (Core.FontPreset(font) == 3) FontChoice.Items.Add(new ComboBoxItem { Content = "保留自定义字体：" + font, ToolTip = font });
         FontChoice.SelectedIndex = Core.FontPreset(font);
         if (!Games.Items.Contains(root)) Games.Items.Add(root);
         Core.AtomicWrite(Path.Combine(Core.Home, "games.json"), new JsonArray(Games.Items.Cast<string>().Select(s => (JsonNode?)JsonValue.Create(s)).ToArray()).ToJsonString());
-        Log(result.Item2);
+        Log(result.Item2.Status);
     }
     private async void Browse(object sender, RoutedEventArgs e) { var dialog = new OpenFolderDialog { Title = "选择 Ren'Py 游戏根目录" }; if (dialog.ShowDialog(this) == true) { Games.Text = dialog.FolderName; await Run(LoadGame); } }
     private void GameSelected(object sender, SelectionChangedEventArgs e) { if (GameStatus != null) GameStatus.Text = "目录已选择，请点击读取 / 检查状态。"; }

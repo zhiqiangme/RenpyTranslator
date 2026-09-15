@@ -34,12 +34,41 @@ public static class Core
             foreach (var item in array)
             {
                 if (item is not JsonValue value || !value.TryGetValue<string>(out var entry)) throw new IOException($"{label}的每个元素必须是字符串。");
-                if (key == "skip_patterns") _ = new System.Text.RegularExpressions.Regex(entry);
+                if (key == "skip_patterns") ValidateSkipPattern(entry);
             }
             return array;
         }
         catch (JsonException ex) { throw new IOException($"{label} JSON 格式错误，第 {(ex.LineNumber ?? 0) + 1} 行。", ex); }
         catch (ArgumentException ex) { throw new IOException($"{label}包含无效的正则表达式。", ex); }
+    }
+    // 发行包不依赖 Python，限定为 .NET 与游戏 Python re 都支持的基础语法。
+    internal static void ValidateSkipPattern(string pattern)
+    {
+        bool inClass = false;
+        for (int i = 0; i < pattern.Length; i++)
+        {
+            char ch = pattern[i];
+            if (ch == '\\' && i + 1 < pattern.Length)
+            {
+                char escaped = pattern[++i];
+                if (char.IsLetterOrDigit(escaped) && !"dDsSwWbBAnrtfav".Contains(escaped))
+                    throw new IOException("跳过规则使用基础正则语法，不支持命名组、反向引用或扩展转义；请直接填写文字或使用字符类。");
+                continue;
+            }
+            if (ch == '[') { if (inClass) throw new IOException("跳过规则不支持嵌套字符类，请转义字面量方括号。"); inClass = true; }
+            else if (ch == ']') inClass = false;
+            else if (!inClass && ch == '{')
+            {
+                int end = pattern.IndexOf('}', i + 1);
+                if (end < 0 || !System.Text.RegularExpressions.Regex.IsMatch(pattern[(i + 1)..end], @"^[0-9]+(,[0-9]*)?$"))
+                    throw new IOException("跳过规则的次数限定请使用 {n}、{n,} 或 {n,m}；字面量花括号请转义。");
+                i = end;
+            }
+            else if (!inClass && ch == '(' && i + 1 < pattern.Length && pattern[i + 1] == '?'
+                && (i + 2 >= pattern.Length || pattern[i + 2] != ':'))
+                throw new IOException("跳过规则仅支持普通组和 (?:...) 非捕获组，不支持命名组、前后查找或内联选项。");
+        }
+        _ = new System.Text.RegularExpressions.Regex(pattern);
     }
     // 只识别完整预设路径，自定义字体不能因文件名包含 msyh 等字样而被替换。
     public static int FontPreset(string font)
@@ -238,22 +267,36 @@ public static class Core
         var targets = removeData ? files.Distinct().ToArray() : new[] { "zz_live_translator.rpy", "zz_live_translator.rpyc", "zz_live_translator_camp_buddy.rpy", "zz_live_translator_camp_buddy.rpyc", "live_translator/installation.json" };
         Transaction(root, targets, () => { foreach (var item in targets) { var path = Path.Combine(Game(root), "game", item); if (File.Exists(path)) File.Delete(path); } });
     }
-    public static string Status(string root)
+    public static string Status(string root) => InspectInstallation(root).Status;
+    public record InstallationState(string Status, bool Bundled);
+    public static InstallationState InspectInstallation(string root)
     {
         var script = Path.Combine(Game(root), "game", "zz_live_translator.rpy");
-        if (!File.Exists(script)) return "未安装汉化";
         var manifest = Path.Combine(Data(root), "installation.json");
-        if (!File.Exists(manifest)) return "已安装旧版汉化 · 可直接升级";
-        var obj = ReadJson(manifest); int changed = 0;
-        if (obj["files"] is not JsonObject hashes) throw new IOException("安装记录 installation.json 的 files 必须是 JSON 对象，请重新安装 / 修复汉化。");
+        if (!File.Exists(manifest)) return new(File.Exists(script) ? "已安装旧版汉化 · 可直接升级" : "未安装汉化", false);
+        NoLinks(manifest);
+        JsonObject? obj;
+        // 仅将记录格式错误降级为可修复状态；权限和链接错误仍阻止操作。
+        try { obj = JsonNode.Parse(File.ReadAllText(manifest)) as JsonObject; }
+        catch (JsonException) { obj = null; }
+        var pack = obj?["pack"] is JsonValue packValue && packValue.TryGetValue<string>(out var packText) ? packText : "";
+        bool bundled = pack == "camp-buddy-scoutmaster";
+        InstallationState Damaged() => new("安装记录损坏或不完整 · 可直接安装 / 修复，请确认资源模式", bundled);
+        if (obj is null || pack is not ("custom" or "camp-buddy-scoutmaster") || obj["files"] is not JsonObject hashes) return Damaged();
+        if (obj["resource_version"] is not JsonValue versionValue || !versionValue.TryGetValue<string>(out var version) || !Version.TryParse(version, out _)) return Damaged();
+        var required = new List<string> { "zz_live_translator.rpy" };
+        if (bundled) required.AddRange(["zz_live_translator_camp_buddy.rpy", "live_translator/pretranslated.jsonl"]);
+        if (FontPreset(ReadString(Config(root), "font")) == 0) required.Add("live_translator/fonts/HarmonyOS_Sans_SC.ttf");
+        if (required.Any(key => !hashes.ContainsKey(key))) return Damaged();
+        int changed = 0;
         foreach (var pair in hashes)
         {
             if (!InstalledFiles.Contains(pair.Key)) continue;
             var path = Path.Combine(Game(root), "game", pair.Key); NoLinks(path);
-            if (pair.Value is not JsonValue value || !value.TryGetValue<string>(out var expected)) throw new IOException($"安装记录 installation.json 的文件校验值无效：{pair.Key}，请重新安装 / 修复汉化。");
-            if (!File.Exists(path) || Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))) != expected) changed++;
+            if (pair.Value is not JsonValue value || !value.TryGetValue<string>(out var expected) || expected.Length != 64 || !expected.All(Uri.IsHexDigit)) return Damaged();
+            if (!File.Exists(path) || !Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).Equals(expected, StringComparison.OrdinalIgnoreCase)) changed++;
         }
-        return $"已安装 · 资源 {ReadString(obj, "resource_version")} · " + (changed == 0 ? "文件完整" : $"{changed} 个文件需要修复");
+        return new($"已安装 · 资源 {version} · " + (changed == 0 ? "文件完整" : $"{changed} 个文件需要修复"), bundled);
     }
 }
 
