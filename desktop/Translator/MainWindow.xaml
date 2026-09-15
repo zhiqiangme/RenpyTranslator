@@ -68,7 +68,7 @@
        <Button Content="安装 / 升级 / 修复汉化" Click="Install" Style="{StaticResource PrimaryButton}"/>
        <Button Content="卸载汉化" Click="Uninstall" Style="{StaticResource DangerButton}"/>
       </StackPanel>
-      <CheckBox x:Name="RemoveData" Content="卸载时同时清理 API 配置与翻译缓存" Margin="0,6,0,0"/>
+      <CheckBox x:Name="RemoveData" Content="卸载时删除 game/live_translator 内全部文件（含自行存放的文件）" Margin="0,6,0,0"/>
       <TextBlock Style="{StaticResource Hint}" Text="安装完成后可关闭管理器。游戏内 F9 开关翻译，F10 查看状态；修改配置后请重新启动游戏。"/>
      </StackPanel>
      </Grid>

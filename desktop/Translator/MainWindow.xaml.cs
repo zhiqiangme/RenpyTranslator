@@ -25,6 +25,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         Directory.CreateDirectory(Core.Home);
+        Updates.PruneUpdates(Path.Combine(Core.Home, "updates"));
         foreach (var provider in Providers.All) Provider.Items.Add(provider.Name);
         // 参数控件统一在 MainWindow.xaml 中声明（便于套用主题），此处只建立「配置键 → 控件」映射。
         foreach (var (key, box) in new (string Key, TextBox Box)[]
@@ -78,9 +79,7 @@ public partial class MainWindow : Window
             if (key == "system_prompt") { if (string.IsNullOrWhiteSpace(box.Text)) throw new IOException("提示词不能为空。"); next[key] = box.Text; }
             else if (key is "protected_names" or "skip_patterns")
             {
-                var array = JsonNode.Parse(box.Text)?.AsArray() ?? throw new IOException("请输入 JSON 数组。");
-                foreach (var item in array) { var value = item!.GetValue<string>(); if (key == "skip_patterns") _ = new System.Text.RegularExpressions.Regex(value); }
-                next[key] = array;
+                next[key] = Core.StringArray(box.Text, key);
             }
             else if (key == "temperature") { if (!double.TryParse(box.Text, System.Globalization.CultureInfo.InvariantCulture, out var number) || !double.IsFinite(number) || number < 0 || number > 2) throw new IOException("温度应在 0 到 2 之间。"); next[key] = number; }
             else { if (!int.TryParse(box.Text, out var number) || number < 1 || number > 100000) throw new IOException("数值参数应为 1 到 100000 的整数。"); next[key] = number; }
@@ -94,7 +93,10 @@ public partial class MainWindow : Window
         config = result.Item1; loadedRoot = root; GameStatus.Text = result.Item2; ShowConfig();
         var manifest = Path.Combine(Core.Data(root), "installation.json");
         Pack.SelectedIndex = File.Exists(manifest) && Core.ReadString(Core.ReadJson(manifest), "pack") == "camp-buddy-scoutmaster" ? 1 : 0;
-        var font = Core.ReadString(config, "font"); FontChoice.SelectedIndex = font.Contains("msyh") ? 1 : font.Contains("simsun") ? 2 : 0;
+        var font = Core.ReadString(config, "font");
+        if (FontChoice.Items.Count > 3) FontChoice.Items.RemoveAt(3);
+        if (Core.FontPreset(font) == 3) FontChoice.Items.Add(new ComboBoxItem { Content = "保留自定义字体：" + font, ToolTip = font });
+        FontChoice.SelectedIndex = Core.FontPreset(font);
         if (!Games.Items.Contains(root)) Games.Items.Add(root);
         Core.AtomicWrite(Path.Combine(Core.Home, "games.json"), new JsonArray(Games.Items.Cast<string>().Select(s => (JsonNode?)JsonValue.Create(s)).ToArray()).ToJsonString());
         Log(result.Item2);
@@ -107,13 +109,13 @@ public partial class MainWindow : Window
     {
         var root = Root(); var next = Form(); bool bundled = Pack.SelectedIndex == 1;
         if (bundled && MessageBox.Show(this, "确认所选游戏是 Camp Buddy Scoutmaster Season？专属译文将覆盖已有预译文，并保存备份。", "安装专属译文", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
-        var font = FontChoice.SelectedIndex == 0 ? "HarmonyOS" : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), FontChoice.SelectedIndex == 1 ? "msyh.ttc" : "simsun.ttc");
+        var font = FontChoice.SelectedIndex == 3 ? Core.ReadString(next, "font") : FontChoice.SelectedIndex == 0 ? "HarmonyOS" : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), FontChoice.SelectedIndex == 1 ? "msyh.ttc" : "simsun.ttc");
         Log("正在校验资源并安装…"); var count = await Task.Run(() => Core.Install(root, next, bundled, font)); await LoadGame(); Log($"安装完成，导入 {count} 条译文。请重新启动游戏。");
     });
     private async void Uninstall(object sender, RoutedEventArgs e) => await Run(async () =>
     {
         var root = Root(); var clear = RemoveData.IsChecked == true;
-        if (MessageBox.Show(this, clear ? "卸载汉化并清理配置和缓存？操作前会备份。" : "卸载汉化？配置和缓存将保留。", "卸载汉化", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
+        if (MessageBox.Show(this, clear ? "卸载汉化并删除 game/live_translator 内的全部文件？包括配置、缓存、译文、字体及自行存放的文件。操作前会备份。" : "卸载汉化？配置和缓存将保留。", "卸载汉化", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
         await Task.Run(() => Core.Uninstall(root, clear)); await LoadGame(); Log("汉化已卸载，原始游戏文件和存档未修改。");
     });
     private async void Save(object sender, RoutedEventArgs e) => await Run(async () => { var root = Root(); var next = Form(); await Task.Run(() => Core.SaveConfig(root, next)); config = next; ShowConfig(); Log("配置已保存，请重新启动游戏生效。"); });
