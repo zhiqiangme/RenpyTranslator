@@ -550,6 +550,9 @@ init 999 python:
     def _live_translator_request_batch(sources):
         global _live_translator_request_count
 
+        if not _live_translator_config.get("enabled", True):
+            return None
+
         try:
             import requests
         except ImportError:
@@ -615,6 +618,9 @@ init 999 python:
             _live_translator_config.get("request_timeout_seconds", 60)
         )
 
+        # 组批期间可能按 F9 关闭；发送前再次检查，已发出的请求不强行中断。
+        if not _live_translator_config.get("enabled", True):
+            return None
         _live_translator_request_count += 1
         response = requests.post(
             _live_translator_endpoint(),
@@ -642,18 +648,20 @@ init 999 python:
             message_content = u"".join(content_parts)
 
         translated_data = _live_translator_extract_json(message_content)
-        translations = translated_data.get("translations")
-        if (
-            translations is None
-            or isinstance(translations, _live_translator_text_type)
-            or not hasattr(translations, "__iter__")
-        ):
+        # JSON 解码的数组必须是列表；不能把对象键或非字符串元素当作译文缓存。
+        # 从 JSON 解码器取得容器类型，避免 Ren'Py 对脚本 dict/list 类型的替换。
+        object_type = type(_live_translator_json_module.loads("{}"))
+        array_type = type(_live_translator_json_module.loads("[]"))
+        translations = translated_data.get("translations") if isinstance(translated_data, object_type) else None
+        if not isinstance(translations, array_type):
             raise ValueError("API 返回缺少 translations 数组")
         if len(translations) != len(sources):
             raise ValueError("API 返回的译文数量与原文不一致")
 
         normalized = []
         for translation in translations:
+            if not isinstance(translation, _live_translator_text_type):
+                raise ValueError("API 返回的译文必须是字符串")
             normalized_translation = _live_translator_to_text(
                 translation
             ).strip()
@@ -727,13 +735,19 @@ init 999 python:
 
             try:
                 translations = _live_translator_request_batch(batch)
-                _live_translator_finish_batch(batch, translations)
+                if translations is None:
+                    # 关闭时丢弃未发送批次并释放 pending，重新开启后允许再次排队。
+                    with _live_translator_lock:
+                        for source in batch:
+                            _live_translator_pending.discard(source)
+                else:
+                    _live_translator_finish_batch(batch, translations)
             except Exception as error:
                 _live_translator_fail_batch(batch, error)
 
     def _live_translator_enqueue(source):
         # 没有有效 API 配置时保留英文原文，也不创建失败重试任务。
-        if not _live_translator_runtime_api_ready():
+        if not _live_translator_config.get("enabled", True) or not _live_translator_runtime_api_ready():
             return
         now = _live_translator_time_module.time()
         with _live_translator_lock:
@@ -813,6 +827,8 @@ init 999 python:
     def _live_translator_confirm_message(message):
         # Ren'Py 的内置确认文本可能先逐句翻译，再用换行拼成完整消息。
         message_text = _live_translator_to_text(message)
+        if not _live_translator_config.get("enabled", True):
+            return message_text
         translated_parts = []
         for part in _live_translator_re_module.split(u"(\n)", message_text):
             if not part or part == u"\n":
