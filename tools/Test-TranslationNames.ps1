@@ -1,5 +1,5 @@
 param(
-    [string]$SourceDirectory = (Join-Path $PSScriptRoot "..\translations")
+    [string]$SourceDirectory = (Join-Path $PSScriptRoot "..\translations\camp-buddy-scoutmaster")
 )
 
 $ErrorActionPreference = "Stop"
