@@ -178,7 +178,7 @@
         <TextBox x:Name="FieldProtectedNames" MinHeight="60" VerticalContentAlignment="Top" AcceptsReturn="True" TextWrapping="Wrap" Padding="12,10" FontFamily="{StaticResource MonoFontFamily}"/>
         <TextBlock Text="跳过规则（JSON 数组）" Style="{StaticResource FieldLabel}" Margin="0,14,0,8"/>
         <TextBox x:Name="FieldSkipPatterns" MinHeight="60" VerticalContentAlignment="Top" AcceptsReturn="True" TextWrapping="Wrap" Padding="12,10" FontFamily="{StaticResource MonoFontFamily}"/>
-        <TextBlock Style="{StaticResource Hint}" Text="包含这些名字的文本不会被翻译；跳过规则使用正则表达式匹配。恢复默认只改动编辑区，需再点保存才会写入游戏。"/>
+        <TextBlock Style="{StaticResource Hint}" Text="包含这些名字的文本不会被翻译；跳过规则支持基础正则语法，不支持命名组、反向引用或前后查找。恢复默认只改动编辑区，需再点保存才会写入游戏。"/>
        </StackPanel>
       </Border>
 

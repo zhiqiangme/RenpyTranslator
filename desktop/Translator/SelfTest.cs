@@ -68,10 +68,19 @@ public static class SelfTest
             var confirmScript = Path.Combine(root, "game", "zz_live_translator_camp_buddy.rpy");
             Assert(!File.ReadAllText(installedScript).Contains("screen confirm(") && !File.Exists(confirmScript), "Generic install preserves original confirmation screen");
             var manifest = Path.Combine(data, "installation.json"); var validManifest = File.ReadAllText(manifest);
-            foreach (var invalid in new[] { "{}", "{\"files\":[]}", "{\"files\":{\"zz_live_translator.rpy\":123}}" })
+            foreach (var invalid in new[] { "", "[]", "{", "{}", "{\"files\":{}}", "{\"files\":[]}", "{\"files\":{\"zz_live_translator.rpy\":123}}" })
             {
                 Core.AtomicWrite(manifest, invalid);
-                Reject(() => Core.Status(root), "安装记录", "Invalid manifest produces Chinese diagnostic: " + invalid);
+                var state = Core.InspectInstallation(root);
+                Assert(state.Status.Contains("可直接安装 / 修复") && !state.Status.Contains("文件完整"), "Damaged manifest remains loadable for repair: " + invalid);
+            }
+            Core.Install(root, Core.Config(root), false, "HarmonyOS");
+            Assert(Core.Status(root).Contains("文件完整") && Secret.Unprotect(Core.ReadString(Core.Config(root), "api_key_encrypted")) == "test-secret-本机", "Repair malformed manifest preserves valid configuration");
+            foreach (var required in new[] { "zz_live_translator.rpy", "live_translator/fonts/HarmonyOS_Sans_SC.ttf" })
+            {
+                var incomplete = JsonNode.Parse(validManifest)!.AsObject(); incomplete["files"]!.AsObject().Remove(required);
+                Core.WriteJson(manifest, incomplete);
+                Assert(!Core.Status(root).Contains("文件完整"), "Reject missing required hash: " + required);
             }
             Core.AtomicWrite(manifest, validManifest);
             var malformed = Path.Combine(root, "invalid.json");
@@ -87,12 +96,24 @@ public static class SelfTest
                 Assert(Core.StringArray("[\"valid\"]", key).Count == 1, "Accept valid string array: " + key);
             }
             Reject(() => Core.StringArray("[\"[\"]", "skip_patterns"), "正则表达式", "Reject invalid regular expression");
+            foreach (var pattern in new[] { "(?<name>Hello)", "(?P<name>Hello)", @"\p{L}", @"(a)\1", "a{,3}" })
+                Reject(() => Core.StringArray(new JsonArray(pattern).ToJsonString(), "skip_patterns"), "跳过规则", "Reject non-portable regex: " + pattern);
+            foreach (var pattern in new[] { "^https?://", @"^[A-Za-z]:[\\/]", "^[A-Z0-9_+.-]{1,4}$", @"(?:Hello|World)\s+\d{2,}" })
+                Assert(Core.StringArray(new JsonArray(pattern).ToJsonString(), "skip_patterns").Count == 1, "Accept portable regex: " + pattern);
             Assert(File.ReadAllText(Path.Combine(data, "cache.jsonl")) == "private cache", "Install preserves cache");
             var before = File.ReadAllBytes(Path.Combine(data, "config.json"));
             try { Core.Transaction(root, ["live_translator/config.json", "failure.txt"], () => { File.WriteAllText(Path.Combine(data, "config.json"), "broken"); File.WriteAllText(Path.Combine(root, "game", "failure.txt"), "new"); throw new IOException("injected failure"); }); } catch (IOException) { }
             Assert(before.SequenceEqual(File.ReadAllBytes(Path.Combine(data, "config.json"))) && !File.Exists(Path.Combine(root, "game", "failure.txt")), "Transaction rollback restores exact bytes");
             var count = Core.Install(root, Core.Config(root), true, "HarmonyOS"); Assert(count > 0, "Bundled translations validation and install");
             Assert(File.ReadAllText(confirmScript).Contains("screen confirm(") && Core.Status(root).Contains("文件完整"), "Bundled confirm is installed and hashed");
+            var bundledManifest = File.ReadAllText(manifest);
+            foreach (var required in new[] { "zz_live_translator_camp_buddy.rpy", "live_translator/pretranslated.jsonl" })
+            {
+                var incomplete = JsonNode.Parse(bundledManifest)!.AsObject(); incomplete["files"]!.AsObject().Remove(required);
+                Core.WriteJson(manifest, incomplete); var state = Core.InspectInstallation(root);
+                Assert(state.Bundled && state.Status.Contains("修复") && !state.Status.Contains("文件完整"), "Preserve pack while rejecting incomplete bundled manifest: " + required);
+            }
+            Core.AtomicWrite(manifest, bundledManifest);
             // 模拟旧编译缓存，确保模式切换不能残留屏幕覆盖。
             File.WriteAllText(confirmScript + "c", "compiled fixture");
             Core.Install(root, Core.Config(root), false, "HarmonyOS");
