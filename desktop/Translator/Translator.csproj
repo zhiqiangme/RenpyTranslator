@@ -13,6 +13,10 @@
     <Content Include="../../translations/**/*.jsonl" Link="Resources/translations/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../fonts/**" Link="Resources/fonts/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../config.default.json;../../packaging/version.txt;../../LICENSE" Link="Resources/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="ThirdParty/*" Link="Resources/licenses/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup><Content Update="../../fonts/**" CopyToPublishDirectory="Always" ExcludeFromSingleFile="true" /></ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Markdig" Version="1.3.2" />
+  </ItemGroup>
 </Project>

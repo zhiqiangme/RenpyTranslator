@@ -130,7 +130,7 @@ public partial class MainWindow : Window
         Log("已载入默认参数，点保存后写入游戏目录。");
     }
     private async void TestApi(object sender, RoutedEventArgs e) => await Run(async () => { if (MessageBox.Show(this, "将向所填接口发送一条 Hello 翻译请求，可能产生少量费用，是否继续？", "测试连接", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return; var next = Form(); Log("正在发送测试请求…"); await Api.Test(next); Log("连接成功，翻译响应格式有效。"); });
-    private async void ValidateTranslations(object sender, RoutedEventArgs e) => await Run(async () => { var result = await Task.Run(() => Core.Merge(Path.Combine(Core.Resources, "translations"))); Log($"校验通过：{result.Count} 条译文，无重复原文。"); });
+    private async void ValidateTranslations(object sender, RoutedEventArgs e) => await Run(async () => { var result = await Task.Run(() => Core.Merge(Core.BundledTranslations)); Log($"校验通过：{result.Count} 条译文，无重复原文。"); });
     private async void ExportCache(object sender, RoutedEventArgs e) => await Run(() => { var path = Path.Combine(Core.Data(Root()), "cache.jsonl"); if (!File.Exists(path)) throw new IOException("当前没有缓存。"); var dialog = new SaveFileDialog { FileName = "cache-export.jsonl", Filter = "JSONL|*.jsonl" }; if (dialog.ShowDialog(this) == true) { File.Copy(path, dialog.FileName, true); Log("缓存已导出。"); } return Task.CompletedTask; });
     private async void ClearCache(object sender, RoutedEventArgs e) => await Run(async () => { var root = Root(); if (MessageBox.Show(this, "备份并清空运行时缓存？已有预译文仍会保留。", "清空缓存", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return; await Task.Run(() => Core.Transaction(root, ["live_translator/cache.jsonl"], () => Core.AtomicWrite(Path.Combine(Core.Data(root), "cache.jsonl"), ""))); Log("缓存已备份并清空。"); });
     private void OpenDirectory(string path) { Directory.CreateDirectory(path); Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); }
@@ -138,7 +138,21 @@ public partial class MainWindow : Window
     private async void OpenData(object sender, RoutedEventArgs e) => await Run(() => { OpenDirectory(Core.Data(Root())); return Task.CompletedTask; });
     private async void OpenBackups(object sender, RoutedEventArgs e) => await Run(() => { OpenDirectory(Path.Combine(Core.Home, "backups")); return Task.CompletedTask; });
     private async void ExportLog(object sender, RoutedEventArgs e) => await Run(() => { var dialog = new SaveFileDialog { FileName = "translator.log", Filter = "日志|*.log" }; if (dialog.ShowDialog(this) == true) Core.AtomicWrite(dialog.FileName, LogBox.Text); return Task.CompletedTask; });
-    private async void CheckUpdate(object sender, RoutedEventArgs e) => await Run(async () => { release = await Updates.Check(); ReleaseNotes.Text = release.Notes; UpdateButton.IsEnabled = release.Available; Log(release.Available ? "发现桌面更新。" : "没有可安装的桌面更新。"); });
+    private async void CheckUpdate(object sender, RoutedEventArgs e) => await Run(async () =>
+    {
+        release = null; UpdateButton.IsEnabled = false;
+        UpdateStatus.Text = "正在检查更新…"; ReleaseNotes.Visibility = Visibility.Collapsed; ReleaseNotes.Document = MarkdownView.Render("");
+        try { ShowRelease(await Updates.Check()); }
+        catch { UpdateStatus.Text = "检查更新失败，请重试。"; throw; }
+    });
+    internal void ShowRelease(Release result)
+    {
+        release = result; UpdateButton.IsEnabled = result.Available;
+        UpdateStatus.Text = string.IsNullOrEmpty(result.Status) ? result.Notes : result.Status;
+        ReleaseNotes.Document = MarkdownView.Render(result.Notes);
+        ReleaseNotes.Visibility = result.Notes.StartsWith("# ") ? Visibility.Visible : Visibility.Collapsed;
+        Log(UpdateStatus.Text);
+    }
     private async void ApplyUpdate(object sender, RoutedEventArgs e) => await Run(async () => { if (release is null) return; Log("正在下载并校验更新…"); await Updates.Stage(release); busy = false; Application.Current.Shutdown(); });
     /// <summary>截图回归用：预置一个游戏目录并完成一次读取，使界面处于真实数据状态。</summary>
     public async Task PrimeAsync(string game)

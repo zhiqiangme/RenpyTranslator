@@ -13,6 +13,7 @@ public static class Core
     public static readonly string ManagerVersion = typeof(Core).Assembly.GetName().Version!.ToString(3);
     public static readonly string Home = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "RenpyTranslator");
     public static readonly string Resources = Path.Combine(AppContext.BaseDirectory, "Resources");
+    public static readonly string BundledTranslations = Path.Combine(Resources, "translations", "camp-buddy-scoutmaster");
     public static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
     public static string ReadString(JsonObject obj, string key)
     {
@@ -219,7 +220,7 @@ public static class Core
     }
     public static int Install(string root, JsonObject config, bool bundled, string font)
     {
-        var merged = bundled ? Merge(Path.Combine(Resources, "translations")) : ("", 0);
+        var merged = bundled ? Merge(BundledTranslations) : ("", 0);
         var script = File.ReadAllText(Path.Combine(Resources, "game", "zz_live_translator.rpy"));
         NormalizeKey(config);
         if (bundled) config["protected_names"] = ReadJson(Path.Combine(Resources, "config.default.json"))["protected_names"]!.DeepClone();

@@ -1,6 +1,10 @@
 <Application x:Class="RenpyTranslator.App" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
  <Application.Resources>
   <ResourceDictionary>
+   <!-- 禁用系统 Alt/键盘导航虚线框，控件模板自带的焦点配色仍保留。 -->
+   <Style x:Key="{x:Static SystemParameters.FocusVisualStyleKey}">
+    <Setter Property="Control.Template"><Setter.Value><ControlTemplate/></Setter.Value></Setter>
+   </Style>
    <!-- 顺序固定：令牌 → 图标 → 控件模板，后者依赖前者 -->
    <ResourceDictionary.MergedDictionaries>
     <ResourceDictionary Source="Themes/Tokens.xaml"/>
