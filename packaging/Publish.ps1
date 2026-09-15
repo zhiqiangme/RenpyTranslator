@@ -19,6 +19,8 @@ try {
     New-Item -ItemType Directory -Path $stage -Force | Out-Null
     dotnet publish (Join-Path $repo "desktop/Translator/Translator.csproj") -c Release -r win-x64 --self-contained true "-p:Version=$Version" -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None -o $stage
     if ($LASTEXITCODE -ne 0) { throw "管理器构建失败" }
+    # 参数或标签覆盖版本时，仅同步发行暂存资源，不改仓库内的默认版本文件。
+    [IO.File]::WriteAllText((Join-Path $stage "Resources/version.txt"), "$Version`n", [Text.UTF8Encoding]::new($false))
     dotnet publish (Join-Path $repo "desktop/Updater/Updater.csproj") -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None -o $helper
     if ($LASTEXITCODE -ne 0) { throw "更新器构建失败" }
     Copy-Item -LiteralPath (Join-Path $helper "RenpyTranslator.Updater.exe") -Destination $stage
