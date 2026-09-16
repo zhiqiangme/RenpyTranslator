@@ -106,11 +106,11 @@ dotnet build desktop/Translator/Translator.csproj -c Release
 
 旧版 PowerShell 入口及中英文说明已原样移入 `archive/legacy-scripts`，包含归档哈希，不删除。该目录用于保留历史实现；旧脚本仍依赖原根目录布局，不应直接在归档目录运行。
 
-`game`、`translations`、`fonts` 继续作为新版资源使用；`tools` 保留开发用途。完整翻译版本（含旧安装脚本）已归档到 `archive/translations_bak`；`backups` 保存历史快照与归档包；两者均被 `.gitignore` 排除，不进入版本控制。`dist` 只保留发行 ZIP 与解包目录，发布脚本每次运行结束会自动回收自己的暂存目录。
+`game`、`translations`、`fonts` 继续作为新版资源使用；`tools` 保留开发用途。旧版入口如上段所述只保留在归档目录，不再另设译文备份目录；`backups` 保存历史快照与归档包，被 `.gitignore` 排除，不进入版本控制。`dist` 只保留发行 ZIP 与解包目录，发布脚本每次运行结束会自动回收自己的暂存目录。
 
 现有 Camp Buddy Scoutmaster Season 译文统一位于 `translations/camp-buddy-scoutmaster/`，管理器的专属安装与译文校验只读取该游戏目录。后续其他游戏的译文应使用各自子目录。
 
-私人全量包目录 `translations/camp-buddy-scoutmaster-bak/` 被 Git 忽略，不提交或上传。发行资源采用白名单，仅包含 `translations/camp-buddy-scoutmaster/` 的内置 JSONL；私人目录及其他自定义汉化包不随软件打包。
+私人全量包目录 `translations/camp-buddy-scoutmaster-bak/` 被 Git 忽略，不提交或上传；该目录自带一个独立的 Git 仓库，保存完整版译文的历史，主仓库不跟踪其任何文件。发行资源采用白名单，仅包含 `translations/camp-buddy-scoutmaster/` 的内置 JSONL；私人目录及其他自定义汉化包不随软件打包。
 
 ## 许可证
 

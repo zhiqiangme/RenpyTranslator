@@ -106,11 +106,11 @@ The default version comes from `packaging/version.txt`, which development builds
 
 The legacy PowerShell entry points and Chinese and English documentation have been moved unchanged to `archive/legacy-scripts`, including archive hashes, and have not been deleted. This directory preserves the historical implementation. The old scripts still depend on the original root directory layout and should not be run directly from the archive directory.
 
-`game`, `translations` and `fonts` remain resources for the new version; `tools` is retained for development. The complete translated version, including the old installation scripts, is archived under `archive/translations_bak`. `backups` stores historical snapshots and archives. Both are excluded by `.gitignore` and are not version-controlled. `dist` retains only release ZIPs and unpacked directories; the release script removes its own staging directories at the end of each run.
+`game`, `translations` and `fonts` remain resources for the new version; `tools` is retained for development. The legacy entry points are kept only in the archive directory described above; there is no separate translation backup directory any more. `backups` stores historical snapshots and archives and is excluded by `.gitignore`, so it is not version-controlled. `dist` retains only release ZIPs and unpacked directories; the release script removes its own staging directories at the end of each run.
 
 Existing Camp Buddy Scoutmaster Season translations are stored under `translations/camp-buddy-scoutmaster/`. Dedicated installation and translation validation read only that game's directory. Translations for other games should use separate subdirectories.
 
-The private full-pack directory `translations/camp-buddy-scoutmaster-bak/` is Git-ignored and is not committed or uploaded. Release resources use an allowlist containing only the bundled JSONL files under `translations/camp-buddy-scoutmaster/`; private directories and other custom translation packs are not included in software releases.
+The private full-pack directory `translations/camp-buddy-scoutmaster-bak/` is Git-ignored and is not committed or uploaded; it contains its own separate Git repository holding the history of the complete translations, and the main repository tracks none of its files. Release resources use an allowlist containing only the bundled JSONL files under `translations/camp-buddy-scoutmaster/`; private directories and other custom translation packs are not included in software releases.
 
 ## License
 
