@@ -110,8 +110,6 @@ The legacy PowerShell entry points and Chinese and English documentation have be
 
 Existing Camp Buddy Scoutmaster Season translations are stored under `translations/camp-buddy-scoutmaster/`. Dedicated installation and translation validation read only that game's directory. Translations for other games should use separate subdirectories.
 
-The private full-pack directory `translations/camp-buddy-scoutmaster-bak/` is Git-ignored and is not committed or uploaded; it contains its own separate Git repository holding the history of the complete translations, and the main repository tracks none of its files. Release resources use an allowlist containing only the bundled JSONL files under `translations/camp-buddy-scoutmaster/`; private directories and other custom translation packs are not included in software releases.
-
 ## License
 
 The project's [LICENSE](LICENSE) continues to apply. This is a third-party translation mod, unaffiliated with the game developers. Please support legitimate copies of the games.
