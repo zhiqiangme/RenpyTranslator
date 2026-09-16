@@ -44,10 +44,20 @@
       <Border Style="{StaticResource Card}">
        <StackPanel>
         <TextBlock Text="汉化资源" Style="{StaticResource SectionTitle}"/>
-        <ComboBox x:Name="Pack" SelectedIndex="0" Width="420" HorizontalAlignment="Left">
+        <ComboBox x:Name="Pack" SelectedIndex="0" Width="420" HorizontalAlignment="Left" SelectionChanged="PackChanged">
          <ComboBoxItem Content="通用实时翻译（不导入专属译文）"/>
          <ComboBoxItem Content="Camp Buddy Scoutmaster Season 专属译文"/>
+         <ComboBoxItem Content="自定义汉化包（选择 JSONL 文件夹）"/>
         </ComboBox>
+        <StackPanel x:Name="CustomPackPanel" Visibility="Collapsed" Margin="0,12,0,0">
+         <TextBlock Text="汉化包文件夹" Style="{StaticResource FieldLabel}"/>
+         <Grid>
+          <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+          <TextBox x:Name="CustomPackDirectory" IsReadOnly="True" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
+          <Button Grid.Column="1" Content="选择文件夹…" Click="BrowseCustomPack" Margin="8,0,0,0"/>
+         </Grid>
+         <TextBlock Style="{StaticResource Hint}" TextWrapping="Wrap" Text="读取该目录及子目录中的全部 JSONL，校验后合并替换游戏已有预译文，并先备份。仅导入译文，保留游戏原确认屏幕；原汉化包不修改。"/>
+        </StackPanel>
         <TextBlock Style="{StaticResource Hint}" Text="专属译文仅适用于对应游戏。通用模式保留游戏已有的预译文；切换模式不会自动删除这些译文。"/>
        </StackPanel>
       </Border>
@@ -249,7 +259,7 @@
        <StackPanel>
         <TextBlock Text="译文与缓存" Style="{StaticResource SectionTitle}"/>
         <WrapPanel>
-         <Button Content="校验内置译文" Click="ValidateTranslations"/>
+         <Button Content="校验所选译文包" Click="ValidateTranslations"/>
          <Button Content="导出缓存" Click="ExportCache"/>
          <Button Content="备份并清空缓存" Click="ClearCache"/>
          <Button Content="打开备份目录" Click="OpenBackups"/>

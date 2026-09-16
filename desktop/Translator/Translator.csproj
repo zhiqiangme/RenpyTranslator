@@ -10,7 +10,8 @@
     <!-- 作为 WPF 资源嵌入，供 Window.Icon 以 pack URI 引用 -->
     <Resource Include="Assets\app.ico" />
     <Content Include="../../game/**/*.rpy" Link="Resources/game/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="../../translations/**/*.jsonl" Link="Resources/translations/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <!-- 只发布明确内置的游戏译文，不能按整个 translations 目录递归收集私人汉化包。 -->
+    <Content Include="../../translations/camp-buddy-scoutmaster/*.jsonl" Link="Resources/translations/camp-buddy-scoutmaster/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../fonts/**" Link="Resources/fonts/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../config.default.json;../../packaging/version.txt;../../LICENSE" Link="Resources/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="ThirdParty/*" Link="Resources/licenses/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

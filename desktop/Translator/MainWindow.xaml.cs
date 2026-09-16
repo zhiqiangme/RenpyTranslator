@@ -91,7 +91,8 @@ public partial class MainWindow : Window
     {
         var root = Root(); var result = await Task.Run(() => (Core.Config(root), Core.InspectInstallation(root)));
         config = result.Item1; loadedRoot = root; GameStatus.Text = result.Item2.Status; ShowConfig();
-        Pack.SelectedIndex = result.Item2.Bundled ? 1 : 0;
+        CustomPackDirectory.Text = result.Item2.CustomDirectory;
+        Pack.SelectedIndex = result.Item2.Bundled ? 1 : result.Item2.CustomPack ? 2 : 0;
         var font = Core.ReadString(config, "font");
         if (FontChoice.Items.Count > 3) FontChoice.Items.RemoveAt(3);
         if (Core.FontPreset(font) == 3) FontChoice.Items.Add(new ComboBoxItem { Content = "保留自定义字体：" + font, ToolTip = font });
@@ -103,13 +104,25 @@ public partial class MainWindow : Window
     private async void Browse(object sender, RoutedEventArgs e) { var dialog = new OpenFolderDialog { Title = "选择 Ren'Py 游戏根目录" }; if (dialog.ShowDialog(this) == true) { Games.Text = dialog.FolderName; await Run(LoadGame); } }
     private void GameSelected(object sender, SelectionChangedEventArgs e) { if (GameStatus != null) GameStatus.Text = "目录已选择，请点击读取 / 检查状态。"; }
     private async void Reload(object sender, RoutedEventArgs e) => await Run(LoadGame);
+    private void PackChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (CustomPackPanel is not null) CustomPackPanel.Visibility = Pack.SelectedIndex == 2 ? Visibility.Visible : Visibility.Collapsed;
+    }
+    private async void BrowseCustomPack(object sender, RoutedEventArgs e) => await Run(() =>
+    {
+        var dialog = new OpenFolderDialog { Title = "选择自定义汉化包文件夹（包含 JSONL，可含子目录）" };
+        if (dialog.ShowDialog(this) == true) CustomPackDirectory.Text = Core.TranslationDirectory(dialog.FolderName);
+        return Task.CompletedTask;
+    });
     private void ProviderChanged(object sender, SelectionChangedEventArgs e) { if (Provider.SelectedIndex < 0) return; var p = Providers.All[Provider.SelectedIndex]; BaseUrl.Text = p.Url; Model.Text = p.Model; }
     private async void Install(object sender, RoutedEventArgs e) => await Run(async () =>
     {
         var root = Root(); var next = Form(); bool bundled = Pack.SelectedIndex == 1;
+        var customDirectory = Pack.SelectedIndex == 2 ? Core.TranslationDirectory(CustomPackDirectory.Text) : null;
         if (bundled && MessageBox.Show(this, "确认所选游戏是 Camp Buddy Scoutmaster Season？专属译文将覆盖已有预译文，并保存备份。", "安装专属译文", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
+        if (customDirectory is not null && MessageBox.Show(this, "将导入所选文件夹及子目录中的全部 JSONL，替换游戏已有预译文并保存备份。确认这些译文适用于当前游戏？\n\n" + customDirectory, "安装自定义汉化包", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
         var font = FontChoice.SelectedIndex == 3 ? Core.ReadString(next, "font") : FontChoice.SelectedIndex == 0 ? "HarmonyOS" : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), FontChoice.SelectedIndex == 1 ? "msyh.ttc" : "simsun.ttc");
-        Log("正在校验资源并安装…"); var count = await Task.Run(() => Core.Install(root, next, bundled, font)); await LoadGame(); Log($"安装完成，导入 {count} 条译文。请重新启动游戏。");
+        Log("正在校验资源并安装…"); var count = await Task.Run(() => Core.Install(root, next, bundled, font, customDirectory)); await LoadGame(); Log($"安装完成，导入 {count} 条译文。请重新启动游戏。");
     });
     private async void Uninstall(object sender, RoutedEventArgs e) => await Run(async () =>
     {
@@ -130,7 +143,13 @@ public partial class MainWindow : Window
         Log("已载入默认参数，点保存后写入游戏目录。");
     }
     private async void TestApi(object sender, RoutedEventArgs e) => await Run(async () => { if (MessageBox.Show(this, "将向所填接口发送一条 Hello 翻译请求，可能产生少量费用，是否继续？", "测试连接", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return; var next = Form(); Log("正在发送测试请求…"); await Api.Test(next); Log("连接成功，翻译响应格式有效。"); });
-    private async void ValidateTranslations(object sender, RoutedEventArgs e) => await Run(async () => { var result = await Task.Run(() => Core.Merge(Core.BundledTranslations)); Log($"校验通过：{result.Count} 条译文，无重复原文。"); });
+    private async void ValidateTranslations(object sender, RoutedEventArgs e) => await Run(async () =>
+    {
+        bool custom = Pack.SelectedIndex == 2;
+        var directory = custom ? Core.TranslationDirectory(CustomPackDirectory.Text) : Core.BundledTranslations;
+        var result = await Task.Run(() => Core.Merge(directory, custom));
+        Log($"{(custom ? "自定义汉化包" : "内置译文")}校验通过：{result.Count} 条译文，无重复原文。");
+    });
     private async void ExportCache(object sender, RoutedEventArgs e) => await Run(() => { var path = Path.Combine(Core.Data(Root()), "cache.jsonl"); if (!File.Exists(path)) throw new IOException("当前没有缓存。"); var dialog = new SaveFileDialog { FileName = "cache-export.jsonl", Filter = "JSONL|*.jsonl" }; if (dialog.ShowDialog(this) == true) { File.Copy(path, dialog.FileName, true); Log("缓存已导出。"); } return Task.CompletedTask; });
     private async void ClearCache(object sender, RoutedEventArgs e) => await Run(async () => { var root = Root(); if (MessageBox.Show(this, "备份并清空运行时缓存？已有预译文仍会保留。", "清空缓存", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return; await Task.Run(() => Core.Transaction(root, ["live_translator/cache.jsonl"], () => Core.AtomicWrite(Path.Combine(Core.Data(root), "cache.jsonl"), ""))); Log("缓存已备份并清空。"); });
     private void OpenDirectory(string path) { Directory.CreateDirectory(path); Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); }

@@ -123,11 +123,20 @@ public static class Core
         else if (encrypted.Length == 0 && old.Length > 0 && !old.Contains("填")) encrypted = Secret.Protect(old);
         config["api_key_encrypted"] = encrypted; config["api_key"] = "";
     }
-    public static (string Text, int Count) Merge(string directory)
+    public static (string Text, int Count) Merge(string directory, bool recursive = false)
     {
+        directory = TranslationDirectory(directory);
         var seen = new HashSet<string>(StringComparer.Ordinal); var lines = new List<string>();
-        foreach (var path in Directory.GetFiles(directory, "*.jsonl").Order(StringComparer.Ordinal))
+        // 逐层检查目录联接，避免递归导入跳出所选目录或陷入循环。
+        IEnumerable<string> Files(string folder)
         {
+            NoLinks(folder);
+            foreach (var file in Directory.GetFiles(folder, "*.jsonl")) yield return file;
+            if (recursive) foreach (var child in Directory.GetDirectories(folder)) foreach (var file in Files(child)) yield return file;
+        }
+        foreach (var path in Files(directory).Order(StringComparer.Ordinal))
+        {
+            NoLinks(path);
             int n = 0;
             foreach (var line in File.ReadLines(path))
             {
@@ -138,14 +147,21 @@ public static class Core
                     var obj = JsonNode.Parse(line) as JsonObject ?? throw new IOException("译文必须是 JSON 对象。");
                     source = ReadString(obj, "source"); translated = ReadString(obj, "translation");
                 }
-                catch (Exception ex) when (ex is JsonException or IOException) { throw new IOException($"译文 JSON 错误：{Path.GetFileName(path)}:{n}", ex); }
+                catch (Exception ex) when (ex is JsonException or IOException) { throw new IOException($"译文 JSON 错误：{Path.GetRelativePath(directory, path)}:{n}", ex); }
                 if (string.IsNullOrWhiteSpace(source) || string.IsNullOrWhiteSpace(translated) || !seen.Add(source))
-                    throw new IOException($"译文为空或原文重复：{Path.GetFileName(path)}:{n}");
+                    throw new IOException($"译文为空或原文重复：{Path.GetRelativePath(directory, path)}:{n}");
                 lines.Add(line);
             }
         }
         if (lines.Count == 0) throw new IOException("没有可安装的译文。");
         return (string.Join("\n", lines) + "\n", lines.Count);
+    }
+    public static string TranslationDirectory(string directory)
+    {
+        if (string.IsNullOrWhiteSpace(directory)) throw new IOException("请选择自定义汉化包文件夹。");
+        var full = Path.GetFullPath(directory.Trim().Trim('"')); NoLinks(full);
+        if (!Directory.Exists(full)) throw new IOException("汉化包文件夹不存在，请重新选择。");
+        return Path.TrimEndingDirectorySeparator(full);
     }
     public static void EnsureStopped(string root)
     {
@@ -218,9 +234,13 @@ public static class Core
         }
         finally { PruneBackups(); }
     }
-    public static int Install(string root, JsonObject config, bool bundled, string font)
+    public static int Install(string root, JsonObject config, bool bundled, string font, string? customDirectory = null)
     {
-        var merged = bundled ? Merge(BundledTranslations) : ("", 0);
+        if (bundled && customDirectory is not null) throw new IOException("内置译文和自定义汉化包不能同时安装。");
+        var source = customDirectory is null ? null : TranslationDirectory(customDirectory);
+        // 自定义包包含所选目录的子目录，全部校验完成后才修改游戏。
+        var merged = source is not null ? Merge(source, true) : bundled ? Merge(BundledTranslations) : ("", 0);
+        bool importsTranslations = bundled || source is not null;
         var script = File.ReadAllText(Path.Combine(Resources, "game", "zz_live_translator.rpy"));
         NormalizeKey(config);
         if (bundled) config["protected_names"] = ReadJson(Path.Combine(Resources, "config.default.json"))["protected_names"]!.DeepClone();
@@ -238,15 +258,15 @@ public static class Core
             if (File.Exists(confirm + "c")) File.Delete(confirm + "c");
             if (font == "HarmonyOS") { Directory.CreateDirectory(Path.Combine(data, "fonts")); File.Copy(Path.Combine(Resources, "fonts", "HarmonyOS_Sans_SC.ttf"), Path.Combine(data, "fonts", "HarmonyOS_Sans_SC.ttf"), true); }
             // 通用模式不覆盖用户已有译文；首装不注入其他游戏的专属资源。
-            if (bundled) AtomicWrite(Path.Combine(data, "pretranslated.jsonl"), merged.Item1);
+            if (importsTranslations) AtomicWrite(Path.Combine(data, "pretranslated.jsonl"), merged.Item1);
             WriteJson(Path.Combine(data, "config.json"), config);
             var hashes = new JsonObject();
             var owned = new List<string> { "zz_live_translator.rpy" };
             if (bundled) owned.Add("zz_live_translator_camp_buddy.rpy");
-            if (bundled) owned.Add("live_translator/pretranslated.jsonl");
+            if (importsTranslations) owned.Add("live_translator/pretranslated.jsonl");
             if (font == "HarmonyOS") owned.Add("live_translator/fonts/HarmonyOS_Sans_SC.ttf");
             foreach (var item in owned) if (File.Exists(Path.Combine(game, item))) hashes[item] = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(Path.Combine(game, item))));
-            WriteJson(Path.Combine(data, "installation.json"), new JsonObject { ["manager_version"] = ManagerVersion, ["resource_version"] = File.ReadAllText(Path.Combine(Resources, "version.txt")).Trim(), ["pack"] = bundled ? "camp-buddy-scoutmaster" : "custom", ["files"] = hashes });
+            WriteJson(Path.Combine(data, "installation.json"), new JsonObject { ["manager_version"] = ManagerVersion, ["resource_version"] = File.ReadAllText(Path.Combine(Resources, "version.txt")).Trim(), ["pack"] = bundled ? "camp-buddy-scoutmaster" : source is not null ? "folder" : "custom", ["custom_directory"] = source ?? "", ["files"] = hashes });
         });
         return merged.Item2;
     }
@@ -269,7 +289,7 @@ public static class Core
         Transaction(root, targets, () => { foreach (var item in targets) { var path = Path.Combine(Game(root), "game", item); if (File.Exists(path)) File.Delete(path); } });
     }
     public static string Status(string root) => InspectInstallation(root).Status;
-    public record InstallationState(string Status, bool Bundled);
+    public record InstallationState(string Status, bool Bundled, bool CustomPack = false, string CustomDirectory = "");
     public static InstallationState InspectInstallation(string root)
     {
         var script = Path.Combine(Game(root), "game", "zz_live_translator.rpy");
@@ -282,11 +302,14 @@ public static class Core
         catch (JsonException) { obj = null; }
         var pack = obj?["pack"] is JsonValue packValue && packValue.TryGetValue<string>(out var packText) ? packText : "";
         bool bundled = pack == "camp-buddy-scoutmaster";
-        InstallationState Damaged() => new("安装记录损坏或不完整 · 可直接安装 / 修复，请确认资源模式", bundled);
-        if (obj is null || pack is not ("custom" or "camp-buddy-scoutmaster") || obj["files"] is not JsonObject hashes) return Damaged();
+        bool custom = pack == "folder";
+        var source = obj?["custom_directory"] is JsonValue sourceValue && sourceValue.TryGetValue<string>(out var sourceText) ? sourceText : "";
+        InstallationState Damaged() => new("安装记录损坏或不完整 · 可直接安装 / 修复，请确认资源模式", bundled, custom, source);
+        if (obj is null || pack is not ("custom" or "camp-buddy-scoutmaster" or "folder") || obj["files"] is not JsonObject hashes) return Damaged();
         if (obj["resource_version"] is not JsonValue versionValue || !versionValue.TryGetValue<string>(out var version) || !Version.TryParse(version, out _)) return Damaged();
         var required = new List<string> { "zz_live_translator.rpy" };
         if (bundled) required.AddRange(["zz_live_translator_camp_buddy.rpy", "live_translator/pretranslated.jsonl"]);
+        if (custom) required.Add("live_translator/pretranslated.jsonl");
         if (FontPreset(ReadString(Config(root), "font")) == 0) required.Add("live_translator/fonts/HarmonyOS_Sans_SC.ttf");
         if (required.Any(key => !hashes.ContainsKey(key))) return Damaged();
         int changed = 0;
@@ -297,7 +320,7 @@ public static class Core
             if (pair.Value is not JsonValue value || !value.TryGetValue<string>(out var expected) || expected.Length != 64 || !expected.All(Uri.IsHexDigit)) return Damaged();
             if (!File.Exists(path) || !Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).Equals(expected, StringComparison.OrdinalIgnoreCase)) changed++;
         }
-        return new($"已安装 · 资源 {version} · " + (changed == 0 ? "文件完整" : $"{changed} 个文件需要修复"), bundled);
+        return new($"已安装 · 资源 {version} · " + (changed == 0 ? "文件完整" : $"{changed} 个文件需要修复"), bundled, custom, source);
     }
 }
 
