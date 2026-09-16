@@ -34,6 +34,9 @@ public partial class App : Application
             window.ContentRendered += async (_, _) =>
             {
                 if (game is not null) await window.PrimeAsync(game);
+                // 仅截图时预览文件夹选择状态，不安装或读取私人汉化包内容。
+                var customPack = ValueOf(e.Args, "--custom-pack");
+                if (customPack is not null) { ((TextBox)window.FindName("CustomPackDirectory")).Text = customPack; ((ComboBox)window.FindName("Pack")).SelectedIndex = 2; }
                 // 用发行列表夹具验证更新页面，同一选择与渲染流程不触发网络或更新。
                 var fixture = ValueOf(e.Args, "--release-fixture");
                 if (fixture is not null) window.ShowRelease(Updates.SelectRelease(System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(fixture))!.AsArray(), Core.ManagerVersion));

@@ -138,6 +138,35 @@ public static class SelfTest
                 Assert(state.Bundled && state.Status.Contains("修复") && !state.Status.Contains("文件完整"), "Preserve pack while rejecting incomplete bundled manifest: " + required);
             }
             Core.AtomicWrite(manifest, bundledManifest);
+            // 自定义包使用隔离夹具，绝不把用户本机的私人全量包作为测试资源。
+            var customPack = Path.Combine(root, "custom-pack"); Directory.CreateDirectory(Path.Combine(customPack, "chapters"));
+            var firstPart = Path.Combine(customPack, "a.jsonl"); var secondPart = Path.Combine(customPack, "chapters", "b.jsonl");
+            const string firstLine = "{\"source\":\"Custom first\",\"translation\":\"自定义一\"}";
+            const string secondLine = "{\"source\":\"Custom second\",\"translation\":\"自定义二\"}";
+            File.WriteAllText(firstPart, firstLine); File.WriteAllText(secondPart, secondLine);
+            File.WriteAllText(Path.Combine(customPack, "README.txt"), "not a translation");
+            var originalPretranslation = File.ReadAllBytes(Path.Combine(data, "pretranslated.jsonl"));
+            Assert(Core.Install(root, Core.Config(root), false, "HarmonyOS", customPack) == 2, "Custom folder recursively imports JSONL only");
+            var customState = Core.InspectInstallation(root);
+            Assert(customState.CustomPack && customState.CustomDirectory == customPack && customState.Status.Contains("文件完整"), "Custom pack selection and folder persist with hash verification");
+            Assert(!File.Exists(confirmScript) && File.ReadAllText(firstPart) == firstLine && File.ReadAllText(secondPart) == secondLine, "Custom pack preserves source files and original game screen");
+            Assert(Directory.GetFiles(Path.Combine(Core.Home, "backups"), "pretranslated.jsonl", SearchOption.AllDirectories).Any(path => File.ReadAllBytes(path).SequenceEqual(originalPretranslation)), "Custom replacement backs up previous translations");
+            var installedBeforeInvalid = File.ReadAllBytes(Path.Combine(data, "pretranslated.jsonl"));
+            File.WriteAllText(secondPart, firstLine);
+            Reject(() => Core.Install(root, Core.Config(root), false, "HarmonyOS", customPack), "原文重复", "Duplicate custom source is rejected before writing");
+            File.WriteAllText(secondPart, "{broken");
+            Reject(() => Core.Install(root, Core.Config(root), false, "HarmonyOS", customPack), "b.jsonl:1", "Malformed nested custom JSON identifies file and line");
+            Assert(File.ReadAllBytes(Path.Combine(data, "pretranslated.jsonl")).SequenceEqual(installedBeforeInvalid) && Core.InspectInstallation(root).CustomPack, "Invalid custom import preserves installed data and manifest");
+            var emptyPack = Path.Combine(root, "empty-pack"); Directory.CreateDirectory(emptyPack);
+            Reject(() => Core.Install(root, Core.Config(root), false, "HarmonyOS", emptyPack), "没有可安装", "Empty custom folder is rejected");
+            Reject(() => Core.Install(root, Core.Config(root), false, "HarmonyOS", ""), "请选择", "Unselected custom folder is rejected");
+            Reject(() => Core.Install(root, Core.Config(root), false, "HarmonyOS", Path.Combine(root, "missing-pack")), "不存在", "Missing custom folder is rejected");
+            var customManifest = File.ReadAllText(manifest);
+            var incompleteCustom = Core.ReadJson(manifest); incompleteCustom["files"]!.AsObject().Remove("live_translator/pretranslated.jsonl"); Core.WriteJson(manifest, incompleteCustom);
+            Assert(Core.Status(root).Contains("修复") && Core.InspectInstallation(root).CustomPack, "Custom pack requires pretranslation hash while remaining repairable");
+            Core.AtomicWrite(manifest, customManifest);
+            Core.Install(root, Core.Config(root), false, "HarmonyOS");
+            Assert(File.ReadAllBytes(Path.Combine(data, "pretranslated.jsonl")).SequenceEqual(installedBeforeInvalid) && !Core.InspectInstallation(root).CustomPack, "Switching custom pack to generic preserves installed translations");
             // 模拟旧编译缓存，确保模式切换不能残留屏幕覆盖。
             File.WriteAllText(confirmScript + "c", "compiled fixture");
             Core.Install(root, Core.Config(root), false, "HarmonyOS");
