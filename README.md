@@ -110,8 +110,6 @@ dotnet build desktop/Translator/Translator.csproj -c Release
 
 现有 Camp Buddy Scoutmaster Season 译文统一位于 `translations/camp-buddy-scoutmaster/`，管理器的专属安装与译文校验只读取该游戏目录。后续其他游戏的译文应使用各自子目录。
 
-私人全量包目录 `translations/camp-buddy-scoutmaster-bak/` 被 Git 忽略，不提交或上传；该目录自带一个独立的 Git 仓库，保存完整版译文的历史，主仓库不跟踪其任何文件。发行资源采用白名单，仅包含 `translations/camp-buddy-scoutmaster/` 的内置 JSONL；私人目录及其他自定义汉化包不随软件打包。
-
 ## 许可证
 
 沿用项目 [LICENSE](LICENSE)。本项目是第三方翻译模组，与游戏开发商无关，请支持正版游戏。
