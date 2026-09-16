@@ -19,6 +19,8 @@ Windows x64 桌面程序：用图形界面安装、升级和卸载汉化，配�
 
 1. 在“游戏管理”中浏览游戏根目录，或选择历史目录后点击“读取 / 检查状态”。目录应包含 `game` 和 `renpy` 文件夹。
 2. 选择资源：通用模式不导入游戏专属译文，并保留游戏原确认屏幕；内置专属译文与确认屏幕仅适用于 **Camp Buddy Scoutmaster Season**。切回通用模式会移除专属确认屏幕及编译缓存，不会删除游戏已有的预译文。
+   - 选择“自定义汉化包”后，点击“选择文件夹”，程序会读取该目录及子目录中的全部 `.jsonl` 文件。每行需包含字符串 `source` 和 `translation`；空包、无效 JSON、空译文或重复原文会在写入前拒绝。
+   - 安装时合并为游戏的 `game/live_translator/pretranslated.jsonl`，替换前备份，不修改源文件夹。自定义模式只导入译文，不安装 Camp Buddy 专属确认屏幕；可保留或自行配置保护人名。文件夹选择会随游戏安装记录保存，源目录移动后需重新选择。“数据与日志”的译文校验会使用当前选择的自定义文件夹；其他模式校验内置译文。
 3. 根据需要在“模型 API”填写地址、模型与密钥，然后点击“安装 / 升级 / 修复汉化”。只使用预译文时可以不填写密钥。
 4. 安装完成后可关闭管理器。游戏中的实时翻译仍由 `game/zz_live_translator.rpy` 执行。F9 开关翻译，F10 查看状态；配置更改后需重新启动游戏。
 
@@ -107,6 +109,8 @@ dotnet build desktop/Translator/Translator.csproj -c Release
 `game`、`translations`、`fonts` 继续作为新版资源使用；`tools` 保留开发用途。完整翻译版本（含旧安装脚本）已归档到 `archive/translations_bak`；`backups` 保存历史快照与归档包；两者均被 `.gitignore` 排除，不进入版本控制。`dist` 只保留发行 ZIP 与解包目录，发布脚本每次运行结束会自动回收自己的暂存目录。
 
 现有 Camp Buddy Scoutmaster Season 译文统一位于 `translations/camp-buddy-scoutmaster/`，管理器的专属安装与译文校验只读取该游戏目录。后续其他游戏的译文应使用各自子目录。
+
+私人全量包目录 `translations/camp-buddy-scoutmaster-bak/` 被 Git 忽略，不提交或上传。发行资源采用白名单，仅包含 `translations/camp-buddy-scoutmaster/` 的内置 JSONL；私人目录及其他自定义汉化包不随软件打包。
 
 ## 许可证
 

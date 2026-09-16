@@ -19,6 +19,8 @@ Both methods install the same app and support in-app updates. The updater replac
 
 1. On the Game Management page (游戏管理), browse to the game root, or select a previously added directory and click Read / Check Status (读取 / 检查状态). The directory must contain `game` and `renpy` folders.
 2. Select the resources: generic mode does not import game-specific translations and preserves the game's original confirmation screen. The bundled translations and confirmation screen are only for **Camp Buddy Scoutmaster Season**. Switching back to generic mode removes the dedicated confirmation screen and its compiled cache without deleting existing pretranslations.
+   - Select Custom Translation Pack (自定义汉化包), then Choose Folder (选择文件夹). The app reads all `.jsonl` files in that directory and its subdirectories. Each line must contain string fields `source` and `translation`; empty packs, invalid JSON, empty translations and duplicate source strings are rejected before writing.
+   - Installation merges the files into the game's `game/live_translator/pretranslated.jsonl`, backing up the previous file without modifying the source folder. Custom mode imports translations without the Camp Buddy confirmation screen; protected names can be retained or configured manually. The selected folder is stored in the game's installation record and must be selected again if moved. Translation validation on Data and Logs uses the currently selected custom folder; other modes validate bundled translations.
 3. Enter the endpoint, model and key on the Model API page (模型 API) as needed, then click Install / Upgrade / Repair Translation (安装 / 升级 / 修复汉化). A key is not required when using pretranslations alone.
 4. You can close the manager after installation. In-game translation continues to run through `game/zz_live_translator.rpy`. F9 toggles translation; F10 shows its status. Restart the game after changing configuration.
 
@@ -107,6 +109,8 @@ The legacy PowerShell entry points and Chinese and English documentation have be
 `game`, `translations` and `fonts` remain resources for the new version; `tools` is retained for development. The complete translated version, including the old installation scripts, is archived under `archive/translations_bak`. `backups` stores historical snapshots and archives. Both are excluded by `.gitignore` and are not version-controlled. `dist` retains only release ZIPs and unpacked directories; the release script removes its own staging directories at the end of each run.
 
 Existing Camp Buddy Scoutmaster Season translations are stored under `translations/camp-buddy-scoutmaster/`. Dedicated installation and translation validation read only that game's directory. Translations for other games should use separate subdirectories.
+
+The private full-pack directory `translations/camp-buddy-scoutmaster-bak/` is Git-ignored and is not committed or uploaded. Release resources use an allowlist containing only the bundled JSONL files under `translations/camp-buddy-scoutmaster/`; private directories and other custom translation packs are not included in software releases.
 
 ## License
 
