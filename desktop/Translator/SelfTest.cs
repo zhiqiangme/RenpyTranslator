@@ -200,6 +200,12 @@ public static class SelfTest
             Assert(!Core.HintHidden(settingsFile, Core.InstallSuccessHint), "Damaged settings file shows the notice");
             Core.SetHintHidden(settingsFile, Core.InstallSuccessHint, true);
             Assert(Core.HintHidden(settingsFile, Core.InstallSuccessHint) && !Core.HintHidden(settingsFile, "other"), "Suppression flag persists per key");
+            // 系统英文异常不会进入弹窗，统一转换成中文说明；自带中文诊断保持不变。
+            Assert(Core.Explain(new ArgumentException("The path is empty. (Parameter 'path')")) == "路径或参数无效，请重新选择游戏目录。", "English system exception is localized");
+            Assert(Core.Explain(new UserError("所选字体不存在。")) == "所选字体不存在。", "User-facing diagnostics pass through unchanged");
+            Assert(Core.Explain(new IOException("Could not find a part of the path 'D:\\游戏\\x'.")).StartsWith("文件读写失败"), "English text mentioning a Chinese path is still localized");
+            Reject(() => Core.Game(""), "请先选择", "Empty game directory is rejected with a Chinese prompt");
+            Reject(() => Core.Game(Path.Combine(root, "missing-game")), "请选择包含", "Missing game directory is rejected with a Chinese prompt");
             Core.Install(root, Core.Config(root), false, customFont);
             Assert(Core.ReadString(Core.Config(root), "font") == customFont, "Install preserves relative custom font path");
             Core.Install(root, Core.Config(root), true, customFont);

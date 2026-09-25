@@ -19,12 +19,12 @@ public static class Core
     {
         if (obj[key] is null) return "";
         if (obj[key] is JsonValue value && value.TryGetValue<string>(out var text)) return text;
-        throw new IOException($"配置字段 {key} 必须是字符串。");
+        throw new UserError($"配置字段 {key} 必须是字符串。");
     }
     public static JsonObject ReadJson(string path)
     {
-        try { return JsonNode.Parse(File.ReadAllText(path)) as JsonObject ?? throw new IOException($"配置文件必须是 JSON 对象：{Path.GetFileName(path)}"); }
-        catch (JsonException ex) { throw new IOException($"配置 JSON 错误：{Path.GetFileName(path)}，第 {(ex.LineNumber ?? 0) + 1} 行。", ex); }
+        try { return JsonNode.Parse(File.ReadAllText(path)) as JsonObject ?? throw new UserError($"配置文件必须是 JSON 对象：{Path.GetFileName(path)}"); }
+        catch (JsonException ex) { throw new UserError($"配置 JSON 错误：{Path.GetFileName(path)}，第 {(ex.LineNumber ?? 0) + 1} 行。", ex); }
     }
     // 界面提示开关（“不再提醒”）与游戏配置分离，单独保存在用户数据目录。
     public const string InstallSuccessHint = "install_success";
@@ -42,21 +42,41 @@ public static class Core
         try { settings = File.Exists(path) ? ReadJson(path) : new JsonObject(); } catch (Exception) { settings = new JsonObject(); }
         settings[key] = hidden; WriteJson(path, settings);
     }
+    /// <summary>面向用户的中文提示：本程序自带的中文诊断原样使用，系统英文异常按类型转换成中文说明。</summary>
+    public static string Explain(Exception error)
+    {
+        var message = error.Message.Trim();
+        return error switch
+        {
+            UserError => error.Message,
+            System.Net.Http.HttpRequestException => "网络请求失败，请检查网络与服务地址。",
+            TaskCanceledException => "请求超时，请稍后重试。",
+            UnauthorizedAccessException => "没有访问权限，请确认目录可写、文件未被占用。",
+            DirectoryNotFoundException => "目录不存在，可能已被移动或删除。",
+            FileNotFoundException => "文件不存在，可能已被移动或删除。",
+            PathTooLongException => "路径过长，请把游戏目录移到更短的位置后重试。",
+            ArgumentException => "路径或参数无效，请重新选择游戏目录。",
+            IOException => "文件读写失败，请确认游戏已关闭且目录可写。" + Technical(message),
+            _ => "操作失败，请重试。" + Technical(message)
+        };
+    }
+    // 只有原文非空时才附带技术信息，避免出现空括号。
+    private static string Technical(string message) => message.Length == 0 ? "" : "（技术信息：" + message + "）";
     public static JsonArray StringArray(string text, string key)
     {
         var label = key == "skip_patterns" ? "跳过规则" : "保护人名";
         try
         {
-            var array = JsonNode.Parse(text) as JsonArray ?? throw new IOException($"{label}必须是 JSON 字符串数组。");
+            var array = JsonNode.Parse(text) as JsonArray ?? throw new UserError($"{label}必须是 JSON 字符串数组。");
             foreach (var item in array)
             {
-                if (item is not JsonValue value || !value.TryGetValue<string>(out var entry)) throw new IOException($"{label}的每个元素必须是字符串。");
+                if (item is not JsonValue value || !value.TryGetValue<string>(out var entry)) throw new UserError($"{label}的每个元素必须是字符串。");
                 if (key == "skip_patterns") ValidateSkipPattern(entry);
             }
             return array;
         }
-        catch (JsonException ex) { throw new IOException($"{label} JSON 格式错误，第 {(ex.LineNumber ?? 0) + 1} 行。", ex); }
-        catch (ArgumentException ex) { throw new IOException($"{label}包含无效的正则表达式。", ex); }
+        catch (JsonException ex) { throw new UserError($"{label} JSON 格式错误，第 {(ex.LineNumber ?? 0) + 1} 行。", ex); }
+        catch (ArgumentException ex) { throw new UserError($"{label}包含无效的正则表达式。", ex); }
     }
     // 发行包不依赖 Python，限定为 .NET 与游戏 Python re 都支持的基础语法。
     internal static void ValidateSkipPattern(string pattern)
@@ -69,21 +89,21 @@ public static class Core
             {
                 char escaped = pattern[++i];
                 if (char.IsLetterOrDigit(escaped) && !"dDsSwWbBAnrtfav".Contains(escaped))
-                    throw new IOException("跳过规则使用基础正则语法，不支持命名组、反向引用或扩展转义；请直接填写文字或使用字符类。");
+                    throw new UserError("跳过规则使用基础正则语法，不支持命名组、反向引用或扩展转义；请直接填写文字或使用字符类。");
                 continue;
             }
-            if (ch == '[') { if (inClass) throw new IOException("跳过规则不支持嵌套字符类，请转义字面量方括号。"); inClass = true; }
+            if (ch == '[') { if (inClass) throw new UserError("跳过规则不支持嵌套字符类，请转义字面量方括号。"); inClass = true; }
             else if (ch == ']') inClass = false;
             else if (!inClass && ch == '{')
             {
                 int end = pattern.IndexOf('}', i + 1);
                 if (end < 0 || !System.Text.RegularExpressions.Regex.IsMatch(pattern[(i + 1)..end], @"^[0-9]+(,[0-9]*)?$"))
-                    throw new IOException("跳过规则的次数限定请使用 {n}、{n,} 或 {n,m}；字面量花括号请转义。");
+                    throw new UserError("跳过规则的次数限定请使用 {n}、{n,} 或 {n,m}；字面量花括号请转义。");
                 i = end;
             }
             else if (!inClass && ch == '(' && i + 1 < pattern.Length && pattern[i + 1] == '?'
                 && (i + 2 >= pattern.Length || pattern[i + 2] != ':'))
-                throw new IOException("跳过规则仅支持普通组和 (?:...) 非捕获组，不支持命名组、前后查找或内联选项。");
+                throw new UserError("跳过规则仅支持普通组和 (?:...) 非捕获组，不支持命名组、前后查找或内联选项。");
         }
         _ = new System.Text.RegularExpressions.Regex(pattern);
     }
@@ -132,13 +152,19 @@ public static class Core
     {
         for (var p = Path.GetFullPath(path); !string.IsNullOrEmpty(p); p = Path.GetDirectoryName(p))
             if ((File.Exists(p) || Directory.Exists(p)) && (File.GetAttributes(p) & FileAttributes.ReparsePoint) != 0)
-                throw new IOException("不支持符号链接或目录联接：" + p);
+                throw new UserError("不支持符号链接或目录联接：" + p);
     }
     public static string Game(string root)
     {
-        var full = Path.GetFullPath(root.Trim().Trim('"')); NoLinks(full);
+        var text = root.Trim().Trim('"');
+        if (text.Length == 0) throw new UserError("请先选择或填写 Ren'Py 游戏根目录。");
+        string full;
+        // 空路径、非法字符等情况下 Path 抛出的是英文系统异常，这里统一换成中文提示。
+        try { full = Path.GetFullPath(text); }
+        catch (Exception error) when (error is ArgumentException or NotSupportedException or PathTooLongException) { throw new UserError("游戏目录路径无效，请重新选择。", error); }
+        NoLinks(full);
         if (!Directory.Exists(Path.Combine(full, "game")) || !Directory.Exists(Path.Combine(full, "renpy")))
-            throw new IOException("请选择包含 game 和 renpy 文件夹的游戏根目录。");
+            throw new UserError("请选择包含 game 和 renpy 文件夹的游戏根目录。");
         NoLinks(Path.Combine(full, "game", "live_translator"));
         return Path.TrimEndingDirectorySeparator(full);
     }
@@ -182,23 +208,23 @@ public static class Core
                 string source, translated;
                 try
                 {
-                    var obj = JsonNode.Parse(line) as JsonObject ?? throw new IOException("译文必须是 JSON 对象。");
+                    var obj = JsonNode.Parse(line) as JsonObject ?? throw new UserError("译文必须是 JSON 对象。");
                     source = ReadString(obj, "source"); translated = ReadString(obj, "translation");
                 }
-                catch (Exception ex) when (ex is JsonException or IOException) { throw new IOException($"译文 JSON 错误：{Path.GetRelativePath(directory, path)}:{n}", ex); }
+                catch (Exception ex) when (ex is JsonException or IOException) { throw new UserError($"译文 JSON 错误：{Path.GetRelativePath(directory, path)}:{n}", ex); }
                 if (string.IsNullOrWhiteSpace(source) || string.IsNullOrWhiteSpace(translated) || !seen.Add(source))
-                    throw new IOException($"译文为空或原文重复：{Path.GetRelativePath(directory, path)}:{n}");
+                    throw new UserError($"译文为空或原文重复：{Path.GetRelativePath(directory, path)}:{n}");
                 lines.Add(line);
             }
         }
-        if (lines.Count == 0) throw new IOException("没有可安装的译文。");
+        if (lines.Count == 0) throw new UserError("没有可安装的译文。");
         return (string.Join("\n", lines) + "\n", lines.Count);
     }
     public static string TranslationDirectory(string directory)
     {
-        if (string.IsNullOrWhiteSpace(directory)) throw new IOException("请选择自定义汉化包文件夹。");
+        if (string.IsNullOrWhiteSpace(directory)) throw new UserError("请选择自定义汉化包文件夹。");
         var full = Path.GetFullPath(directory.Trim().Trim('"')); NoLinks(full);
-        if (!Directory.Exists(full)) throw new IOException("汉化包文件夹不存在，请重新选择。");
+        if (!Directory.Exists(full)) throw new UserError("汉化包文件夹不存在，请重新选择。");
         return Path.TrimEndingDirectorySeparator(full);
     }
     public static void EnsureStopped(string root)
@@ -211,7 +237,7 @@ public static class Core
                 string? file = null;
                 try { file = process.MainModule?.FileName; } catch { }
                 if (file is not null && IsInside(root, file))
-                    throw new IOException("请先关闭该游戏，再修改汉化文件。");
+                    throw new UserError("请先关闭该游戏，再修改汉化文件。");
             }
         }
     }
@@ -251,7 +277,7 @@ public static class Core
         foreach (var item in relative)
         {
             var path = Path.GetFullPath(Path.Combine(game, item));
-            if (!path.StartsWith(game + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) throw new IOException("非法目标路径。");
+            if (!path.StartsWith(game + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) throw new UserError("非法目标路径。");
             NoLinks(path); originals[path] = File.Exists(path) ? File.ReadAllBytes(path) : null;
             if (originals[path] is { } bytes) { var dest = Path.Combine(backup, item); Directory.CreateDirectory(Path.GetDirectoryName(dest)!); File.WriteAllBytes(dest, bytes); }
         }
@@ -267,14 +293,14 @@ public static class Core
                     else { Directory.CreateDirectory(Path.GetDirectoryName(path)!); File.WriteAllBytes(path, bytes); }
                 }
                 catch { failed.Add(path); }
-            if (failed.Count > 0) throw new IOException("操作失败，部分文件未能自动恢复。请从此目录恢复备份：" + backup, error);
+            if (failed.Count > 0) throw new UserError("操作失败，部分文件未能自动恢复。请从此目录恢复备份：" + backup, error);
             throw;
         }
         finally { PruneBackups(); }
     }
     public static int Install(string root, JsonObject config, bool bundled, string font, string? customDirectory = null)
     {
-        if (bundled && customDirectory is not null) throw new IOException("内置译文和自定义汉化包不能同时安装。");
+        if (bundled && customDirectory is not null) throw new UserError("内置译文和自定义汉化包不能同时安装。");
         var source = customDirectory is null ? null : TranslationDirectory(customDirectory);
         // 自定义包包含所选目录的子目录，全部校验完成后才修改游戏。
         var merged = source is not null ? Merge(source, true) : bundled ? Merge(BundledTranslations) : ("", 0);
@@ -285,7 +311,7 @@ public static class Core
         // 未指定字体时使用默认系统字体；显式路径必须真实存在，避免写入游戏后无法生效。
         var fontPath = string.IsNullOrWhiteSpace(font) ? DefaultFont() : font.Replace('\\', '/');
         config["font"] = fontPath;
-        if (!File.Exists(Path.IsPathRooted(fontPath) ? fontPath : Path.Combine(Game(root), "game", fontPath))) throw new IOException("所选字体不存在。");
+        if (!File.Exists(Path.IsPathRooted(fontPath) ? fontPath : Path.Combine(Game(root), "game", fontPath))) throw new UserError("所选字体不存在。");
         Transaction(root, InstalledFiles.Concat(LegacyBundledFonts), () =>
         {
             var game = Path.Combine(Game(root), "game"); var data = Data(root);

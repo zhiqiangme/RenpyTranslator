@@ -90,16 +90,16 @@ public static class Updates
         foreach (var entry in archive.Entries)
         {
             var path = Path.GetFullPath(Path.Combine(target, entry.FullName));
-            if (!path.StartsWith(Path.GetFullPath(target) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) || entry.FullName.Contains(':')) throw new IOException("更新包包含非法路径。");
+            if (!path.StartsWith(Path.GetFullPath(target) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) || entry.FullName.Contains(':')) throw new UserError("更新包包含非法路径。");
             if (entry.FullName.EndsWith('/')) { Directory.CreateDirectory(path); continue; }
             Directory.CreateDirectory(Path.GetDirectoryName(path)!); entry.ExtractToFile(path, false);
         }
     }
     public static async Task Stage(Release release)
     {
-        if (!release.Available) throw new IOException("没有可安装的更新。");
+        if (!release.Available) throw new UserError("没有可安装的更新。");
         foreach (var url in new[] { release.ZipUrl, release.HashUrl })
-            if (!url.StartsWith("https://github.com/zhiqiangme/RenpyTranslator/releases/download/", StringComparison.Ordinal)) throw new IOException("更新资源来源不匹配。");
+            if (!url.StartsWith("https://github.com/zhiqiangme/RenpyTranslator/releases/download/", StringComparison.Ordinal)) throw new UserError("更新资源来源不匹配。");
         var updates = Path.Combine(Core.Home, "updates"); PruneUpdates(updates);
         var root = Path.Combine(updates, Guid.NewGuid().ToString("N")); Directory.CreateDirectory(root);
         using var lease = new FileStream(Path.Combine(root, "active.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
@@ -107,13 +107,13 @@ public static class Updates
         await using (var source = await client.GetStreamAsync(release.ZipUrl))
         await using (var dest = File.Create(zip)) await source.CopyToAsync(dest);
         var expected = (await client.GetStringAsync(release.HashUrl)).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)[0];
-        using (var stream = File.OpenRead(zip)) if (!Convert.ToHexString(await SHA256.HashDataAsync(stream)).Equals(expected, StringComparison.OrdinalIgnoreCase)) throw new IOException("更新包 SHA-256 不匹配，已停止更新。");
+        using (var stream = File.OpenRead(zip)) if (!Convert.ToHexString(await SHA256.HashDataAsync(stream)).Equals(expected, StringComparison.OrdinalIgnoreCase)) throw new UserError("更新包 SHA-256 不匹配，已停止更新。");
         var stage = Path.Combine(root, "stage"); Directory.CreateDirectory(stage); Extract(zip, stage);
-        if (!File.Exists(Path.Combine(stage, "RenpyTranslator.exe")) || !File.Exists(Path.Combine(stage, "Resources", "game", "zz_live_translator.rpy"))) throw new IOException("更新包结构不完整。");
+        if (!File.Exists(Path.Combine(stage, "RenpyTranslator.exe")) || !File.Exists(Path.Combine(stage, "Resources", "game", "zz_live_translator.rpy"))) throw new UserError("更新包结构不完整。");
         // 使用当前版本的独立更新器，避免覆盖正在运行的进程。
         var helper = Path.Combine(root, "RenpyTranslator.Updater.exe"); File.Copy(Path.Combine(AppContext.BaseDirectory, "RenpyTranslator.Updater.exe"), helper);
         var start = new ProcessStartInfo(helper) { UseShellExecute = false, CreateNoWindow = true };
         foreach (var arg in new[] { Environment.ProcessId.ToString(), AppContext.BaseDirectory, stage }) start.ArgumentList.Add(arg);
-        _ = Process.Start(start) ?? throw new IOException("无法启动更新程序。");
+        _ = Process.Start(start) ?? throw new UserError("无法启动更新程序。");
     }
 }
