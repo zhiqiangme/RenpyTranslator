@@ -125,7 +125,20 @@ public partial class MainWindow : Window
         var font = FontChoice.SelectedIndex == Core.CustomFontPreset
             ? Core.ReadString(next, "font")
             : Core.SystemFont(FontChoice.SelectedIndex);
-        Log("正在校验资源并安装…"); var count = await Task.Run(() => Core.Install(root, next, bundled, font, customDirectory)); await LoadGame(); Log($"安装完成，导入 {count} 条译文。请重新启动游戏。");
+        Log("正在校验资源并安装…");
+        int count;
+        // 汉化结果必须明确告知用户；失败在此处理，避免 Run 再弹一次“操作未完成”。
+        try { count = await Task.Run(() => Core.Install(root, next, bundled, font, customDirectory)); }
+        catch (Exception error)
+        {
+            Log("汉化失败：" + error.Message);
+            MessageBox.Show(this, "汉化失败：\n\n" + error.Message + "\n\n写入前已备份，失败时会自动恢复原文件；可修正后重试。", "汉化失败", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+        await LoadGame();
+        var imported = count > 0 ? $"已导入 {count} 条译文。" : "模组文件已更新。";
+        Log("汉化成功。" + imported);
+        MessageBox.Show(this, $"汉化成功！\n\n{imported}\n请重新启动游戏后生效。\n\n提示：游戏运行时无需打开本管理器，它只在安装、升级或修复汉化时使用。", "汉化成功", MessageBoxButton.OK, MessageBoxImage.Information);
     });
     private async void Uninstall(object sender, RoutedEventArgs e) => await Run(async () =>
     {
