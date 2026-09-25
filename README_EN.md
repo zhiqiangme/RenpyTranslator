@@ -106,7 +106,7 @@ The default version comes from `packaging/version.txt`, which development builds
 
 The legacy PowerShell entry points and Chinese and English documentation have been moved unchanged to `archive/legacy-scripts`, including archive hashes, and have not been deleted. This directory preserves the historical implementation. The old scripts still depend on the original root directory layout and should not be run directly from the archive directory.
 
-`game`, `translations` and `fonts` remain resources for the new version; `tools` is retained for development. The legacy entry points are kept only in the archive directory described above; there is no separate translation backup directory any more. `backups` stores historical snapshots and archives and is excluded by `.gitignore`, so it is not version-controlled. `dist` retains only release ZIPs and unpacked directories; the release script removes its own staging directories at the end of each run.
+`game` and `translations` remain resources for the new version; `tools` is retained for development. The legacy entry points are kept only in the archive directory described above; there is no separate translation backup directory any more. `backups` stores historical snapshots and archives and is excluded by `.gitignore`, so it is not version-controlled. `dist` retains only release ZIPs and unpacked directories; the release script removes its own staging directories at the end of each run.
 
 Existing Camp Buddy Scoutmaster Season translations are stored under `translations/camp-buddy-scoutmaster/`. Dedicated installation and translation validation read only that game's directory. Translations for other games should use separate subdirectories.
 
