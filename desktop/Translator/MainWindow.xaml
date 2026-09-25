@@ -66,11 +66,12 @@
        <StackPanel>
         <TextBlock Text="中文字体" Style="{StaticResource SectionTitle}"/>
         <ComboBox x:Name="FontChoice" SelectedIndex="0" Width="420" HorizontalAlignment="Left">
-         <ComboBoxItem Content="黑体（系统字体，默认）"/>
-         <ComboBoxItem Content="微软雅黑（系统字体）"/>
+         <ComboBoxItem Content="微软雅黑（系统字体，默认）"/>
          <ComboBoxItem Content="宋体（系统字体）"/>
+         <ComboBoxItem Content="等线（系统字体，Win10 及以上）"/>
+         <ComboBoxItem Content="楷体（系统字体）"/>
         </ComboBox>
-        <TextBlock Style="{StaticResource Hint}" Text="系统字体直接引用本机字体文件，不再随汉化复制；默认优先使用黑体，本机缺失时回退到雅黑或宋体。"/>
+        <TextBlock Style="{StaticResource Hint}" Text="系统字体直接引用本机字体文件，不再随汉化复制；默认优先使用微软雅黑，本机缺失时按列表顺序回退。"/>
        </StackPanel>
       </Border>
 

@@ -45,7 +45,7 @@ init 999 python:
         "api_key": "",
         "api_key_encrypted": "",
         "model": "your-model-name",
-        "font": "C:/Windows/Fonts/simhei.ttf",
+        "font": "C:/Windows/Fonts/msyh.ttc",
         "batch_size": 8,
         "batch_wait_ms": 180,
         "request_timeout_seconds": 60,

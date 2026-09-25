@@ -71,28 +71,37 @@ public static class Core
         }
         _ = new System.Text.RegularExpressions.Regex(pattern);
     }
-    // 系统字体预设顺序：黑体为默认，其后雅黑、宋体。
-    public static readonly string[] SystemFonts = ["simhei.ttf", "msyh.ttc", "simsun.ttc"];
+    // 系统字体预设顺序：默认微软雅黑，其后宋体、等线（Win10 及以上）、楷体。
+    public static readonly string[] SystemFonts = ["msyh.ttc", "simsun.ttc", "Deng.ttf", "simkai.ttf"];
     // 旧版随模组内置的鸿蒙字体；新版改用系统字体，安装时据此清理游戏目录中的残留副本。
     public const string LegacyBundledFont = "live_translator/fonts/HarmonyOS_Sans_SC.ttf";
     private static readonly string[] LegacyBundledFonts = [LegacyBundledFont];
-    /// <summary>默认系统字体：优先黑体，本机缺失时回退雅黑、宋体，避免默认安装因字体缺失而失败。</summary>
+    // 自定义字体在系统预设之后另占一个下拉项。
+    public static int CustomFontPreset => SystemFonts.Length;
+    /// <summary>默认系统字体：优先微软雅黑，本机缺失时按预设顺序回退，避免默认安装因字体缺失而失败。</summary>
     public static string DefaultFont()
     {
         var fonts = Environment.GetFolderPath(Environment.SpecialFolder.Fonts);
         foreach (var name in SystemFonts) { var path = Path.Combine(fonts, name); if (File.Exists(path)) return path.Replace('\\', '/'); }
         return Path.Combine(fonts, SystemFonts[0]).Replace('\\', '/');
     }
+    /// <summary>下拉预设索引对应的系统字体路径；0 使用默认解析，越界同样退回默认。</summary>
+    public static string SystemFont(int preset)
+    {
+        if (preset <= 0 || preset >= SystemFonts.Length) return DefaultFont();
+        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), SystemFonts[preset]).Replace('\\', '/');
+    }
     // 只识别完整预设路径，自定义字体不能因文件名包含 msyh 等字样而被替换。
     public static int FontPreset(string font)
     {
         var normalized = font.Replace('\\', '/');
-        // 未配置字体或仍是旧版内置字体时，都归入默认预设（系统黑体）。
-        if (string.IsNullOrWhiteSpace(font) || normalized.Equals(LegacyBundledFont, StringComparison.OrdinalIgnoreCase)) return 0;
         var fonts = Environment.GetFolderPath(Environment.SpecialFolder.Fonts).Replace('\\', '/');
+        // 未配置字体、旧版内置鸿蒙字体，以及历史默认的黑体，都归入默认预设（微软雅黑）。
+        if (string.IsNullOrWhiteSpace(font) || normalized.Equals(LegacyBundledFont, StringComparison.OrdinalIgnoreCase)
+            || normalized.Equals(fonts + "/simhei.ttf", StringComparison.OrdinalIgnoreCase)) return 0;
         for (var index = 0; index < SystemFonts.Length; index++)
             if (normalized.Equals(fonts + "/" + SystemFonts[index], StringComparison.OrdinalIgnoreCase)) return index;
-        return 3;
+        return CustomFontPreset;
     }
     public static void AtomicWrite(string path, string text)
     {
