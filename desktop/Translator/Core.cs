@@ -71,14 +71,27 @@ public static class Core
         }
         _ = new System.Text.RegularExpressions.Regex(pattern);
     }
+    // 系统字体预设顺序：黑体为默认，其后雅黑、宋体。
+    public static readonly string[] SystemFonts = ["simhei.ttf", "msyh.ttc", "simsun.ttc"];
+    // 旧版随模组内置的鸿蒙字体；新版改用系统字体，安装时据此清理游戏目录中的残留副本。
+    public const string LegacyBundledFont = "live_translator/fonts/HarmonyOS_Sans_SC.ttf";
+    private static readonly string[] LegacyBundledFonts = [LegacyBundledFont];
+    /// <summary>默认系统字体：优先黑体，本机缺失时回退雅黑、宋体，避免默认安装因字体缺失而失败。</summary>
+    public static string DefaultFont()
+    {
+        var fonts = Environment.GetFolderPath(Environment.SpecialFolder.Fonts);
+        foreach (var name in SystemFonts) { var path = Path.Combine(fonts, name); if (File.Exists(path)) return path.Replace('\\', '/'); }
+        return Path.Combine(fonts, SystemFonts[0]).Replace('\\', '/');
+    }
     // 只识别完整预设路径，自定义字体不能因文件名包含 msyh 等字样而被替换。
     public static int FontPreset(string font)
     {
         var normalized = font.Replace('\\', '/');
-        if (string.IsNullOrWhiteSpace(font) || normalized.Equals("live_translator/fonts/HarmonyOS_Sans_SC.ttf", StringComparison.OrdinalIgnoreCase)) return 0;
+        // 未配置字体或仍是旧版内置字体时，都归入默认预设（系统黑体）。
+        if (string.IsNullOrWhiteSpace(font) || normalized.Equals(LegacyBundledFont, StringComparison.OrdinalIgnoreCase)) return 0;
         var fonts = Environment.GetFolderPath(Environment.SpecialFolder.Fonts).Replace('\\', '/');
-        if (normalized.Equals(fonts + "/msyh.ttc", StringComparison.OrdinalIgnoreCase)) return 1;
-        if (normalized.Equals(fonts + "/simsun.ttc", StringComparison.OrdinalIgnoreCase)) return 2;
+        for (var index = 0; index < SystemFonts.Length; index++)
+            if (normalized.Equals(fonts + "/" + SystemFonts[index], StringComparison.OrdinalIgnoreCase)) return index;
         return 3;
     }
     public static void AtomicWrite(string path, string text)
@@ -183,8 +196,8 @@ public static class Core
         var relative = Path.GetRelativePath(root, file);
         return !Path.IsPathRooted(relative) && relative != ".." && !relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal);
     }
-    public static readonly string[] InstalledFiles = ["zz_live_translator.rpy", "zz_live_translator.rpyc", "zz_live_translator_camp_buddy.rpy", "zz_live_translator_camp_buddy.rpyc", "live_translator/pretranslated.jsonl", "live_translator/fonts/HarmonyOS_Sans_SC.ttf", "live_translator/config.json", "live_translator/installation.json"];
-    // 备份保留份数。单次事务会把待覆盖文件整份备份，其中内置字体约 20MB，
+    public static readonly string[] InstalledFiles = ["zz_live_translator.rpy", "zz_live_translator.rpyc", "zz_live_translator_camp_buddy.rpy", "zz_live_translator_camp_buddy.rpyc", "live_translator/pretranslated.jsonl", "live_translator/config.json", "live_translator/installation.json"];
+    // 备份保留份数。单次事务会把待覆盖文件整份备份，译文与旧版内置字体可达 20MB 量级，
     // 不设上限时 backups 目录会随每次安装/自检持续堆积，故只保留最近若干份。
     private const int BackupRetention = 10;
     /// <summary>按创建时间删除超出保留份数的旧备份；失败一律忽略，不影响安装流程。</summary>
@@ -244,9 +257,11 @@ public static class Core
         var script = File.ReadAllText(Path.Combine(Resources, "game", "zz_live_translator.rpy"));
         NormalizeKey(config);
         if (bundled) config["protected_names"] = ReadJson(Path.Combine(Resources, "config.default.json"))["protected_names"]!.DeepClone();
-        config["font"] = font == "HarmonyOS" ? "live_translator/fonts/HarmonyOS_Sans_SC.ttf" : font.Replace('\\', '/');
-        if (font != "HarmonyOS" && !File.Exists(Path.IsPathRooted(font) ? font : Path.Combine(Game(root), "game", font))) throw new IOException("所选字体不存在。");
-        Transaction(root, InstalledFiles, () =>
+        // 未指定字体时使用默认系统字体；显式路径必须真实存在，避免写入游戏后无法生效。
+        var fontPath = string.IsNullOrWhiteSpace(font) ? DefaultFont() : font.Replace('\\', '/');
+        config["font"] = fontPath;
+        if (!File.Exists(Path.IsPathRooted(fontPath) ? fontPath : Path.Combine(Game(root), "game", fontPath))) throw new IOException("所选字体不存在。");
+        Transaction(root, InstalledFiles.Concat(LegacyBundledFonts), () =>
         {
             var game = Path.Combine(Game(root), "game"); var data = Data(root);
             AtomicWrite(Path.Combine(game, "zz_live_translator.rpy"), script);
@@ -256,7 +271,11 @@ public static class Core
             if (bundled) AtomicWrite(confirm, File.ReadAllText(Path.Combine(Resources, "game", "zz_live_translator_camp_buddy.rpy")));
             else if (File.Exists(confirm)) File.Delete(confirm);
             if (File.Exists(confirm + "c")) File.Delete(confirm + "c");
-            if (font == "HarmonyOS") { Directory.CreateDirectory(Path.Combine(data, "fonts")); File.Copy(Path.Combine(Resources, "fonts", "HarmonyOS_Sans_SC.ttf"), Path.Combine(data, "fonts", "HarmonyOS_Sans_SC.ttf"), true); }
+            // 旧版内置字体不再随包分发，安装时清理游戏目录中的残留副本；目录为空时一并移除，用户自备字体的目录保留。
+            foreach (var item in LegacyBundledFonts) { var legacy = Path.Combine(game, item); if (File.Exists(legacy)) File.Delete(legacy); }
+            var legacyDirectory = Path.Combine(data, "fonts");
+            if (Directory.Exists(legacyDirectory) && !Directory.EnumerateFileSystemEntries(legacyDirectory).Any())
+                try { Directory.Delete(legacyDirectory); } catch (IOException) { } catch (UnauthorizedAccessException) { }
             // 通用模式不覆盖用户已有译文；首装不注入其他游戏的专属资源。
             if (importsTranslations) AtomicWrite(Path.Combine(data, "pretranslated.jsonl"), merged.Item1);
             WriteJson(Path.Combine(data, "config.json"), config);
@@ -264,7 +283,6 @@ public static class Core
             var owned = new List<string> { "zz_live_translator.rpy" };
             if (bundled) owned.Add("zz_live_translator_camp_buddy.rpy");
             if (importsTranslations) owned.Add("live_translator/pretranslated.jsonl");
-            if (font == "HarmonyOS") owned.Add("live_translator/fonts/HarmonyOS_Sans_SC.ttf");
             foreach (var item in owned) if (File.Exists(Path.Combine(game, item))) hashes[item] = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(Path.Combine(game, item))));
             WriteJson(Path.Combine(data, "installation.json"), new JsonObject { ["manager_version"] = ManagerVersion, ["resource_version"] = File.ReadAllText(Path.Combine(Resources, "version.txt")).Trim(), ["pack"] = bundled ? "camp-buddy-scoutmaster" : source is not null ? "folder" : "custom", ["custom_directory"] = source ?? "", ["files"] = hashes });
         });
@@ -310,7 +328,6 @@ public static class Core
         var required = new List<string> { "zz_live_translator.rpy" };
         if (bundled) required.AddRange(["zz_live_translator_camp_buddy.rpy", "live_translator/pretranslated.jsonl"]);
         if (custom) required.Add("live_translator/pretranslated.jsonl");
-        if (FontPreset(ReadString(Config(root), "font")) == 0) required.Add("live_translator/fonts/HarmonyOS_Sans_SC.ttf");
         if (required.Any(key => !hashes.ContainsKey(key))) return Damaged();
         int changed = 0;
         foreach (var pair in hashes)

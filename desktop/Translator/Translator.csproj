@@ -12,11 +12,9 @@
     <Content Include="../../game/**/*.rpy" Link="Resources/game/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <!-- 只发布明确内置的游戏译文，不能按整个 translations 目录递归收集私人汉化包。 -->
     <Content Include="../../translations/camp-buddy-scoutmaster/*.jsonl" Link="Resources/translations/camp-buddy-scoutmaster/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="../../fonts/**" Link="Resources/fonts/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../config.default.json;../../packaging/version.txt;../../LICENSE" Link="Resources/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="ThirdParty/*" Link="Resources/licenses/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
-  <ItemGroup><Content Update="../../fonts/**" CopyToPublishDirectory="Always" ExcludeFromSingleFile="true" /></ItemGroup>
   <ItemGroup>
     <PackageReference Include="Markdig" Version="1.3.2" />
   </ItemGroup>

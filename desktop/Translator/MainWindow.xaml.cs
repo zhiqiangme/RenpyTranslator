@@ -121,7 +121,12 @@ public partial class MainWindow : Window
         var customDirectory = Pack.SelectedIndex == 2 ? Core.TranslationDirectory(CustomPackDirectory.Text) : null;
         if (bundled && MessageBox.Show(this, "确认所选游戏是 Camp Buddy Scoutmaster Season？专属译文将覆盖已有预译文，并保存备份。", "安装专属译文", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
         if (customDirectory is not null && MessageBox.Show(this, "将导入所选文件夹及子目录中的全部 JSONL，替换游戏已有预译文并保存备份。确认这些译文适用于当前游戏？\n\n" + customDirectory, "安装自定义汉化包", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
-        var font = FontChoice.SelectedIndex == 3 ? Core.ReadString(next, "font") : FontChoice.SelectedIndex == 0 ? "HarmonyOS" : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), FontChoice.SelectedIndex == 1 ? "msyh.ttc" : "simsun.ttc");
+        // 预设 0 由 Core 选择本机可用的默认系统字体（优先黑体）；3 沿用已保存的自定义字体路径。
+        var font = FontChoice.SelectedIndex == 3
+            ? Core.ReadString(next, "font")
+            : FontChoice.SelectedIndex == 0
+                ? Core.DefaultFont()
+                : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), Core.SystemFonts[FontChoice.SelectedIndex]);
         Log("正在校验资源并安装…"); var count = await Task.Run(() => Core.Install(root, next, bundled, font, customDirectory)); await LoadGame(); Log($"安装完成，导入 {count} 条译文。请重新启动游戏。");
     });
     private async void Uninstall(object sender, RoutedEventArgs e) => await Run(async () =>
