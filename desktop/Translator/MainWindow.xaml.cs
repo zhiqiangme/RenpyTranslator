@@ -42,6 +42,8 @@ public partial class MainWindow : Window
         ResourceVersion.Text = "内置资源 " + File.ReadAllText(Path.Combine(Core.Resources, "version.txt")).Trim();
         ManagerVersion.Text = "管理器 " + Core.ManagerVersion + " · Windows x64";
         ShowConfig();
+        // 提示开关只影响成功提示；报错提示不受它控制。
+        NoticeInstallSuccess.IsChecked = !Core.HintHidden(Core.InstallSuccessHint);
         Closing += (_, e) => { if (busy) { e.Cancel = true; StatusText.Text = "请等待当前操作完成。"; } };
     }
     private string Root() => Core.Game(Games.Text);
@@ -57,6 +59,13 @@ public partial class MainWindow : Window
         try { await work(); }
         catch (Exception ex) { var message = ex is HttpRequestException ? "网络请求失败，请检查网络与服务地址。" : ex is TaskCanceledException ? "请求超时，请稍后重试。" : ex.Message; Log(message); MessageBox.Show(this, message, "操作未完成", MessageBoxButton.OK, MessageBoxImage.Warning); }
         finally { busy = false; Pages.IsEnabled = true; Progress.Visibility = Visibility.Collapsed; }
+    }
+    private void NoticeChanged(object sender, RoutedEventArgs e)
+    {
+        // 初始化赋值也会触发该事件，界面加载完成后才处理用户操作。
+        if (!IsLoaded) return;
+        Core.SetHintHidden(Core.InstallSuccessHint, NoticeInstallSuccess.IsChecked != true);
+        Log(NoticeInstallSuccess.IsChecked == true ? "汉化成功提示已开启。" : "汉化成功提示已关闭；报错提示仍会弹出。");
     }
     private void ShowConfig()
     {
@@ -132,13 +141,14 @@ public partial class MainWindow : Window
         catch (Exception error)
         {
             Log("汉化失败：" + error.Message);
-            MessageBox.Show(this, "汉化失败：\n\n" + error.Message + "\n\n写入前已备份，失败时会自动恢复原文件；可修正后重试。", "汉化失败", MessageBoxButton.OK, MessageBoxImage.Error);
+            // 报错提示不提供“不再提醒”，必须让用户看到。
+            NoticeDialog.Show(this, "汉化失败", "汉化失败", error.Message + "\n\n写入前已备份，失败时会自动恢复原文件；可修正后重试。", error: true);
             return;
         }
         await LoadGame();
         var imported = count > 0 ? $"已导入 {count} 条译文。" : "模组文件已更新。";
         Log("汉化成功。" + imported);
-        MessageBox.Show(this, $"汉化成功！\n\n{imported}\n请重新启动游戏后生效。\n\n提示：游戏运行时无需打开本管理器，它只在安装、升级或修复汉化时使用。", "汉化成功", MessageBoxButton.OK, MessageBoxImage.Information);
+        NoticeDialog.Show(this, "汉化成功", "汉化成功！", $"{imported}\n请重新启动游戏后生效。\n\n提示：游戏运行时无需打开本管理器，它只在安装、升级或修复汉化时使用。", Core.InstallSuccessHint);
     });
     private async void Uninstall(object sender, RoutedEventArgs e) => await Run(async () =>
     {
