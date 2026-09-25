@@ -53,11 +53,33 @@ internal static class Program
             var recovery = new List<string>();
             foreach (var (path, saved) in originals)
                 try { if (saved is null) { if (File.Exists(path)) File.Delete(path); } else File.Copy(saved, path, true); } catch { recovery.Add(path); }
-            if (!testing) MessageBox(IntPtr.Zero, "更新失败：" + ex.Message + (recovery.Count == 0 ? "\n已恢复被修改文件。" : "\n部分文件未能恢复，请使用更新目录中的 previous 备份：\n" + string.Join("\n", recovery)), "Ren'Py 汉化管理器", 0x10); return 1;
+            if (!testing) MessageBox(IntPtr.Zero, "更新失败：" + Explain(ex) + (recovery.Count == 0 ? "\n已恢复被修改文件。" : "\n部分文件未能恢复，请使用更新目录中的 previous 备份：\n" + string.Join("\n", recovery)), "Ren'Py 汉化管理器", 0x10); return 1;
         }
         finally { lease?.Dispose(); }
     }
     private static bool testing;
+    // 系统异常原文是英文，统一转换成中文提示；未知错误附带技术信息便于排查。
+    private static string Explain(Exception error)
+    {
+        var message = error.Message.Trim();
+        if (StartsWithChinese(message)) return message;
+        var hint = error switch
+        {
+            UnauthorizedAccessException => "没有访问权限，请确认程序目录可写、文件未被占用。",
+            DirectoryNotFoundException => "目录不存在，可能已被移动或删除。",
+            FileNotFoundException => "文件不存在，可能已被移动或删除。",
+            PathTooLongException => "路径过长，请把程序安装到更短的位置后重试。",
+            ArgumentException => "更新参数无效。",
+            IOException => "文件读写失败，请确认管理器已关闭且目录可写。",
+            _ => "操作失败，请重试。"
+        };
+        return hint + (message.Length == 0 ? "" : "（技术信息：" + message + "）");
+    }
+    private static bool StartsWithChinese(string text)
+    {
+        foreach (var ch in text) { if (char.IsWhiteSpace(ch)) continue; return ch >= '\u4e00' && ch <= '\u9fff'; }
+        return false;
+    }
     // 与管理器自检一致：tests 下的模拟目录按创建时间只保留最近若干份，避免逐次自检无限堆积。
     private const int TestRetention = 4;
     /// <summary>按创建时间删除超出保留份数的旧测试目录；失败一律忽略，不影响自检流程。</summary>

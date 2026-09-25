@@ -57,7 +57,7 @@ public partial class MainWindow : Window
     {
         if (busy) return; busy = true; Pages.IsEnabled = false; Progress.Visibility = Visibility.Visible;
         try { await work(); }
-        catch (Exception ex) { var message = ex is HttpRequestException ? "网络请求失败，请检查网络与服务地址。" : ex is TaskCanceledException ? "请求超时，请稍后重试。" : ex.Message; Log(message); MessageBox.Show(this, message, "操作未完成", MessageBoxButton.OK, MessageBoxImage.Warning); }
+        catch (Exception ex) { var message = Core.Explain(ex); Log(message); MessageBox.Show(this, message, "操作未完成", MessageBoxButton.OK, MessageBoxImage.Warning); }
         finally { busy = false; Pages.IsEnabled = true; Progress.Visibility = Visibility.Collapsed; }
     }
     private void NoticeChanged(object sender, RoutedEventArgs e)
@@ -77,21 +77,21 @@ public partial class MainWindow : Window
     }
     private JsonObject Form()
     {
-        if (loadedRoot != Root()) throw new IOException("请先点击读取 / 检查状态，以免将其他游戏的配置写入此目录。");
+        if (loadedRoot != Root()) throw new UserError("请先点击读取 / 检查状态，以免将其他游戏的配置写入此目录。");
         var next = config.DeepClone().AsObject();
         if (!Uri.TryCreate(BaseUrl.Text.Trim(), UriKind.Absolute, out var uri) || (uri.Scheme != "https" && !(uri.Scheme == "http" && uri.IsLoopback)) || uri.UserInfo.Length != 0 || uri.Query.Length != 0 || uri.Fragment.Length != 0)
-            throw new IOException("API 地址需使用 HTTPS；本机服务可使用 HTTP。地址不能包含账号、查询参数或片段。");
-        if (string.IsNullOrWhiteSpace(Model.Text)) throw new IOException("请填写模型名称。");
+            throw new UserError("API 地址需使用 HTTPS；本机服务可使用 HTTP。地址不能包含账号、查询参数或片段。");
+        if (string.IsNullOrWhiteSpace(Model.Text)) throw new UserError("请填写模型名称。");
         next["base_url"] = BaseUrl.Text.Trim().TrimEnd('/'); next["model"] = Model.Text.Trim();
         foreach (var (key, box) in fields)
         {
-            if (key == "system_prompt") { if (string.IsNullOrWhiteSpace(box.Text)) throw new IOException("提示词不能为空。"); next[key] = box.Text; }
+            if (key == "system_prompt") { if (string.IsNullOrWhiteSpace(box.Text)) throw new UserError("提示词不能为空。"); next[key] = box.Text; }
             else if (key is "protected_names" or "skip_patterns")
             {
                 next[key] = Core.StringArray(box.Text, key);
             }
-            else if (key == "temperature") { if (!double.TryParse(box.Text, System.Globalization.CultureInfo.InvariantCulture, out var number) || !double.IsFinite(number) || number < 0 || number > 2) throw new IOException("温度应在 0 到 2 之间。"); next[key] = number; }
-            else { if (!int.TryParse(box.Text, out var number) || number < 1 || number > 100000) throw new IOException("数值参数应为 1 到 100000 的整数。"); next[key] = number; }
+            else if (key == "temperature") { if (!double.TryParse(box.Text, System.Globalization.CultureInfo.InvariantCulture, out var number) || !double.IsFinite(number) || number < 0 || number > 2) throw new UserError("温度应在 0 到 2 之间。"); next[key] = number; }
+            else { if (!int.TryParse(box.Text, out var number) || number < 1 || number > 100000) throw new UserError("数值参数应为 1 到 100000 的整数。"); next[key] = number; }
         }
         foreach (var (key, box) in flags) next[key] = box.IsChecked == true;
         Core.NormalizeKey(next, ApiKey.Password, ClearKey.IsChecked == true); return next;
@@ -140,9 +140,10 @@ public partial class MainWindow : Window
         try { count = await Task.Run(() => Core.Install(root, next, bundled, font, customDirectory)); }
         catch (Exception error)
         {
-            Log("汉化失败：" + error.Message);
+            var reason = Core.Explain(error);
+            Log("汉化失败：" + reason);
             // 报错提示不提供“不再提醒”，必须让用户看到。
-            NoticeDialog.Show(this, "汉化失败", "汉化失败", error.Message + "\n\n写入前已备份，失败时会自动恢复原文件；可修正后重试。", error: true);
+            NoticeDialog.Show(this, "汉化失败", "汉化失败", reason + "\n\n写入前已备份，失败时会自动恢复原文件；可修正后重试。", error: true);
             return;
         }
         await LoadGame();
@@ -176,7 +177,7 @@ public partial class MainWindow : Window
         var result = await Task.Run(() => Core.Merge(directory, custom));
         Log($"{(custom ? "自定义汉化包" : "内置译文")}校验通过：{result.Count} 条译文，无重复原文。");
     });
-    private async void ExportCache(object sender, RoutedEventArgs e) => await Run(() => { var path = Path.Combine(Core.Data(Root()), "cache.jsonl"); if (!File.Exists(path)) throw new IOException("当前没有缓存。"); var dialog = new SaveFileDialog { FileName = "cache-export.jsonl", Filter = "JSONL|*.jsonl" }; if (dialog.ShowDialog(this) == true) { File.Copy(path, dialog.FileName, true); Log("缓存已导出。"); } return Task.CompletedTask; });
+    private async void ExportCache(object sender, RoutedEventArgs e) => await Run(() => { var path = Path.Combine(Core.Data(Root()), "cache.jsonl"); if (!File.Exists(path)) throw new UserError("当前没有缓存。"); var dialog = new SaveFileDialog { FileName = "cache-export.jsonl", Filter = "JSONL|*.jsonl" }; if (dialog.ShowDialog(this) == true) { File.Copy(path, dialog.FileName, true); Log("缓存已导出。"); } return Task.CompletedTask; });
     private async void ClearCache(object sender, RoutedEventArgs e) => await Run(async () => { var root = Root(); if (MessageBox.Show(this, "备份并清空运行时缓存？已有预译文仍会保留。", "清空缓存", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return; await Task.Run(() => Core.Transaction(root, ["live_translator/cache.jsonl"], () => Core.AtomicWrite(Path.Combine(Core.Data(root), "cache.jsonl"), ""))); Log("缓存已备份并清空。"); });
     private void OpenDirectory(string path) { Directory.CreateDirectory(path); Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); }
     private async void OpenGame(object sender, RoutedEventArgs e) => await Run(() => { OpenDirectory(Root()); return Task.CompletedTask; });
@@ -252,7 +253,7 @@ public static class Api
 {
     public static async Task Test(JsonObject config)
     {
-        var secret = Core.ReadString(config, "api_key_encrypted"); if (secret.Length == 0) throw new IOException("请填写 API Key。");
+        var secret = Core.ReadString(config, "api_key_encrypted"); if (secret.Length == 0) throw new UserError("请填写 API Key。");
         using var client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(Math.Clamp(config["request_timeout_seconds"]!.GetValue<int>(), 1, 300)) };
         var url = Core.ReadString(config, "base_url").TrimEnd('/'); if (!url.EndsWith("/chat/completions")) url += "/chat/completions";
         using var request = new HttpRequestMessage(HttpMethod.Post, url); request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", Secret.Unprotect(secret));
@@ -260,7 +261,7 @@ public static class Api
         if (config["json_response_format"]!.GetValue<bool>()) payload["response_format"] = new JsonObject { ["type"] = "json_object" };
         request.Content = new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json");
         using var response = await client.SendAsync(request);
-        if (!response.IsSuccessStatusCode) throw new IOException($"API 返回 HTTP {(int)response.StatusCode}。401/403：鉴权或权限；404：地址或模型；429：配额或限流。请核对服务商控制台。");
+        if (!response.IsSuccessStatusCode) throw new UserError($"API 返回 HTTP {(int)response.StatusCode}。401/403：鉴权或权限；404：地址或模型；429：配额或限流。请核对服务商控制台。");
         try
         {
             var node = JsonNode.Parse(await response.Content.ReadAsStringAsync())!["choices"]![0]!["message"]!["content"]!;
@@ -269,6 +270,6 @@ public static class Api
             var translations = JsonNode.Parse(content[start..(end + 1)])!["translations"]!.AsArray();
             if (translations.Count != 1 || string.IsNullOrWhiteSpace(translations[0]!.GetValue<string>())) throw new FormatException();
         }
-        catch { throw new IOException("连接成功，但响应不是模组要求的 translations JSON 数组。"); }
+        catch { throw new UserError("连接成功，但响应不是模组要求的 translations JSON 数组。"); }
     }
 }

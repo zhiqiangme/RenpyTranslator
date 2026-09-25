@@ -91,7 +91,7 @@ internal static class MarkdownView
                         hyperlink.RequestNavigate += (_, args) =>
                         {
                             try { Process.Start(new ProcessStartInfo(args.Uri.AbsoluteUri) { UseShellExecute = true }); }
-                            catch (Exception ex) { MessageBox.Show("无法打开链接：" + ex.Message); }
+                            catch (Exception) { MessageBox.Show("无法打开链接，请检查系统默认浏览器设置。"); }
                             args.Handled = true;
                         };
                         target.Add(hyperlink);

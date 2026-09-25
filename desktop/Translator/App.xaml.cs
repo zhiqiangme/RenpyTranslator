@@ -19,7 +19,7 @@ public partial class App : Application
         {
             var log = Path.Combine(Core.Home, "error.log");
             try { Directory.CreateDirectory(Core.Home); File.WriteAllText(log, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}]{Environment.NewLine}{args.Exception}"); } catch { }
-            MessageBox.Show($"程序遇到错误并已停止。详细信息见：{log}{Environment.NewLine}{Environment.NewLine}{args.Exception.Message}", "Ren'Py 汉化管理器", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show($"程序遇到错误并已停止。详细信息见：{log}{Environment.NewLine}{Environment.NewLine}{Core.Explain(args.Exception)}", "Ren'Py 汉化管理器", MessageBoxButton.OK, MessageBoxImage.Error);
             args.Handled = true;
             Environment.Exit(1);
         };
