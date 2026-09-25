@@ -26,6 +26,22 @@ public static class Core
         try { return JsonNode.Parse(File.ReadAllText(path)) as JsonObject ?? throw new IOException($"配置文件必须是 JSON 对象：{Path.GetFileName(path)}"); }
         catch (JsonException ex) { throw new IOException($"配置 JSON 错误：{Path.GetFileName(path)}，第 {(ex.LineNumber ?? 0) + 1} 行。", ex); }
     }
+    // 界面提示开关（“不再提醒”）与游戏配置分离，单独保存在用户数据目录。
+    public const string InstallSuccessHint = "install_success";
+    /// <summary>读取“不再提醒”开关；文件缺失或损坏都按未勾选处理，不阻塞界面。</summary>
+    public static bool HintHidden(string key) => HintHidden(Path.Combine(Home, "settings.json"), key);
+    internal static bool HintHidden(string path, string key)
+    {
+        try { return File.Exists(path) && ReadJson(path)[key]?.GetValue<bool>() == true; }
+        catch (Exception) { return false; }
+    }
+    public static void SetHintHidden(string key, bool hidden) => SetHintHidden(Path.Combine(Home, "settings.json"), key, hidden);
+    internal static void SetHintHidden(string path, string key, bool hidden)
+    {
+        JsonObject settings;
+        try { settings = File.Exists(path) ? ReadJson(path) : new JsonObject(); } catch (Exception) { settings = new JsonObject(); }
+        settings[key] = hidden; WriteJson(path, settings);
+    }
     public static JsonArray StringArray(string text, string key)
     {
         var label = key == "skip_patterns" ? "跳过规则" : "保护人名";

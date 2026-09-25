@@ -66,6 +66,9 @@ public static class SelfTest
             var focusStyle = (System.Windows.Style)System.Windows.Application.Current.FindResource(System.Windows.SystemParameters.FocusVisualStyleKey);
             var focusTemplate = (System.Windows.Controls.ControlTemplate)focusStyle.Setters.OfType<System.Windows.Setter>().Single(s => s.Property == System.Windows.Controls.Control.TemplateProperty).Value;
             Assert(focusTemplate.LoadContent() is null, "Default keyboard focus visual has no dotted border");
+            // 弹窗 XAML 只在运行时解析，构造一次可提前发现资源键或控件缺失。
+            var notice = new NoticeDialog();
+            Assert(notice.Headline.Text.Length > 0 && notice.Never.Visibility == System.Windows.Visibility.Collapsed, "Notice dialog loads its XAML with the do-not-remind box hidden by default");
             Directory.CreateDirectory(Path.Combine(root, "game")); Directory.CreateDirectory(Path.Combine(root, "renpy"));
             Assert(Core.Game(root + "\\") == root && Core.Game(root + "/") == root, "Normalize trailing game separators");
             Assert(Core.IsInside("D:\\", "D:\\game\\test.exe") && !Core.IsInside(root, root + "-other\\test.exe"), "Path containment handles drive roots and sibling prefixes");
@@ -190,6 +193,13 @@ public static class SelfTest
             Assert(Core.FontPreset("") == 0 && Core.FontPreset(Core.LegacyBundledFont) == 0 && Core.FontPreset(Path.Combine(fontFolder, "SIMHEI.TTF")) == 0 && Core.FontPreset(Path.Combine(fontFolder, "MSYH.TTC")) == 0, "Default preset is the system Microsoft YaHei font");
             Assert(Core.FontPreset(Path.Combine(fontFolder, "SIMSUN.TTC")) == 1 && Core.FontPreset(Path.Combine(fontFolder, "Deng.ttf")) == 2 && Core.FontPreset(Path.Combine(fontFolder, "SIMKAI.TTF")) == 3, "System font presets ignore case");
             Assert(Core.SystemFont(1) == Path.Combine(fontFolder, "simsun.ttc").Replace('\\', '/') && Core.SystemFont(99) == Core.DefaultFont(), "Preset index maps to a system font path with default fallback");
+            // “不再提醒”开关：文件缺失或损坏都按未勾选处理，写入后按键读回。
+            var settingsFile = Path.Combine(root, "settings.json");
+            Assert(!Core.HintHidden(settingsFile, Core.InstallSuccessHint), "Missing settings file shows the notice");
+            File.WriteAllText(settingsFile, "{broken");
+            Assert(!Core.HintHidden(settingsFile, Core.InstallSuccessHint), "Damaged settings file shows the notice");
+            Core.SetHintHidden(settingsFile, Core.InstallSuccessHint, true);
+            Assert(Core.HintHidden(settingsFile, Core.InstallSuccessHint) && !Core.HintHidden(settingsFile, "other"), "Suppression flag persists per key");
             Core.Install(root, Core.Config(root), false, customFont);
             Assert(Core.ReadString(Core.Config(root), "font") == customFont, "Install preserves relative custom font path");
             Core.Install(root, Core.Config(root), true, customFont);

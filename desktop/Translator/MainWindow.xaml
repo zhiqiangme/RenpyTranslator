@@ -272,6 +272,14 @@
        </StackPanel>
       </Border>
 
+      <Border Style="{StaticResource Card}" Margin="0,0,0,14">
+       <StackPanel>
+        <TextBlock Text="提示设置" Style="{StaticResource SectionTitle}"/>
+        <CheckBox x:Name="NoticeInstallSuccess" Content="汉化成功后弹出结果提示" Checked="NoticeChanged" Unchecked="NoticeChanged"/>
+        <TextBlock Style="{StaticResource Hint}" Text="取消勾选等同于在成功提示里选择“不再提醒”；报错提示始终弹出，不受此选项影响。"/>
+       </StackPanel>
+      </Border>
+
       <Border Style="{StaticResource Card}">
        <StackPanel>
         <TextBlock Text="操作日志" Style="{StaticResource SectionTitle}"/>

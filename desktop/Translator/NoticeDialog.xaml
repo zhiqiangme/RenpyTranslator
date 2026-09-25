@@ -1,0 +1,14 @@
+<Window x:Class="RenpyTranslator.NoticeDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="提示" Width="450" SizeToContent="Height" ResizeMode="NoResize" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner" Background="{StaticResource WindowBrush}"
+        FontFamily="Microsoft YaHei UI" FontSize="{StaticResource FontBody}"
+        UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
+ <StackPanel Margin="26,22,26,20">
+  <TextBlock x:Name="Headline" Text="提示" FontSize="17" FontWeight="SemiBold"/>
+  <TextBlock x:Name="Body" TextWrapping="Wrap" Margin="0,12,0,0" Foreground="{StaticResource TextPrimaryBrush}"/>
+  <CheckBox x:Name="Never" Content="不再提醒" Margin="0,18,0,0" Visibility="Collapsed"/>
+  <Button x:Name="Confirm" Content="知道了" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right" MinWidth="96" Margin="0,18,0,0" IsDefault="True" IsCancel="True" Click="Confirm_Click"/>
+ </StackPanel>
+</Window>
