@@ -149,7 +149,7 @@ public partial class MainWindow : Window
         await LoadGame();
         var imported = count > 0 ? $"已导入 {count} 条译文。" : "模组文件已更新。";
         Log("汉化成功。" + imported);
-        NoticeDialog.Show(this, "汉化成功", "汉化成功！", $"{imported}\n请重新启动游戏后生效。\n\n提示：游戏运行时无需打开本管理器，它只在安装、升级或修复汉化时使用。", Core.InstallSuccessHint);
+        NoticeDialog.Show(this, "汉化成功", "汉化成功！", $"{imported}\n请重新启动游戏后生效。", Core.InstallSuccessHint, tip: "游戏运行时无需打开本管理器，它只在安装、升级或修复汉化时使用。");
     });
     private async void Uninstall(object sender, RoutedEventArgs e) => await Run(async () =>
     {

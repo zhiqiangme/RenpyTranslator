@@ -8,6 +8,8 @@
  <StackPanel Margin="26,22,26,20">
   <TextBlock x:Name="Headline" Text="提示" FontSize="17" FontWeight="SemiBold"/>
   <TextBlock x:Name="Body" TextWrapping="Wrap" Margin="0,12,0,0" Foreground="{StaticResource TextPrimaryBrush}"/>
+  <!-- 提示段落独立成块并加粗，与结果正文区分，突出使用提醒；无提示时整体折叠。 -->
+  <TextBlock x:Name="Tip" TextWrapping="Wrap" Margin="0,14,0,0" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" Visibility="Collapsed"/>
   <CheckBox x:Name="Never" Content="不再提醒" Margin="0,18,0,0" Visibility="Collapsed"/>
   <Button x:Name="Confirm" Content="知道了" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right" MinWidth="96" Margin="0,18,0,0" IsDefault="True" IsCancel="True" Click="Confirm_Click"/>
  </StackPanel>
