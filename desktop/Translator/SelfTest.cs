@@ -83,7 +83,7 @@ public static class SelfTest
             var data = Core.Data(root); Directory.CreateDirectory(data);
             // 新版不再随包分发字体：自检使用本机系统字体，缺失时退回默认解析结果，不依赖具体机型。
             var fontFolder = Environment.GetFolderPath(Environment.SpecialFolder.Fonts);
-            var systemFont = new[] { "simhei.ttf", "msyh.ttc", "simsun.ttc", "segoeui.ttf" }.Select(name => Path.Combine(fontFolder, name)).FirstOrDefault(File.Exists) ?? Core.DefaultFont();
+            var systemFont = Core.SystemFonts.Append("segoeui.ttf").Select(name => Path.Combine(fontFolder, name)).FirstOrDefault(File.Exists) ?? Core.DefaultFont();
             var config = Core.Defaults(); Core.NormalizeKey(config, "test-secret-本机");
             Assert(Secret.Unprotect(Core.ReadString(config, "api_key_encrypted")) == "test-secret-本机", "DPAPI round trip");
             Core.AtomicWrite(Path.Combine(root, "game", "story.rpy"), "original game");
@@ -185,10 +185,11 @@ public static class SelfTest
             var customFontDirectory = Path.GetDirectoryName(Path.Combine(root, "game", customFont))!;
             Directory.CreateDirectory(customFontDirectory);
             File.WriteAllText(Path.Combine(root, "game", customFont), "font fixture");
-            Assert(Core.FontPreset(customFont) == 3 && Core.FontPreset("C:/custom/SIMSUN.ttf") == 3, "Custom font names do not match presets");
-            // 默认预设为系统黑体；空值与旧版内置字体路径都归入该预设，系统字体匹配忽略大小写。
-            Assert(Core.FontPreset("") == 0 && Core.FontPreset(Core.LegacyBundledFont) == 0 && Core.FontPreset(Path.Combine(fontFolder, "SIMHEI.TTF")) == 0, "Default preset is the system SimHei font");
-            Assert(Core.FontPreset(Path.Combine(fontFolder, "MSYH.TTC")) == 1 && Core.FontPreset(Path.Combine(fontFolder, "SIMSUN.TTC")) == 2, "System font presets ignore case");
+            Assert(Core.FontPreset(customFont) == Core.CustomFontPreset && Core.FontPreset("C:/custom/SIMSUN.ttf") == Core.CustomFontPreset, "Custom font names do not match presets");
+            // 默认预设为微软雅黑；空值、旧版内置鸿蒙字体和历史默认的黑体都归入该预设。
+            Assert(Core.FontPreset("") == 0 && Core.FontPreset(Core.LegacyBundledFont) == 0 && Core.FontPreset(Path.Combine(fontFolder, "SIMHEI.TTF")) == 0 && Core.FontPreset(Path.Combine(fontFolder, "MSYH.TTC")) == 0, "Default preset is the system Microsoft YaHei font");
+            Assert(Core.FontPreset(Path.Combine(fontFolder, "SIMSUN.TTC")) == 1 && Core.FontPreset(Path.Combine(fontFolder, "Deng.ttf")) == 2 && Core.FontPreset(Path.Combine(fontFolder, "SIMKAI.TTF")) == 3, "System font presets ignore case");
+            Assert(Core.SystemFont(1) == Path.Combine(fontFolder, "simsun.ttc").Replace('\\', '/') && Core.SystemFont(99) == Core.DefaultFont(), "Preset index maps to a system font path with default fallback");
             Core.Install(root, Core.Config(root), false, customFont);
             Assert(Core.ReadString(Core.Config(root), "font") == customFont, "Install preserves relative custom font path");
             Core.Install(root, Core.Config(root), true, customFont);

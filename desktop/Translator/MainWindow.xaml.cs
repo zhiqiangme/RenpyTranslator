@@ -93,10 +93,10 @@ public partial class MainWindow : Window
         config = result.Item1; loadedRoot = root; GameStatus.Text = result.Item2.Status; ShowConfig();
         CustomPackDirectory.Text = result.Item2.CustomDirectory;
         Pack.SelectedIndex = result.Item2.Bundled ? 1 : result.Item2.CustomPack ? 2 : 0;
-        var font = Core.ReadString(config, "font");
-        if (FontChoice.Items.Count > 3) FontChoice.Items.RemoveAt(3);
-        if (Core.FontPreset(font) == 3) FontChoice.Items.Add(new ComboBoxItem { Content = "保留自定义字体：" + font, ToolTip = font });
-        FontChoice.SelectedIndex = Core.FontPreset(font);
+        var font = Core.ReadString(config, "font"); var preset = Core.FontPreset(font);
+        if (FontChoice.Items.Count > Core.CustomFontPreset) FontChoice.Items.RemoveAt(Core.CustomFontPreset);
+        if (preset == Core.CustomFontPreset) FontChoice.Items.Add(new ComboBoxItem { Content = "保留自定义字体：" + font, ToolTip = font });
+        FontChoice.SelectedIndex = preset;
         if (!Games.Items.Contains(root)) Games.Items.Add(root);
         Core.AtomicWrite(Path.Combine(Core.Home, "games.json"), new JsonArray(Games.Items.Cast<string>().Select(s => (JsonNode?)JsonValue.Create(s)).ToArray()).ToJsonString());
         Log(result.Item2.Status);
@@ -121,12 +121,10 @@ public partial class MainWindow : Window
         var customDirectory = Pack.SelectedIndex == 2 ? Core.TranslationDirectory(CustomPackDirectory.Text) : null;
         if (bundled && MessageBox.Show(this, "确认所选游戏是 Camp Buddy Scoutmaster Season？专属译文将覆盖已有预译文，并保存备份。", "安装专属译文", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
         if (customDirectory is not null && MessageBox.Show(this, "将导入所选文件夹及子目录中的全部 JSONL，替换游戏已有预译文并保存备份。确认这些译文适用于当前游戏？\n\n" + customDirectory, "安装自定义汉化包", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
-        // 预设 0 由 Core 选择本机可用的默认系统字体（优先黑体）；3 沿用已保存的自定义字体路径。
-        var font = FontChoice.SelectedIndex == 3
+        // 自定义项沿用已保存的字体路径；系统预设交给 Core 解析，预设 0 优先雅黑并在缺失时回退。
+        var font = FontChoice.SelectedIndex == Core.CustomFontPreset
             ? Core.ReadString(next, "font")
-            : FontChoice.SelectedIndex == 0
-                ? Core.DefaultFont()
-                : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), Core.SystemFonts[FontChoice.SelectedIndex]);
+            : Core.SystemFont(FontChoice.SelectedIndex);
         Log("正在校验资源并安装…"); var count = await Task.Run(() => Core.Install(root, next, bundled, font, customDirectory)); await LoadGame(); Log($"安装完成，导入 {count} 条译文。请重新启动游戏。");
     });
     private async void Uninstall(object sender, RoutedEventArgs e) => await Run(async () =>
