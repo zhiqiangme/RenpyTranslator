@@ -9,7 +9,7 @@ namespace RenpyTranslator;
 
 public static class SelfTest
 {
-    // tests 目录留存每次自检的模拟游戏目录供排查，单份约 25MB（主要是内置字体副本），
+    // tests 目录留存每次自检的模拟游戏目录供排查（含译文与备份副本，单份约数 MB），
     // 不设上限会随自检次数无限堆积，故按创建时间只保留最近若干份（约两轮 Publish 产物）。
     private const int TestRetention = 4;
     /// <summary>按创建时间删除超出保留份数的旧测试目录；失败一律忽略，不影响自检流程。</summary>
@@ -81,11 +81,14 @@ public static class SelfTest
                 finally { if (!process.HasExited) process.Kill(); process.WaitForExit(); }
             }
             var data = Core.Data(root); Directory.CreateDirectory(data);
+            // 新版不再随包分发字体：自检使用本机系统字体，缺失时退回默认解析结果，不依赖具体机型。
+            var fontFolder = Environment.GetFolderPath(Environment.SpecialFolder.Fonts);
+            var systemFont = new[] { "simhei.ttf", "msyh.ttc", "simsun.ttc", "segoeui.ttf" }.Select(name => Path.Combine(fontFolder, name)).FirstOrDefault(File.Exists) ?? Core.DefaultFont();
             var config = Core.Defaults(); Core.NormalizeKey(config, "test-secret-本机");
             Assert(Secret.Unprotect(Core.ReadString(config, "api_key_encrypted")) == "test-secret-本机", "DPAPI round trip");
             Core.AtomicWrite(Path.Combine(root, "game", "story.rpy"), "original game");
             Core.AtomicWrite(Path.Combine(data, "cache.jsonl"), "private cache");
-            Core.Install(root, config, false, "HarmonyOS");
+            Core.Install(root, config, false, systemFont);
             Assert(Core.Status(root).Contains("文件完整"), "Install and hash verification");
             Assert(!File.Exists(Path.Combine(data, "pretranslated.jsonl")), "Generic install excludes game-specific translations");
             var installedScript = Path.Combine(root, "game", "zz_live_translator.rpy");
@@ -98,9 +101,9 @@ public static class SelfTest
                 var state = Core.InspectInstallation(root);
                 Assert(state.Status.Contains("可直接安装 / 修复") && !state.Status.Contains("文件完整"), "Damaged manifest remains loadable for repair: " + invalid);
             }
-            Core.Install(root, Core.Config(root), false, "HarmonyOS");
+            Core.Install(root, Core.Config(root), false, systemFont);
             Assert(Core.Status(root).Contains("文件完整") && Secret.Unprotect(Core.ReadString(Core.Config(root), "api_key_encrypted")) == "test-secret-本机", "Repair malformed manifest preserves valid configuration");
-            foreach (var required in new[] { "zz_live_translator.rpy", "live_translator/fonts/HarmonyOS_Sans_SC.ttf" })
+            foreach (var required in new[] { "zz_live_translator.rpy" })
             {
                 var incomplete = JsonNode.Parse(validManifest)!.AsObject(); incomplete["files"]!.AsObject().Remove(required);
                 Core.WriteJson(manifest, incomplete);
@@ -128,7 +131,7 @@ public static class SelfTest
             var before = File.ReadAllBytes(Path.Combine(data, "config.json"));
             try { Core.Transaction(root, ["live_translator/config.json", "failure.txt"], () => { File.WriteAllText(Path.Combine(data, "config.json"), "broken"); File.WriteAllText(Path.Combine(root, "game", "failure.txt"), "new"); throw new IOException("injected failure"); }); } catch (IOException) { }
             Assert(before.SequenceEqual(File.ReadAllBytes(Path.Combine(data, "config.json"))) && !File.Exists(Path.Combine(root, "game", "failure.txt")), "Transaction rollback restores exact bytes");
-            var count = Core.Install(root, Core.Config(root), true, "HarmonyOS"); Assert(count > 0, "Bundled translations validation and install");
+            var count = Core.Install(root, Core.Config(root), true, systemFont); Assert(count > 0, "Bundled translations validation and install");
             Assert(File.ReadAllText(confirmScript).Contains("screen confirm(") && Core.Status(root).Contains("文件完整"), "Bundled confirm is installed and hashed");
             var bundledManifest = File.ReadAllText(manifest);
             foreach (var required in new[] { "zz_live_translator_camp_buddy.rpy", "live_translator/pretranslated.jsonl" })
@@ -146,35 +149,46 @@ public static class SelfTest
             File.WriteAllText(firstPart, firstLine); File.WriteAllText(secondPart, secondLine);
             File.WriteAllText(Path.Combine(customPack, "README.txt"), "not a translation");
             var originalPretranslation = File.ReadAllBytes(Path.Combine(data, "pretranslated.jsonl"));
-            Assert(Core.Install(root, Core.Config(root), false, "HarmonyOS", customPack) == 2, "Custom folder recursively imports JSONL only");
+            Assert(Core.Install(root, Core.Config(root), false, systemFont, customPack) == 2, "Custom folder recursively imports JSONL only");
             var customState = Core.InspectInstallation(root);
             Assert(customState.CustomPack && customState.CustomDirectory == customPack && customState.Status.Contains("文件完整"), "Custom pack selection and folder persist with hash verification");
             Assert(!File.Exists(confirmScript) && File.ReadAllText(firstPart) == firstLine && File.ReadAllText(secondPart) == secondLine, "Custom pack preserves source files and original game screen");
             Assert(Directory.GetFiles(Path.Combine(Core.Home, "backups"), "pretranslated.jsonl", SearchOption.AllDirectories).Any(path => File.ReadAllBytes(path).SequenceEqual(originalPretranslation)), "Custom replacement backs up previous translations");
             var installedBeforeInvalid = File.ReadAllBytes(Path.Combine(data, "pretranslated.jsonl"));
             File.WriteAllText(secondPart, firstLine);
-            Reject(() => Core.Install(root, Core.Config(root), false, "HarmonyOS", customPack), "原文重复", "Duplicate custom source is rejected before writing");
+            Reject(() => Core.Install(root, Core.Config(root), false, systemFont, customPack), "原文重复", "Duplicate custom source is rejected before writing");
             File.WriteAllText(secondPart, "{broken");
-            Reject(() => Core.Install(root, Core.Config(root), false, "HarmonyOS", customPack), "b.jsonl:1", "Malformed nested custom JSON identifies file and line");
+            Reject(() => Core.Install(root, Core.Config(root), false, systemFont, customPack), "b.jsonl:1", "Malformed nested custom JSON identifies file and line");
             Assert(File.ReadAllBytes(Path.Combine(data, "pretranslated.jsonl")).SequenceEqual(installedBeforeInvalid) && Core.InspectInstallation(root).CustomPack, "Invalid custom import preserves installed data and manifest");
             var emptyPack = Path.Combine(root, "empty-pack"); Directory.CreateDirectory(emptyPack);
-            Reject(() => Core.Install(root, Core.Config(root), false, "HarmonyOS", emptyPack), "没有可安装", "Empty custom folder is rejected");
-            Reject(() => Core.Install(root, Core.Config(root), false, "HarmonyOS", ""), "请选择", "Unselected custom folder is rejected");
-            Reject(() => Core.Install(root, Core.Config(root), false, "HarmonyOS", Path.Combine(root, "missing-pack")), "不存在", "Missing custom folder is rejected");
+            Reject(() => Core.Install(root, Core.Config(root), false, systemFont, emptyPack), "没有可安装", "Empty custom folder is rejected");
+            Reject(() => Core.Install(root, Core.Config(root), false, systemFont, ""), "请选择", "Unselected custom folder is rejected");
+            Reject(() => Core.Install(root, Core.Config(root), false, systemFont, Path.Combine(root, "missing-pack")), "不存在", "Missing custom folder is rejected");
             var customManifest = File.ReadAllText(manifest);
             var incompleteCustom = Core.ReadJson(manifest); incompleteCustom["files"]!.AsObject().Remove("live_translator/pretranslated.jsonl"); Core.WriteJson(manifest, incompleteCustom);
             Assert(Core.Status(root).Contains("修复") && Core.InspectInstallation(root).CustomPack, "Custom pack requires pretranslation hash while remaining repairable");
             Core.AtomicWrite(manifest, customManifest);
-            Core.Install(root, Core.Config(root), false, "HarmonyOS");
+            Core.Install(root, Core.Config(root), false, systemFont);
             Assert(File.ReadAllBytes(Path.Combine(data, "pretranslated.jsonl")).SequenceEqual(installedBeforeInvalid) && !Core.InspectInstallation(root).CustomPack, "Switching custom pack to generic preserves installed translations");
             // 模拟旧编译缓存，确保模式切换不能残留屏幕覆盖。
             File.WriteAllText(confirmScript + "c", "compiled fixture");
-            Core.Install(root, Core.Config(root), false, "HarmonyOS");
+            Core.Install(root, Core.Config(root), false, systemFont);
             Assert(!File.Exists(confirmScript) && !File.Exists(confirmScript + "c") && File.Exists(Path.Combine(data, "pretranslated.jsonl")), "Generic mode removes dedicated screen and retains translations");
+            // 旧版内置字体的残留副本应随安装清理，清空后的目录一并移除。
+            var legacyFont = Path.Combine(root, "game", Core.LegacyBundledFont);
+            Directory.CreateDirectory(Path.GetDirectoryName(legacyFont)!);
+            File.WriteAllText(legacyFont, "legacy bundled font fixture");
+            Core.Install(root, Core.Config(root), false, systemFont);
+            Assert(!File.Exists(legacyFont) && !Directory.Exists(Path.GetDirectoryName(legacyFont)), "Install removes the legacy bundled font copy");
             var customFont = "live_translator/fonts/custom-msyh.ttf";
+            // 目录可能已被旧字体清理移除，夹具自行创建。
+            var customFontDirectory = Path.GetDirectoryName(Path.Combine(root, "game", customFont))!;
+            Directory.CreateDirectory(customFontDirectory);
             File.WriteAllText(Path.Combine(root, "game", customFont), "font fixture");
             Assert(Core.FontPreset(customFont) == 3 && Core.FontPreset("C:/custom/SIMSUN.ttf") == 3, "Custom font names do not match presets");
-            Assert(Core.FontPreset(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "MSYH.TTC")) == 1, "System font matching ignores case");
+            // 默认预设为系统黑体；空值与旧版内置字体路径都归入该预设，系统字体匹配忽略大小写。
+            Assert(Core.FontPreset("") == 0 && Core.FontPreset(Core.LegacyBundledFont) == 0 && Core.FontPreset(Path.Combine(fontFolder, "SIMHEI.TTF")) == 0, "Default preset is the system SimHei font");
+            Assert(Core.FontPreset(Path.Combine(fontFolder, "MSYH.TTC")) == 1 && Core.FontPreset(Path.Combine(fontFolder, "SIMSUN.TTC")) == 2, "System font presets ignore case");
             Core.Install(root, Core.Config(root), false, customFont);
             Assert(Core.ReadString(Core.Config(root), "font") == customFont, "Install preserves relative custom font path");
             Core.Install(root, Core.Config(root), true, customFont);
