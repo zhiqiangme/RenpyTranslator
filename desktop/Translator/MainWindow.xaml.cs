@@ -251,14 +251,28 @@ public static class Providers
 }
 public static class Api
 {
+    // 已确认接受 thinking 字段的服务商；OpenAI、Gemini 等严格接口遇到未知参数会返回 HTTP 400。
+    private static readonly string[] ThinkingHosts = ["api.deepseek.com", "open.bigmodel.cn"];
+    private const string ThinkingHostSuffix = ".volces.com";
+    /// <summary>按服务商调整请求字段，规则与游戏模组 _live_translator_apply_provider_options 保持一致。</summary>
+    internal static void ApplyProviderOptions(JsonObject payload, string host, bool thinkingEnabled)
+    {
+        host = host.ToLowerInvariant();
+        // OpenAI 新模型拒绝已弃用的 max_tokens，所有模型都接受 max_completion_tokens。
+        if (host == "api.openai.com" && payload.Remove("max_tokens", out var maxTokens)) payload["max_completion_tokens"] = maxTokens;
+        // 已知服务商显式关闭思考以降低延迟；其他接口仅在用户主动开启时发送。
+        if (ThinkingHosts.Contains(host) || host.EndsWith(ThinkingHostSuffix, StringComparison.Ordinal) || thinkingEnabled)
+            payload["thinking"] = new JsonObject { ["type"] = thinkingEnabled ? "enabled" : "disabled" };
+    }
     public static async Task Test(JsonObject config)
     {
         var secret = Core.ReadString(config, "api_key_encrypted"); if (secret.Length == 0) throw new UserError("请填写 API Key。");
         using var client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(Math.Clamp(config["request_timeout_seconds"]!.GetValue<int>(), 1, 300)) };
         var url = Core.ReadString(config, "base_url").TrimEnd('/'); if (!url.EndsWith("/chat/completions")) url += "/chat/completions";
         using var request = new HttpRequestMessage(HttpMethod.Post, url); request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", Secret.Unprotect(secret));
-        var payload = new JsonObject { ["model"] = Core.ReadString(config, "model"), ["messages"] = new JsonArray(new JsonObject { ["role"] = "system", ["content"] = Core.ReadString(config, "system_prompt") }, new JsonObject { ["role"] = "user", ["content"] = "{\"texts\":[\"Hello\"]}" }), ["temperature"] = config["temperature"]!.DeepClone(), ["max_tokens"] = config["max_output_tokens"]!.DeepClone(), ["thinking"] = new JsonObject { ["type"] = config["thinking_enabled"]!.GetValue<bool>() ? "enabled" : "disabled" } };
+        var payload = new JsonObject { ["model"] = Core.ReadString(config, "model"), ["messages"] = new JsonArray(new JsonObject { ["role"] = "system", ["content"] = Core.ReadString(config, "system_prompt") }, new JsonObject { ["role"] = "user", ["content"] = "{\"texts\":[\"Hello\"]}" }), ["temperature"] = config["temperature"]!.DeepClone(), ["max_tokens"] = config["max_output_tokens"]!.DeepClone() };
         if (config["json_response_format"]!.GetValue<bool>()) payload["response_format"] = new JsonObject { ["type"] = "json_object" };
+        ApplyProviderOptions(payload, new Uri(url).Host, config["thinking_enabled"]!.GetValue<bool>());
         request.Content = new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json");
         using var response = await client.SendAsync(request);
         if (!response.IsSuccessStatusCode) throw new UserError($"API 返回 HTTP {(int)response.StatusCode}。401/403：鉴权或权限；404：地址或模型；429：配额或限流。请核对服务商控制台。");

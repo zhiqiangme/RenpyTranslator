@@ -24,10 +24,26 @@ def load_functions():
         "_live_translator_index_normalized_source", "_live_translator_load_cache",
         "_live_translator_extract_json", "_live_translator_request_batch",
         "_live_translator_confirm_message", "_live_translator_enqueue",
-        "_live_translator_worker",
+        "_live_translator_worker", "_live_translator_api_host",
+        "_live_translator_apply_provider_options", "_live_translator_config_number",
+        "_live_translator_error_text", "_live_translator_fail_batch",
+        "_live_translator_release_batch",
     }
+    constants = {
+        "_live_translator_thinking_hosts", "_live_translator_thinking_host_suffixes",
+        "_live_translator_host_pattern",
+    }
+
+    def wanted(node):
+        if isinstance(node, ast.FunctionDef):
+            return node.name in names
+        # 服务商规则常量是纯数据，与函数一同从真实源码中取出。
+        return isinstance(node, ast.Assign) and any(
+            isinstance(target, ast.Name) and target.id in constants for target in node.targets
+        )
+
     # 仅执行实际源码中的纯函数，隔离顶层 Ren'Py 初始化和后台线程。
-    selected = ast.Module(body=[node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name in names], type_ignores=[])
+    selected = ast.Module(body=[node for node in tree.body if wanted(node)], type_ignores=[])
     scope = {
         "_live_translator_text_type": str,
         "_live_translator_re_module": re,
@@ -106,6 +122,30 @@ class RuntimeTests(unittest.TestCase):
                 self.response(payload)
                 with self.assertRaises(ValueError):
                     self.scope["_live_translator_request_batch"](["Hello"])
+
+    def sent_payload(self):
+        return json.loads(self.requests.post.call_args.kwargs["data"].decode("utf-8"))
+
+    def test_strict_provider_payload_omits_thinking(self):
+        self.scope["_live_translator_config"]["base_url"] = "https://api.openai.com/v1"
+        self.response({"translations": ["你好"]})
+        self.scope["_live_translator_request_batch"](["Hello"])
+        payload = self.sent_payload()
+        self.assertNotIn("thinking", payload)
+        self.assertNotIn("max_tokens", payload)
+        self.assertEqual(payload["max_completion_tokens"], 2400)
+
+    def test_known_provider_payload_disables_thinking(self):
+        self.scope["_live_translator_config"]["base_url"] = "https://API.deepseek.com"
+        self.response({"translations": ["你好"]})
+        self.scope["_live_translator_request_batch"](["Hello"])
+        self.assertEqual(self.sent_payload()["thinking"], {"type": "disabled"})
+
+    def test_provider_options_match_manager_rules(self):
+        apply = self.scope["_live_translator_apply_provider_options"]
+        self.assertNotIn("thinking", apply({"max_tokens": 1}, "generativelanguage.googleapis.com", False))
+        self.assertIn("thinking", apply({"max_tokens": 1}, "ark.cn-beijing.volces.com", False))
+        self.assertEqual(apply({"max_tokens": 1}, "127.0.0.1", True)["thinking"], {"type": "enabled"})
 
     def test_valid_translations_are_accepted(self):
         self.response({"translations": ["  你好  "]})

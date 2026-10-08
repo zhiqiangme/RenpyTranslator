@@ -32,6 +32,7 @@ The manager does not launch the game. The original mod's compatibility limits st
 - Provider presets are inherited from the previous version. Model names, endpoints and account availability depend on the provider's actual support; subscription endpoints can also be entered manually.
 - Leaving the API Key field blank preserves the stored key. To clear it, select the corresponding checkbox. Keys use Windows DPAPI CurrentUser encryption and are compatible with the legacy PowerShell configuration. Re-enter the key when switching Windows users or computers.
 - Test Connection / Translation (测试连接 / 翻译) sends one Hello request and may incur a small charge. The test translation is not saved to the game's cache.
+- The thinking-mode switch is always sent only to providers known to support it (DeepSeek, Zhipu, Doubao). Other endpoints receive the `thinking` field only when it is enabled, so strict APIs do not reject an unknown parameter. The official OpenAI endpoint automatically uses `max_completion_tokens`.
 - Advanced settings include batch size, wait time, timeout, cooldown, output tokens, temperature, prompts, names and skip patterns. Restoring defaults only changes the editor; settings are written to the game when saved.
 - Each game has its own configuration. Unknown configuration fields are preserved. Endpoints must use HTTPS; local loopback services may use HTTP.
 - Loading configuration displays and preserves custom font paths. Installation only replaces the font when another font is selected. Relative paths are resolved from the game's `game` directory.
