@@ -33,6 +33,8 @@ public static class SelfTest
     {
         var root = Path.Combine(Core.Home, "tests", Guid.NewGuid().ToString("N")); Directory.CreateDirectory(root); PruneTests();
         var log = new List<string>();
+        // 备份写入本轮测试目录，避免挤掉用户真实的游戏备份。
+        var realBackups = Core.Backups; Core.Backups = Path.Combine(root, "backups");
         void Assert(bool condition, string name) { if (!condition) throw new Exception(name); log.Add("PASS " + name); }
         void Reject(Action action, string message, string name)
         {
@@ -156,7 +158,7 @@ public static class SelfTest
             var customState = Core.InspectInstallation(root);
             Assert(customState.CustomPack && customState.CustomDirectory == customPack && customState.Status.Contains("文件完整"), "Custom pack selection and folder persist with hash verification");
             Assert(!File.Exists(confirmScript) && File.ReadAllText(firstPart) == firstLine && File.ReadAllText(secondPart) == secondLine, "Custom pack preserves source files and original game screen");
-            Assert(Directory.GetFiles(Path.Combine(Core.Home, "backups"), "pretranslated.jsonl", SearchOption.AllDirectories).Any(path => File.ReadAllBytes(path).SequenceEqual(originalPretranslation)), "Custom replacement backs up previous translations");
+            Assert(Directory.GetFiles(Core.Backups, "pretranslated.jsonl", SearchOption.AllDirectories).Any(path => File.ReadAllBytes(path).SequenceEqual(originalPretranslation)), "Custom replacement backs up previous translations");
             var installedBeforeInvalid = File.ReadAllBytes(Path.Combine(data, "pretranslated.jsonl"));
             File.WriteAllText(secondPart, firstLine);
             Reject(() => Core.Install(root, Core.Config(root), false, systemFont, customPack), "原文重复", "Duplicate custom source is rejected before writing");
@@ -217,7 +219,7 @@ public static class SelfTest
             Assert(!File.Exists(Path.Combine(root, "game", "zz_live_translator.rpy")) && File.Exists(Path.Combine(data, "config.json")) && File.Exists(Path.Combine(data, "cache.jsonl")), "Uninstall retains config and cache");
             Assert(File.ReadAllText(Path.Combine(root, "game", "story.rpy")) == "original game", "Uninstall preserves original game files");
             Core.Uninstall(root, true); Assert(!File.Exists(Path.Combine(data, "config.json")) && !File.Exists(Path.Combine(data, "cache.jsonl")), "Explicit data removal");
-            Assert(!File.Exists(notes) && Directory.GetFiles(Path.Combine(Core.Home, "backups"), "my-own-notes.txt", SearchOption.AllDirectories).Any(path => File.ReadAllText(path) == "private notes"), "Explicit cleanup backs up personal files before deletion");
+            Assert(!File.Exists(notes) && Directory.GetFiles(Core.Backups, "my-own-notes.txt", SearchOption.AllDirectories).Any(path => File.ReadAllText(path) == "private notes"), "Explicit cleanup backs up personal files before deletion");
             var duplicates = Path.Combine(root, "duplicates"); Directory.CreateDirectory(duplicates); File.WriteAllText(Path.Combine(duplicates, "a.jsonl"), "{\"source\":\"a\",\"translation\":\"b\"}\n{\"source\":\"a\",\"translation\":\"c\"}");
             bool rejected = false; try { Core.Merge(duplicates); } catch (IOException) { rejected = true; }
             Assert(rejected, "Reject duplicate source strings");
@@ -242,6 +244,7 @@ public static class SelfTest
             }
             Updates.PruneUpdates(updates);
             Assert(!Directory.Exists(updateDirs[4]), "Released old update can be reclaimed");
+            Assert(!Core.Backups.StartsWith(realBackups, StringComparison.OrdinalIgnoreCase) && Directory.Exists(Core.Backups), "Self-test backups stay inside the test directory");
             Assert(Core.ManagerVersion == File.ReadAllText(Path.Combine(Core.Resources, "version.txt")).Trim(), "Manager and resource versions match");
             var zip = Path.Combine(root, "bad.zip"); using (var archive = ZipFile.Open(zip, ZipArchiveMode.Create)) { using var writer = new StreamWriter(archive.CreateEntry("../escape.txt").Open()); writer.Write("unsafe"); }
             rejected = false; try { Updates.Extract(zip, Path.Combine(root, "extract")); } catch (IOException) { rejected = true; }
@@ -277,5 +280,6 @@ public static class SelfTest
             File.WriteAllLines(Path.Combine(Core.Home, "self-test.log"), log); return 0;
         }
         catch (Exception ex) { log.Add("FAIL " + ex); File.WriteAllLines(Path.Combine(Core.Home, "self-test.log"), log); return 1; }
+        finally { Core.Backups = realBackups; }
     }
 }

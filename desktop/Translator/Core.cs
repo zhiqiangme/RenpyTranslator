@@ -14,6 +14,8 @@ public static class Core
     public static readonly string Home = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "RenpyTranslator");
     public static readonly string Resources = Path.Combine(AppContext.BaseDirectory, "Resources");
     public static readonly string BundledTranslations = Path.Combine(Resources, "translations", "camp-buddy-scoutmaster");
+    // 自检会改指向测试目录：单轮自检的事务数超过保留份数，写入真实目录会清掉用户的游戏备份。
+    public static string Backups { get; internal set; } = Path.Combine(Home, "backups");
     public static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
     public static string ReadString(JsonObject obj, string key)
     {
@@ -254,7 +256,7 @@ public static class Core
     /// <summary>按创建时间删除超出保留份数的旧备份；失败一律忽略，不影响安装流程。</summary>
     private static void PruneBackups()
     {
-        var root = Path.Combine(Home, "backups");
+        var root = Backups;
         if (!Directory.Exists(root)) return;
         try
         {
@@ -272,7 +274,7 @@ public static class Core
     public static void Transaction(string root, IEnumerable<string> relative, Action action)
     {
         root = Game(root); EnsureStopped(root);
-        var game = Path.Combine(root, "game"); var backup = Path.Combine(Home, "backups", Guid.NewGuid().ToString("N"));
+        var game = Path.Combine(root, "game"); var backup = Path.Combine(Backups, Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(backup); var originals = new Dictionary<string, byte[]?>();
         foreach (var item in relative)
         {
