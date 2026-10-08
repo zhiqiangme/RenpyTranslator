@@ -4,10 +4,14 @@ using System.Runtime.InteropServices;
 internal static class Program
 {
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int MessageBox(IntPtr hwnd, string text, string caption, uint type);
+    // 与管理器 Core.IsLink 一致：云同步占位符虽带 ReparsePoint 属性但不重定向路径，只拒绝真正的链接。
     private static void NoLinks(string path)
     {
         for (var p = Path.GetFullPath(path); !string.IsNullOrEmpty(p); p = Path.GetDirectoryName(p))
-            if ((Directory.Exists(p) || File.Exists(p)) && (File.GetAttributes(p) & FileAttributes.ReparsePoint) != 0) throw new IOException("更新目标包含目录联接或符号链接。");
+        {
+            FileSystemInfo? info = Directory.Exists(p) ? new DirectoryInfo(p) : File.Exists(p) ? new FileInfo(p) : null;
+            if (info is not null && (info.Attributes & FileAttributes.ReparsePoint) != 0 && info.LinkTarget is not null) throw new IOException("更新目标包含目录联接或符号链接。");
+        }
     }
     private static int Main(string[] args)
     {

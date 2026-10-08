@@ -159,8 +159,14 @@ public static class Core
     public static void NoLinks(string path)
     {
         for (var p = Path.GetFullPath(path); !string.IsNullOrEmpty(p); p = Path.GetDirectoryName(p))
-            if ((File.Exists(p) || Directory.Exists(p)) && (File.GetAttributes(p) & FileAttributes.ReparsePoint) != 0)
-                throw new UserError("不支持符号链接或目录联接：" + p);
+            if (IsLink(p)) throw new UserError("不支持符号链接或目录联接：" + p);
+    }
+    // OneDrive 等云同步占位符、重复数据删除文件同样带 ReparsePoint 属性，但不会重定向路径；
+    // 只有能解析出目标的符号链接与目录联接才算链接，否则放在同步文件夹里的游戏会被误拒。
+    internal static bool IsLink(string path)
+    {
+        FileSystemInfo? info = Directory.Exists(path) ? new DirectoryInfo(path) : File.Exists(path) ? new FileInfo(path) : null;
+        return info is not null && (info.Attributes & FileAttributes.ReparsePoint) != 0 && info.LinkTarget is not null;
     }
     public static string Game(string root)
     {
