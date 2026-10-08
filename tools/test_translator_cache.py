@@ -30,11 +30,15 @@ def load_functions():
         "_live_translator_release_batch", "_live_translator_split_batch",
         "_live_translator_release_quietly", "_live_translator_process_batch",
         "_live_translator_finish_batch", "_LiveTranslatorContentError",
-        "_live_translator_accepts_end_animation",
+        "_live_translator_accepts_end_animation", "_live_translator_uses_anthropic",
+        "_live_translator_anthropic_payload", "_live_translator_anthropic_text",
+        "_live_translator_endpoint",
     }
     constants = {
         "_live_translator_thinking_hosts", "_live_translator_thinking_host_suffixes",
         "_live_translator_host_pattern", "_live_translator_max_content_failures",
+        "_live_translator_anthropic_host", "_live_translator_anthropic_version",
+        "_live_translator_translation_schema",
     }
 
     def wanted(node):
@@ -173,6 +177,63 @@ class RuntimeTests(unittest.TestCase):
         self.assertNotIn("thinking", apply({"max_tokens": 1}, "generativelanguage.googleapis.com", False))
         self.assertIn("thinking", apply({"max_tokens": 1}, "ark.cn-beijing.volces.com", False))
         self.assertEqual(apply({"max_tokens": 1}, "127.0.0.1", True)["thinking"], {"type": "enabled"})
+
+    def use_claude(self):
+        self.scope["_live_translator_config"].update(
+            {"base_url": "https://api.anthropic.com/v1", "model": "claude-haiku-5-5"}
+        )
+        # setUp 用桩替换了地址函数；Claude 用例需要真实的地址拼接规则。
+        self.scope["_live_translator_endpoint"] = load_functions()["_live_translator_endpoint"]
+        self.scope["_live_translator_endpoint"].__globals__.update(self.scope)
+
+    def claude_response(self, content, stop_reason="end_turn"):
+        self.requests.post.return_value.json.return_value = {
+            "type": "message", "role": "assistant", "content": content, "stop_reason": stop_reason,
+        }
+
+    def test_claude_request_uses_messages_api(self):
+        self.use_claude()
+        self.claude_response([
+            {"type": "thinking", "thinking": "", "signature": "sig"},
+            {"type": "text", "text": json.dumps({"translations": ["你好"]})},
+        ])
+        self.assertEqual(self.scope["_live_translator_request_batch"](["Hello"]), ["你好"])
+        call = self.requests.post.call_args
+        self.assertEqual(call.args[0], "https://api.anthropic.com/v1/messages")
+        self.assertEqual(call.kwargs["headers"]["x-api-key"], "mock-key")
+        self.assertEqual(call.kwargs["headers"]["anthropic-version"], "2023-06-01")
+        self.assertNotIn("Authorization", call.kwargs["headers"])
+        payload = self.sent_payload()
+        self.assertEqual(payload["model"], "claude-haiku-5-5")
+        self.assertEqual(payload["system"], "mock names")
+        self.assertEqual(payload["messages"], [{"role": "user", "content": '{"texts": ["Hello"]}'}])
+        self.assertEqual(payload["max_tokens"], 2400)
+        # 当前 Claude 模型拒绝非默认采样参数与 thinking 关闭写法，均不得发送。
+        for forbidden in ("temperature", "thinking", "response_format"):
+            self.assertNotIn(forbidden, payload)
+        self.assertEqual(payload["output_config"]["effort"], "low")
+        schema = payload["output_config"]["format"]["schema"]
+        self.assertEqual(payload["output_config"]["format"]["type"], "json_schema")
+        self.assertFalse(schema["additionalProperties"])
+        self.assertEqual(schema["required"], ["translations"])
+
+    def test_claude_thinking_and_format_switches(self):
+        self.use_claude()
+        self.scope["_live_translator_config"].update({"thinking_enabled": True, "json_response_format": False})
+        self.claude_response([{"type": "text", "text": '{"translations":["你好"]}'}])
+        self.scope["_live_translator_request_batch"](["Hello"])
+        self.assertNotIn("output_config", self.sent_payload())
+
+    def test_claude_endpoint_accepts_full_messages_url(self):
+        self.use_claude()
+        self.scope["_live_translator_config"]["base_url"] = "https://api.anthropic.com/v1/messages/"
+        self.assertEqual(self.scope["_live_translator_endpoint"](), "https://api.anthropic.com/v1/messages")
+
+    def test_claude_refusal_is_content_error(self):
+        self.use_claude()
+        self.claude_response([], stop_reason="refusal")
+        with self.assertRaises(self.scope["_LiveTranslatorContentError"]):
+            self.scope["_live_translator_request_batch"](["Hello"])
 
     def test_valid_translations_are_accepted(self):
         self.response({"translations": ["  你好  "]})
