@@ -27,15 +27,18 @@ def load_functions():
         "_live_translator_worker", "_live_translator_api_host",
         "_live_translator_apply_provider_options", "_live_translator_config_number",
         "_live_translator_error_text", "_live_translator_fail_batch",
-        "_live_translator_release_batch",
+        "_live_translator_release_batch", "_live_translator_split_batch",
+        "_live_translator_release_quietly", "_live_translator_process_batch",
+        "_live_translator_finish_batch", "_LiveTranslatorContentError",
+        "_live_translator_accepts_end_animation",
     }
     constants = {
         "_live_translator_thinking_hosts", "_live_translator_thinking_host_suffixes",
-        "_live_translator_host_pattern",
+        "_live_translator_host_pattern", "_live_translator_max_content_failures",
     }
 
     def wanted(node):
-        if isinstance(node, ast.FunctionDef):
+        if isinstance(node, (ast.FunctionDef, ast.ClassDef)):
             return node.name in names
         # 服务商规则常量是纯数据，与函数一同从真实源码中取出。
         return isinstance(node, ast.Assign) and any(
@@ -51,6 +54,8 @@ def load_functions():
         "_live_translator_os_module": os,
         "_live_translator_json_module": json,
         "_live_translator_log": lambda message: None,
+        "_live_translator_plain_dict": dict,
+        "_live_translator_plain_set": set,
     }
     exec(compile(selected, "zz_live_translator.rpy", "exec"), scope)
     return scope
@@ -83,6 +88,20 @@ class CacheTests(unittest.TestCase):
         self.assertEqual(cache, {"Hello!": ("Hello!", "您好")})
 
 
+class ReadbackPatchTests(unittest.TestCase):
+    def test_signature_check_only_flags_incompatible_change(self):
+        accepts = load_functions()["_live_translator_accepts_end_animation"]
+        def legacy(self, value):
+            pass
+        def modern(self, value, end_animation=True):
+            pass
+        def flexible(self, value, **kwargs):
+            pass
+        self.assertFalse(accepts(legacy))
+        self.assertTrue(accepts(modern))
+        self.assertTrue(accepts(flexible))
+
+
 class RuntimeTests(unittest.TestCase):
     def setUp(self):
         self.scope = load_functions()
@@ -90,7 +109,15 @@ class RuntimeTests(unittest.TestCase):
             "_live_translator_config": {"enabled": True, "model": "mock", "batch_size": 1},
             "_live_translator_default_config": {"system_prompt": "mock"},
             "_live_translator_name_prompt_rule": "names",
-            "_live_translator_request_count": 0,
+            "_live_translator_state": {"last_error": "", "request_count": 0, "success_count": 0},
+            "_live_translator_content_failures": {},
+            "_live_translator_isolated": set(),
+            "_live_translator_abandoned": set(),
+            "_live_translator_runtime_cache": {},
+            "_live_translator_runtime_normalized_cache": {},
+            "_live_translator_index_normalized_source": lambda source, translation, cache: None,
+            "_live_translator_append_cache": Mock(),
+            "renpy": Mock(is_init_phase=lambda: True),
             "_live_translator_api_key": lambda: "mock-key",
             "_live_translator_endpoint": lambda: "mock://no-network",
             "_live_translator_runtime_api_ready": lambda: True,
@@ -211,7 +238,7 @@ class RuntimeTests(unittest.TestCase):
         self.run_one_batch()
         self.assertFalse(self.scope["_live_translator_pending"])
         self.assertGreater(self.scope["_live_translator_retry_after"]["Hello"], time.time())
-        self.assertIn("API", self.scope["_live_translator_last_error"])
+        self.assertIn("API", self.scope["_live_translator_state"]["last_error"])
 
     def test_failure_handler_error_still_releases_pending(self):
         self.scope["_live_translator_enqueue"]("Hello")
@@ -234,6 +261,51 @@ class RuntimeTests(unittest.TestCase):
                 raise UnicodeDecodeError("ascii", b"\xe6", 0, 1, "bad")
         self.assertIn("Unprintable", self.scope["_live_translator_error_text"](Unprintable()))
         self.assertEqual(self.scope["_live_translator_error_text"](RuntimeError("中文")), "中文")
+
+    def retry_now(self):
+        # 跳过冷却时间，模拟玩家稍后再次看到同一文本。
+        self.scope["_live_translator_retry_after"].clear()
+
+    def test_repeated_invalid_content_is_abandoned(self):
+        self.response({"translations": []})
+        for _ in range(3):
+            self.retry_now()
+            self.scope["_live_translator_enqueue"]("Bad")
+            self.run_one_batch()
+        self.assertIn("Bad", self.scope["_live_translator_abandoned"])
+        self.retry_now()
+        self.scope["_live_translator_enqueue"]("Bad")
+        self.assertTrue(self.scope["_live_translator_queue"].empty())
+        self.assertEqual(self.requests.post.call_count, 3)
+
+    def test_network_errors_do_not_count_against_text(self):
+        self.requests.post.side_effect = RuntimeError("network down")
+        for _ in range(5):
+            self.retry_now()
+            self.scope["_live_translator_enqueue"]("Hello")
+            self.run_one_batch()
+        self.assertFalse(self.scope["_live_translator_content_failures"])
+        self.assertFalse(self.scope["_live_translator_abandoned"])
+
+    def test_invalid_multi_batch_isolates_sources(self):
+        self.scope["_live_translator_config"]["batch_size"] = 2
+        self.response({"translations": ["只有一条"]})
+        self.scope["_live_translator_enqueue"]("A")
+        self.scope["_live_translator_enqueue"]("B")
+        self.run_one_batch()
+        self.assertEqual(self.scope["_live_translator_isolated"], {"A", "B"})
+        split = self.scope["_live_translator_split_batch"]
+        self.assertEqual(split(["A", "C", "B", "D"]), [["A"], ["B"], ["C", "D"]])
+
+    def test_success_clears_error_and_failure_state(self):
+        self.scope["_live_translator_state"]["last_error"] = "old error"
+        self.scope["_live_translator_content_failures"]["Hello"] = 2
+        self.scope["_live_translator_isolated"].add("Hello")
+        self.scope["_live_translator_finish_batch"](["Hello"], ["你好"])
+        self.assertEqual(self.scope["_live_translator_state"]["last_error"], "")
+        self.assertNotIn("Hello", self.scope["_live_translator_content_failures"])
+        self.assertNotIn("Hello", self.scope["_live_translator_isolated"])
+        self.assertEqual(self.scope["_live_translator_runtime_cache"]["Hello"], "你好")
 
     def test_invalid_batch_never_reaches_cache_writer(self):
         self.scope["_live_translator_enqueue"]("Hello")
