@@ -4,9 +4,37 @@
 from __future__ import print_function
 
 import argparse
+import codecs
+import io
 import os
 import pickle
 import zlib
+
+
+class _IndexUnpickler(pickle.Unpickler):
+    """只还原索引需要的基础类型，拒绝封包中引用任意可调用对象。
+
+    pickle 能在加载时执行任意代码，来源不明的 RPA 不能直接 pickle.loads。
+    Python 3 以协议 2 写出的 bytes 会经 _codecs.encode 或 bytes 构造还原，
+    只放行这两类无副作用的全局对象。
+    """
+
+    _allowed = {
+        ("_codecs", "encode"): codecs.encode,
+        ("__builtin__", "bytes"): bytes,
+        ("builtins", "bytes"): bytes,
+    }
+
+    def find_class(self, module, name):
+        if (module, name) in self._allowed:
+            return self._allowed[(module, name)]
+        raise pickle.UnpicklingError(
+            "RPA 索引包含不允许的对象：%s.%s" % (module, name)
+        )
+
+
+def load_pickle(data):
+    return _IndexUnpickler(io.BytesIO(data)).load()
 
 
 def parse_arguments():
@@ -37,7 +65,7 @@ def load_index(archive_file):
     header_key = int(header[25:33], 16)
     archive_file.seek(index_offset)
     compressed_index = archive_file.read()
-    index = pickle.loads(zlib.decompress(compressed_index))
+    index = load_pickle(zlib.decompress(compressed_index))
     return index, header_key
 
 
