@@ -62,6 +62,9 @@ public static class Updates
         // 桌面发行统一打 v* 标签（如 v26.9.11）。仍拉取列表而非 /releases/latest，以便跳过预发布并按版本号比较新旧。
         using var response = await client.GetAsync("https://api.github.com/repos/zhiqiangme/RenpyTranslator/releases?per_page=20");
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound) return new(false, "仓库尚未发布桌面版本。", "", "");
+        // 未登录访问 GitHub API 每小时限 60 次，超限返回 403/429，不能笼统提示为网络故障。
+        if (response.StatusCode is System.Net.HttpStatusCode.Forbidden or System.Net.HttpStatusCode.TooManyRequests)
+            throw new UserError("GitHub 接口访问次数已达上限，请稍后再检查更新。");
         response.EnsureSuccessStatusCode();
         return SelectRelease(JsonNode.Parse(await response.Content.ReadAsStringAsync())!.AsArray(), Core.ManagerVersion);
     }
