@@ -244,6 +244,12 @@ public static class SelfTest
             }
             Updates.PruneUpdates(updates);
             Assert(!Directory.Exists(updateDirs[4]), "Released old update can be reclaimed");
+            // 旧版配置缺字段时按游戏实际默认值补齐，不能把缺失开关当成关闭。
+            var legacyGame = Path.Combine(root, "legacy-game"); Directory.CreateDirectory(Path.Combine(legacyGame, "game", "live_translator")); Directory.CreateDirectory(Path.Combine(legacyGame, "renpy"));
+            File.WriteAllText(Path.Combine(legacyGame, "game", "live_translator", "config.json"), "{\"model\":\"legacy-model\",\"enabled\":false}");
+            var legacyConfig = Core.Config(legacyGame);
+            Assert(Core.ReadString(legacyConfig, "model") == "legacy-model" && !Core.ReadBool(legacyConfig, "enabled") && Core.ReadBool(legacyConfig, "json_response_format") && legacyConfig["protected_names"]!.AsArray().Count > 0 && Core.ReadString(legacyConfig, "api_key_encrypted") == "", "Legacy config fills missing fields with game defaults only");
+            Reject(() => Core.ReadBool(new JsonObject { ["enabled"] = "true" }, "enabled"), "true 或 false", "Non-boolean flag produces Chinese diagnostic");
             Assert(!Core.Backups.StartsWith(realBackups, StringComparison.OrdinalIgnoreCase) && Directory.Exists(Core.Backups), "Self-test backups stay inside the test directory");
             Assert(Core.ManagerVersion == File.ReadAllText(Path.Combine(Core.Resources, "version.txt")).Trim(), "Manager and resource versions match");
             var zip = Path.Combine(root, "bad.zip"); using (var archive = ZipFile.Open(zip, ZipArchiveMode.Create)) { using var writer = new StreamWriter(archive.CreateEntry("../escape.txt").Open()); writer.Write("unsafe"); }

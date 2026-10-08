@@ -72,8 +72,13 @@ public partial class MainWindow : Window
         Provider.SelectedIndex = Array.FindIndex(Providers.All, p => p.Url == Core.ReadString(config, "base_url"));
         BaseUrl.Text = Core.ReadString(config, "base_url"); Model.Text = Core.ReadString(config, "model"); ApiKey.Clear(); ClearKey.IsChecked = false;
         KeyStatus.Text = string.IsNullOrEmpty(Core.ReadString(config, "api_key_encrypted")) ? "尚未保存密钥" : "已有加密密钥；留空即可保留";
-        foreach (var (key, box) in fields) box.Text = config[key] is JsonArray ? config[key]!.ToJsonString() : config[key]?.ToString() ?? "";
-        foreach (var (key, box) in flags) box.IsChecked = config[key]?.GetValue<bool>() ?? false;
+        ShowParameters(config);
+    }
+    // 只刷新高级参数编辑区；恢复默认值也走这里，不能顺带清掉正在填写的地址、模型和密钥。
+    private void ShowParameters(JsonObject source)
+    {
+        foreach (var (key, box) in fields) box.Text = source[key] is JsonArray ? source[key]!.ToJsonString() : source[key]?.ToString() ?? "";
+        foreach (var (key, box) in flags) box.IsChecked = Core.ReadBool(source, key);
     }
     private JsonObject Form()
     {
@@ -99,7 +104,8 @@ public partial class MainWindow : Window
     private async Task LoadGame()
     {
         var root = Root(); var result = await Task.Run(() => (Core.Config(root), Core.InspectInstallation(root)));
-        config = result.Item1; loadedRoot = root; GameStatus.Text = result.Item2.Status; ShowConfig();
+        // 配置展示失败时界面可能残留上一个游戏的值，此时不能允许保存，读取完成后才记录目录。
+        loadedRoot = ""; config = result.Item1; ShowConfig(); loadedRoot = root; GameStatus.Text = result.Item2.Status;
         CustomPackDirectory.Text = result.Item2.CustomDirectory;
         Pack.SelectedIndex = result.Item2.Bundled ? 1 : result.Item2.CustomPack ? 2 : 0;
         var font = Core.ReadString(config, "font"); var preset = Core.FontPreset(font);
@@ -123,7 +129,8 @@ public partial class MainWindow : Window
         if (dialog.ShowDialog(this) == true) CustomPackDirectory.Text = Core.TranslationDirectory(dialog.FolderName);
         return Task.CompletedTask;
     });
-    private void ProviderChanged(object sender, SelectionChangedEventArgs e) { if (Provider.SelectedIndex < 0) return; var p = Providers.All[Provider.SelectedIndex]; BaseUrl.Text = p.Url; Model.Text = p.Model; }
+    // “自定义”没有预设地址，选中时保留已填写的内容供用户修改。
+    private void ProviderChanged(object sender, SelectionChangedEventArgs e) { if (Provider.SelectedIndex < 0) return; var p = Providers.All[Provider.SelectedIndex]; if (p.Url.Length == 0) return; BaseUrl.Text = p.Url; Model.Text = p.Model; }
     private async void Install(object sender, RoutedEventArgs e) => await Run(async () =>
     {
         var root = Root(); var next = Form(); bool bundled = Pack.SelectedIndex == 1;
@@ -162,11 +169,10 @@ public partial class MainWindow : Window
     private void RestoreDefaults(object sender, RoutedEventArgs e)
     {
         var basic = Core.Defaults();
-        foreach (var key in fields.Keys.Concat(flags.Keys)) config[key] = basic[key]?.DeepClone();
-        // 保护人名随资源包：专属译文恢复内置完整名单，通用模式保持为空，避免误清 Camp Buddy 配置。
+        // 保护人名随资源包：专属译文恢复内置完整名单，其他模式恢复为空名单。
         if (Pack.SelectedIndex == 1)
-            config["protected_names"] = Core.ReadJson(Path.Combine(Core.Resources, "config.default.json"))["protected_names"]!.DeepClone();
-        ShowConfig();
+            basic["protected_names"] = Core.ReadJson(Path.Combine(Core.Resources, "config.default.json"))["protected_names"]!.DeepClone();
+        ShowParameters(basic);
         Log("已载入默认参数，点保存后写入游戏目录。");
     }
     private async void TestApi(object sender, RoutedEventArgs e) => await Run(async () => { if (MessageBox.Show(this, "将向所填接口发送一条 Hello 翻译请求，可能产生少量费用，是否继续？", "测试连接", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return; var next = Form(); Log("正在发送测试请求…"); await Api.Test(next); Log("连接成功，翻译响应格式有效。"); });
