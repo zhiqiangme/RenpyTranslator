@@ -176,6 +176,9 @@ class RuntimeTests(unittest.TestCase):
         # 确定性结束无限工作循环，不创建线程或依赖等待时长。
         def get(**kwargs):
             if actual_queue.empty():
+                # 组批阶段的限时等待按真实队列语义返回 Empty；阻塞取首条时结束循环。
+                if "timeout" in kwargs:
+                    raise queue.Empty()
                 raise StopWorker()
             return actual_queue.get_nowait()
         self.scope["_live_translator_queue"] = Mock(get=get)
@@ -198,6 +201,39 @@ class RuntimeTests(unittest.TestCase):
         self.scope["_live_translator_finish_batch"] = finish
         self.run_one_batch()
         finish.assert_called_once_with(["Hello"], ["你好"])
+
+    def test_invalid_config_numbers_do_not_stop_worker(self):
+        self.scope["_live_translator_config"].update(
+            {"batch_size": "abc", "batch_wait_ms": None, "retry_cooldown_seconds": "x"}
+        )
+        self.scope["_live_translator_enqueue"]("Hello")
+        self.response({"translations": [None]})
+        self.run_one_batch()
+        self.assertFalse(self.scope["_live_translator_pending"])
+        self.assertGreater(self.scope["_live_translator_retry_after"]["Hello"], time.time())
+        self.assertIn("API", self.scope["_live_translator_last_error"])
+
+    def test_failure_handler_error_still_releases_pending(self):
+        self.scope["_live_translator_enqueue"]("Hello")
+        self.requests.post.side_effect = RuntimeError("network down")
+        self.scope["_live_translator_fail_batch"] = Mock(side_effect=UnicodeDecodeError("ascii", b"\xe6", 0, 1, "bad"))
+        self.run_one_batch()
+        self.assertFalse(self.scope["_live_translator_pending"])
+        # 线程仍可继续处理后续批次。
+        self.requests.post.side_effect = None
+        self.response({"translations": ["你好"]})
+        finish = Mock()
+        self.scope["_live_translator_finish_batch"] = finish
+        self.scope["_live_translator_enqueue"]("Hello")
+        self.run_one_batch()
+        finish.assert_called_once_with(["Hello"], ["你好"])
+
+    def test_error_text_survives_unprintable_exception(self):
+        class Unprintable(Exception):
+            def __str__(self):
+                raise UnicodeDecodeError("ascii", b"\xe6", 0, 1, "bad")
+        self.assertIn("Unprintable", self.scope["_live_translator_error_text"](Unprintable()))
+        self.assertEqual(self.scope["_live_translator_error_text"](RuntimeError("中文")), "中文")
 
     def test_invalid_batch_never_reaches_cache_writer(self):
         self.scope["_live_translator_enqueue"]("Hello")
