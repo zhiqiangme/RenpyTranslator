@@ -250,6 +250,12 @@ public static class SelfTest
             var legacyConfig = Core.Config(legacyGame);
             Assert(Core.ReadString(legacyConfig, "model") == "legacy-model" && !Core.ReadBool(legacyConfig, "enabled") && Core.ReadBool(legacyConfig, "json_response_format") && legacyConfig["protected_names"]!.AsArray().Count > 0 && Core.ReadString(legacyConfig, "api_key_encrypted") == "", "Legacy config fills missing fields with game defaults only");
             Reject(() => Core.ReadBool(new JsonObject { ["enabled"] = "true" }, "enabled"), "true 或 false", "Non-boolean flag produces Chinese diagnostic");
+            // 目录联接仍被拒绝；普通目录不受影响（云同步占位符无法在自检中构造）。
+            var junction = Path.Combine(root, "junction-game");
+            using (var mklink = Process.Start(new ProcessStartInfo("cmd.exe", $"/d /c mklink /J \"{junction}\" \"{legacyGame}\"") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true })!) mklink.WaitForExit();
+            Assert(Core.IsLink(junction) && !Core.IsLink(legacyGame), "Junctions are detected as links while plain directories are not");
+            Reject(() => Core.Game(junction), "目录联接", "Junction game directory is rejected");
+            Directory.Delete(junction);
             // 备份按游戏分别保留最近 10 份，并始终保留每个游戏最早的一份。
             var testBackups = Core.Backups; var pruneRoot = Path.Combine(root, "prune-backups"); Core.Backups = pruneRoot;
             try
