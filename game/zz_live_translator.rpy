@@ -533,6 +533,44 @@ init 999 python:
             return base_url
         return base_url + "/chat/completions"
 
+    # 已确认接受 thinking 字段的服务商主机；OpenAI、Gemini 等严格接口
+    # 遇到未知参数会直接返回 HTTP 400，因此不能无条件发送。
+    _live_translator_thinking_hosts = (
+        "api.deepseek.com",
+        "open.bigmodel.cn"
+    )
+    _live_translator_thinking_host_suffixes = (".volces.com",)
+    _live_translator_host_pattern = _live_translator_re_module.compile(
+        r"^[A-Za-z][A-Za-z0-9+.-]*://(?:[^/@]*@)?([^/:?#]+)"
+    )
+
+    def _live_translator_api_host():
+        host_match = _live_translator_host_pattern.match(
+            _live_translator_to_text(
+                _live_translator_config.get("base_url", "")
+            ).strip()
+        )
+        if host_match is None:
+            return u""
+        return host_match.group(1).lower()
+
+    def _live_translator_apply_provider_options(payload, host, thinking_enabled):
+        # 与管理器 Api.ApplyProviderOptions 保持同一规则。
+        if host == "api.openai.com":
+            # OpenAI 新模型拒绝已弃用的 max_tokens，所有模型都接受该替代字段。
+            payload["max_completion_tokens"] = payload.pop("max_tokens")
+        supports_thinking = host in _live_translator_thinking_hosts or any(
+            host.endswith(suffix)
+            for suffix in _live_translator_thinking_host_suffixes
+        )
+        # 已知服务商显式关闭思考以降低延迟；其他接口仅在用户主动开启时发送。
+        # 文档：https://api-docs.deepseek.com/zh-cn/guides/thinking_mode
+        if supports_thinking or thinking_enabled:
+            payload["thinking"] = {
+                "type": "enabled" if thinking_enabled else "disabled"
+            }
+        return payload
+
     def _live_translator_extract_json(content):
         cleaned = _live_translator_to_text(content).strip()
         if cleaned.startswith(u"```"):
@@ -602,13 +640,11 @@ init 999 python:
         }
         if _live_translator_config.get("json_response_format", True):
             payload["response_format"] = {"type": "json_object"}
-
-        # DeepSeek 等 OpenAI 兼容接口的思考模式开关；默认关闭思考以降低延迟并稳定输出。
-        # 文档：https://api-docs.deepseek.com/zh-cn/guides/thinking_mode
-        if _live_translator_config.get("thinking_enabled", False):
-            payload["thinking"] = {"type": "enabled"}
-        else:
-            payload["thinking"] = {"type": "disabled"}
+        _live_translator_apply_provider_options(
+            payload,
+            _live_translator_api_host(),
+            bool(_live_translator_config.get("thinking_enabled", False))
+        )
 
         headers = {
             "Authorization": "Bearer " + api_key,

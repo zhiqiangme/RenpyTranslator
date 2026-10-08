@@ -264,6 +264,13 @@ public static class SelfTest
                 try { Task.Run(() => Api.Test(sample)).GetAwaiter().GetResult(); } catch (IOException) { passed = false; }
                 Assert(server.GetAwaiter().GetResult() && passed == shouldPass, $"Mock API HTTP {status}, valid response = {shouldPass}");
             }
+            // 服务商字段：严格接口不能收到 thinking；OpenAI 改用 max_completion_tokens。
+            JsonObject ProviderPayload(string host, bool thinking) { var payload = new JsonObject { ["max_tokens"] = 100 }; Api.ApplyProviderOptions(payload, host, thinking); return payload; }
+            var openAi = ProviderPayload("api.openai.com", false);
+            Assert(!openAi.ContainsKey("thinking") && !openAi.ContainsKey("max_tokens") && openAi["max_completion_tokens"]!.GetValue<int>() == 100, "OpenAI payload omits thinking and uses max_completion_tokens");
+            Assert(!ProviderPayload("generativelanguage.googleapis.com", false).ContainsKey("thinking"), "Unknown providers omit disabled thinking flag");
+            Assert(ProviderPayload("API.DeepSeek.com", false)["thinking"]!["type"]!.GetValue<string>() == "disabled" && ProviderPayload("ark.cn-beijing.volces.com", false).ContainsKey("thinking"), "Known providers receive explicit thinking switch");
+            Assert(ProviderPayload("127.0.0.1", true)["thinking"]!["type"]!.GetValue<string>() == "enabled" && ProviderPayload("127.0.0.1", true).ContainsKey("max_tokens"), "User-enabled thinking is sent to custom endpoints");
             MockApi(200, "{\"choices\":[{\"message\":{\"content\":\"{\\\"translations\\\":[\\\"你好\\\"]}\"}}]}", true);
             MockApi(401, "{\"error\":\"invalid key\"}", false);
             MockApi(200, "{\"choices\":[{\"message\":{\"content\":\"{\\\"translations\\\":[]}\"}}]}", false);
