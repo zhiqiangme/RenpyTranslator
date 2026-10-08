@@ -294,6 +294,16 @@ public static class SelfTest
                 try { Task.Run(() => Api.Test(sample)).GetAwaiter().GetResult(); } catch (IOException) { passed = false; }
                 Assert(server.GetAwaiter().GetResult() && passed == shouldPass, $"Mock API HTTP {status}, valid response = {shouldPass}");
             }
+            // Claude：Messages API 地址、无 temperature / thinking、effort 与结构化输出随开关变化。
+            Assert(Api.Endpoint("https://api.anthropic.com/v1/") == "https://api.anthropic.com/v1/messages" && Api.Endpoint("https://api.anthropic.com/v1/messages") == "https://api.anthropic.com/v1/messages" && Api.Endpoint("https://api.deepseek.com") == "https://api.deepseek.com/chat/completions", "Claude endpoint uses Messages API while others keep chat completions");
+            var claudeConfig = Core.Defaults(); claudeConfig["model"] = "claude-haiku-5-5";
+            var claudePayload = Api.AnthropicPayload(claudeConfig, "{\"texts\":[\"Hello\"]}");
+            Assert(Core.ReadString(claudePayload, "model") == "claude-haiku-5-5" && claudePayload["system"] is not null && claudePayload["messages"]!.AsArray().Count == 1 && !claudePayload.ContainsKey("temperature") && !claudePayload.ContainsKey("thinking") && claudePayload["output_config"]!["effort"]!.GetValue<string>() == "low" && claudePayload["output_config"]!["format"]!["schema"]!["additionalProperties"]!.GetValue<bool>() == false, "Claude payload omits sampling and thinking, uses low effort and JSON schema");
+            claudeConfig["thinking_enabled"] = true; claudeConfig["json_response_format"] = false;
+            Assert(!Api.AnthropicPayload(claudeConfig, "{}").ContainsKey("output_config"), "Claude thinking and JSON switches remove output_config overrides");
+            Assert(Api.AnthropicText(JsonNode.Parse("{\"content\":[{\"type\":\"thinking\",\"thinking\":\"\",\"signature\":\"s\"},{\"type\":\"text\",\"text\":\"{\\\"translations\\\":[\\\"你好\\\"]}\"}],\"stop_reason\":\"end_turn\"}")!) == "{\"translations\":[\"你好\"]}", "Claude response reads text blocks after thinking blocks");
+            Reject(() => Api.AnthropicText(JsonNode.Parse("{\"content\":[],\"stop_reason\":\"refusal\"}")!), "拒绝", "Claude refusal produces Chinese diagnostic");
+            Assert(Providers.All.Any(p => p.Url == "https://api.anthropic.com/v1" && p.Model == "claude-haiku-5-5"), "Claude preset defaults to Haiku 5.5");
             // 服务商字段：严格接口不能收到 thinking；OpenAI 改用 max_completion_tokens。
             JsonObject ProviderPayload(string host, bool thinking) { var payload = new JsonObject { ["max_tokens"] = 100 }; Api.ApplyProviderOptions(payload, host, thinking); return payload; }
             var openAi = ProviderPayload("api.openai.com", false);

@@ -253,7 +253,7 @@ public partial class MainWindow : Window
 public record Provider(string Name, string Url, string Model);
 public static class Providers
 {
-    public static readonly Provider[] All = [new("自定义", "", ""), new("DeepSeek", "https://api.deepseek.com", "deepseek-flash"), new("智谱 GLM", "https://open.bigmodel.cn/api/paas/v4", "glm-5.3-flash"), new("OpenAI", "https://api.openai.com/v1", "gpt-5.6-luna"), new("小米 MiMo", "https://api.xiaomimimo.com/v1", "mimo-v2.5"), new("MiniMax", "https://api.minimax.chat/v1", "minimax-m3"), new("腾讯混元", "https://api.hunyuan.cloud.tencent.com/v1", "hy3"), new("Google Gemini", "https://generativelanguage.googleapis.com/v1beta/openai", "gemini-3.6-flash"), new("阿里通义千问", "https://dashscope.aliyuncs.com/compatible-mode/v1", "qwen-flash"), new("Kimi", "https://api.moonshot.cn/v1", "kimi-k2.8"), new("字节豆包", "https://ark.cn-beijing.volces.com/api/v3", "doubao-seed-2.0-lite")];
+    public static readonly Provider[] All = [new("自定义", "", ""), new("Anthropic Claude", "https://api.anthropic.com/v1", "claude-haiku-5-5"), new("DeepSeek", "https://api.deepseek.com", "deepseek-flash"), new("智谱 GLM", "https://open.bigmodel.cn/api/paas/v4", "glm-5.3-flash"), new("OpenAI", "https://api.openai.com/v1", "gpt-5.6-luna"), new("小米 MiMo", "https://api.xiaomimimo.com/v1", "mimo-v2.5"), new("MiniMax", "https://api.minimax.chat/v1", "minimax-m3"), new("腾讯混元", "https://api.hunyuan.cloud.tencent.com/v1", "hy3"), new("Google Gemini", "https://generativelanguage.googleapis.com/v1beta/openai", "gemini-3.6-flash"), new("阿里通义千问", "https://dashscope.aliyuncs.com/compatible-mode/v1", "qwen-flash"), new("Kimi", "https://api.moonshot.cn/v1", "kimi-k2.8"), new("字节豆包", "https://ark.cn-beijing.volces.com/api/v3", "doubao-seed-2.0-lite")];
 }
 public static class Api
 {
@@ -270,22 +270,83 @@ public static class Api
         if (ThinkingHosts.Contains(host) || host.EndsWith(ThinkingHostSuffix, StringComparison.Ordinal) || thinkingEnabled)
             payload["thinking"] = new JsonObject { ["type"] = thinkingEnabled ? "enabled" : "disabled" };
     }
+    // Claude 官方地址走 Anthropic Messages API，其余地址按 OpenAI 兼容接口处理；与游戏模组规则一致。
+    private const string AnthropicHost = "api.anthropic.com";
+    private const string AnthropicVersion = "2023-06-01";
+    internal static bool IsAnthropic(string host) => host.Equals(AnthropicHost, StringComparison.OrdinalIgnoreCase);
+    internal static string Endpoint(string baseUrl)
+    {
+        var url = baseUrl.TrimEnd('/');
+        var suffix = IsAnthropic(new Uri(url).Host) ? "/messages" : "/chat/completions";
+        return url.EndsWith(suffix, StringComparison.Ordinal) ? url : url + suffix;
+    }
+    /// <summary>Claude 请求体，规则与游戏模组 _live_translator_anthropic_payload 保持一致。</summary>
+    internal static JsonObject AnthropicPayload(JsonObject config, string userContent)
+    {
+        // 当前 Claude 模型拒绝非默认 temperature，因此不发送；思考深度改用 effort 控制：
+        // Opus 5.5、Sonnet 5.5 不接受关闭思考，low 是所有当前模型都接受的最省方式。
+        var payload = new JsonObject
+        {
+            ["model"] = Core.ReadString(config, "model"), ["max_tokens"] = config["max_output_tokens"]!.DeepClone(),
+            ["system"] = Core.ReadString(config, "system_prompt"),
+            ["messages"] = new JsonArray(new JsonObject { ["role"] = "user", ["content"] = userContent })
+        };
+        var outputConfig = new JsonObject();
+        if (!Core.ReadBool(config, "thinking_enabled")) outputConfig["effort"] = "low";
+        // 结构化输出保证返回体一定是 {"translations": [...]}。
+        if (Core.ReadBool(config, "json_response_format"))
+            outputConfig["format"] = new JsonObject
+            {
+                ["type"] = "json_schema",
+                ["schema"] = new JsonObject
+                {
+                    ["type"] = "object",
+                    ["properties"] = new JsonObject { ["translations"] = new JsonObject { ["type"] = "array", ["items"] = new JsonObject { ["type"] = "string" } } },
+                    ["required"] = new JsonArray("translations"), ["additionalProperties"] = false
+                }
+            };
+        if (outputConfig.Count > 0) payload["output_config"] = outputConfig;
+        return payload;
+    }
+    /// <summary>取出 Claude 回复正文：回复可能以 thinking 块开头，只拼接 text 块；被拒绝时给出明确提示。</summary>
+    internal static string AnthropicText(JsonNode response)
+    {
+        if (response["stop_reason"]?.GetValue<string>() == "refusal") throw new UserError("连接成功，但 Claude 拒绝了这次测试翻译。");
+        return string.Concat((response["content"] as JsonArray ?? []).Where(block => block?["type"]?.GetValue<string>() == "text").Select(block => block!["text"]!.GetValue<string>()));
+    }
     public static async Task Test(JsonObject config)
     {
         var secret = Core.ReadString(config, "api_key_encrypted"); if (secret.Length == 0) throw new UserError("请填写 API Key。");
         using var client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(Math.Clamp(config["request_timeout_seconds"]!.GetValue<int>(), 1, 300)) };
-        var url = Core.ReadString(config, "base_url").TrimEnd('/'); if (!url.EndsWith("/chat/completions")) url += "/chat/completions";
-        using var request = new HttpRequestMessage(HttpMethod.Post, url); request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", Secret.Unprotect(secret));
-        var payload = new JsonObject { ["model"] = Core.ReadString(config, "model"), ["messages"] = new JsonArray(new JsonObject { ["role"] = "system", ["content"] = Core.ReadString(config, "system_prompt") }, new JsonObject { ["role"] = "user", ["content"] = "{\"texts\":[\"Hello\"]}" }), ["temperature"] = config["temperature"]!.DeepClone(), ["max_tokens"] = config["max_output_tokens"]!.DeepClone() };
-        if (config["json_response_format"]!.GetValue<bool>()) payload["response_format"] = new JsonObject { ["type"] = "json_object" };
-        ApplyProviderOptions(payload, new Uri(url).Host, config["thinking_enabled"]!.GetValue<bool>());
+        var url = Endpoint(Core.ReadString(config, "base_url")); var host = new Uri(url).Host; bool anthropic = IsAnthropic(host);
+        const string userContent = "{\"texts\":[\"Hello\"]}";
+        using var request = new HttpRequestMessage(HttpMethod.Post, url);
+        JsonObject payload;
+        if (anthropic)
+        {
+            request.Headers.Add("x-api-key", Secret.Unprotect(secret)); request.Headers.Add("anthropic-version", AnthropicVersion);
+            payload = AnthropicPayload(config, userContent);
+        }
+        else
+        {
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", Secret.Unprotect(secret));
+            payload = new JsonObject { ["model"] = Core.ReadString(config, "model"), ["messages"] = new JsonArray(new JsonObject { ["role"] = "system", ["content"] = Core.ReadString(config, "system_prompt") }, new JsonObject { ["role"] = "user", ["content"] = userContent }), ["temperature"] = config["temperature"]!.DeepClone(), ["max_tokens"] = config["max_output_tokens"]!.DeepClone() };
+            if (Core.ReadBool(config, "json_response_format")) payload["response_format"] = new JsonObject { ["type"] = "json_object" };
+            ApplyProviderOptions(payload, host, Core.ReadBool(config, "thinking_enabled"));
+        }
         request.Content = new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json");
         using var response = await client.SendAsync(request);
         if (!response.IsSuccessStatusCode) throw new UserError($"API 返回 HTTP {(int)response.StatusCode}。401/403：鉴权或权限；404：地址或模型；429：配额或限流。请核对服务商控制台。");
+        var body = JsonNode.Parse(await response.Content.ReadAsStringAsync());
+        // 拒绝属于明确结论，先于格式校验给出，不并入“响应格式无效”。
+        var content = anthropic && body is not null ? AnthropicText(body) : null;
         try
         {
-            var node = JsonNode.Parse(await response.Content.ReadAsStringAsync())!["choices"]![0]!["message"]!["content"]!;
-            var content = node is JsonArray blocks ? string.Concat(blocks.Select(x => x?["text"]?.GetValue<string>() ?? "")) : node.GetValue<string>();
+            if (content is null)
+            {
+                var node = body!["choices"]![0]!["message"]!["content"]!;
+                content = node is JsonArray blocks ? string.Concat(blocks.Select(x => x?["text"]?.GetValue<string>() ?? "")) : node.GetValue<string>();
+            }
             var start = content.IndexOf('{'); var end = content.LastIndexOf('}');
             var translations = JsonNode.Parse(content[start..(end + 1)])!["translations"]!.AsArray();
             if (translations.Count != 1 || string.IsNullOrWhiteSpace(translations[0]!.GetValue<string>())) throw new FormatException();

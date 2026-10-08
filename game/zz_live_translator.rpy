@@ -562,11 +562,67 @@ init 999 python:
             and model != "your-model-name"
         )
 
+    # Claude 官方地址走 Anthropic Messages API，其余地址按 OpenAI 兼容接口处理。
+    _live_translator_anthropic_host = "api.anthropic.com"
+    _live_translator_anthropic_version = "2023-06-01"
+    # Claude 结构化输出的 JSON Schema，保证返回体一定是 {"translations": [...]}。
+    _live_translator_translation_schema = {
+        "type": "object",
+        "properties": {
+            "translations": {"type": "array", "items": {"type": "string"}}
+        },
+        "required": ["translations"],
+        "additionalProperties": False
+    }
+
+    def _live_translator_uses_anthropic():
+        return _live_translator_api_host() == _live_translator_anthropic_host
+
     def _live_translator_endpoint():
         base_url = _live_translator_config.get("base_url", "").rstrip("/")
-        if base_url.endswith("/chat/completions"):
+        suffix = (
+            "/messages" if _live_translator_uses_anthropic()
+            else "/chat/completions"
+        )
+        if base_url.endswith(suffix):
             return base_url
-        return base_url + "/chat/completions"
+        return base_url + suffix
+
+    def _live_translator_anthropic_payload(
+        model, system_prompt, user_content, thinking_enabled
+    ):
+        # 与管理器 Api.AnthropicPayload 保持同一规则。
+        # 当前 Claude 模型拒绝非默认 temperature，因此不发送；思考深度改用 effort 控制：
+        # Opus 5.5、Sonnet 5.5 不接受关闭思考，low 是所有当前模型都接受的最省方式。
+        payload = _live_translator_plain_dict({
+            "model": model,
+            "max_tokens": int(
+                _live_translator_config.get("max_output_tokens", 2400)
+            ),
+            "system": system_prompt,
+            "messages": [{"role": "user", "content": user_content}]
+        })
+        output_config = _live_translator_plain_dict()
+        if not thinking_enabled:
+            output_config["effort"] = "low"
+        if _live_translator_config.get("json_response_format", True):
+            output_config["format"] = {
+                "type": "json_schema",
+                "schema": _live_translator_translation_schema
+            }
+        if output_config:
+            payload["output_config"] = output_config
+        return payload
+
+    def _live_translator_anthropic_text(response_data):
+        # 拒绝与具体文本相关，按内容错误计次；回复可能以 thinking 块开头，只取 text 块。
+        if response_data.get("stop_reason") == "refusal":
+            raise _LiveTranslatorContentError(u"Claude 拒绝翻译这批文本")
+        return u"".join(
+            _live_translator_to_text(block.get("text", u""))
+            for block in response_data.get("content") or []
+            if hasattr(block, "get") and block.get("type") == "text"
+        )
 
     # 已确认接受 thinking 字段的服务商主机；OpenAI、Gemini 等严格接口
     # 遇到未知参数会直接返回 HTTP 400，因此不能无条件发送。
@@ -657,37 +713,50 @@ init 999 python:
                 system_prompt + u" " + _live_translator_name_prompt_rule
             ).strip()
 
-        payload = _live_translator_plain_dict({
-            "model": model,
-            "messages": [
-                {
-                    "role": "system",
-                    "content": system_prompt
-                },
-                {
-                    "role": "user",
-                    "content": user_content
-                }
-            ],
-            "temperature": float(
-                _live_translator_config.get("temperature", 0.1)
-            ),
-            "max_tokens": int(
-                _live_translator_config.get("max_output_tokens", 2400)
-            )
-        })
-        if _live_translator_config.get("json_response_format", True):
-            payload["response_format"] = {"type": "json_object"}
-        _live_translator_apply_provider_options(
-            payload,
-            _live_translator_api_host(),
-            bool(_live_translator_config.get("thinking_enabled", False))
+        thinking_enabled = bool(
+            _live_translator_config.get("thinking_enabled", False)
         )
-
-        headers = {
-            "Authorization": "Bearer " + api_key,
-            "Content-Type": "application/json"
-        }
+        anthropic = _live_translator_uses_anthropic()
+        if anthropic:
+            payload = _live_translator_anthropic_payload(
+                model, system_prompt, user_content, thinking_enabled
+            )
+            headers = {
+                "x-api-key": api_key,
+                "anthropic-version": _live_translator_anthropic_version,
+                "Content-Type": "application/json"
+            }
+        else:
+            payload = _live_translator_plain_dict({
+                "model": model,
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": system_prompt
+                    },
+                    {
+                        "role": "user",
+                        "content": user_content
+                    }
+                ],
+                "temperature": float(
+                    _live_translator_config.get("temperature", 0.1)
+                ),
+                "max_tokens": int(
+                    _live_translator_config.get("max_output_tokens", 2400)
+                )
+            })
+            if _live_translator_config.get("json_response_format", True):
+                payload["response_format"] = {"type": "json_object"}
+            _live_translator_apply_provider_options(
+                payload,
+                _live_translator_api_host(),
+                thinking_enabled
+            )
+            headers = {
+                "Authorization": "Bearer " + api_key,
+                "Content-Type": "application/json"
+            }
         timeout_seconds = float(
             _live_translator_config.get("request_timeout_seconds", 60)
         )
@@ -706,9 +775,14 @@ init 999 python:
         )
         response.raise_for_status()
         response_data = response.json()
-        message_content = response_data["choices"][0]["message"]["content"]
+        if anthropic:
+            message_content = _live_translator_anthropic_text(response_data)
+        else:
+            message_content = (
+                response_data["choices"][0]["message"]["content"]
+            )
 
-        # 兼容部分接口返回内容块数组的形式。
+        # 兼容部分 OpenAI 兼容接口返回内容块数组的形式。
         if (
             not isinstance(message_content, _live_translator_text_type)
             and hasattr(message_content, "append")
