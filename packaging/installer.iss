@@ -65,6 +65,13 @@ UninstallStatusLabel=请稍候，直到从计算机中删除 %1。
 ; 桌面快捷方式默认勾选，其余快捷方式（开始菜单）始终创建。
 Name: "desktopicon"; Description: "创建桌面快捷方式(&D)"; GroupDescription: "附加快捷方式:"
 
+[InstallDelete]
+; 覆盖安装前清空内置资源目录：安装包只新增和覆盖文件，不会删除新版已不包含的旧资源。
+; 残留的旧 JSONL 会被内置译文安装一起合并，造成重复原文校验失败或混入过期译文。
+; 该目录只存放随包资源，用户配置与缓存位于 %LOCALAPPDATA%\RenpyTranslator 和游戏目录，不受影响；
+; 应用内更新器对同一目录有相同的清理（见 desktop/Updater/Program.cs）。
+Type: filesandordirs; Name: "{app}\Resources"
+
 [Files]
 ; 打包 Publish.ps1 暂存目录的全部发行文件：主程序、独立更新器与内置资源。
 Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
