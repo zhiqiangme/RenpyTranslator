@@ -266,16 +266,19 @@ public static class Core
     }
     public static readonly string[] InstalledFiles = ["zz_live_translator.rpy", "zz_live_translator.rpyc", "zz_live_translator_camp_buddy.rpy", "zz_live_translator_camp_buddy.rpyc", "live_translator/pretranslated.jsonl", "live_translator/config.json", "live_translator/installation.json"];
     // 备份保留份数。单次事务会把待覆盖文件整份备份，译文与旧版内置字体可达 20MB 量级，
-    // 不设上限时 backups 目录会随每次安装/自检持续堆积，故只保留最近若干份。
+    // 不设上限时 backups 目录会随每次安装/自检持续堆积，故每个游戏只保留最近若干份（另加最早一份）。
     private const int BackupRetention = 10;
-    /// <summary>按创建时间删除超出保留份数的旧备份；失败一律忽略，不影响安装流程。</summary>
-    private static void PruneBackups()
+    /// <summary>按游戏分别删除超出保留份数的旧备份；失败一律忽略，不影响安装流程。</summary>
+    internal static void PruneBackups()
     {
         var root = Backups;
         if (!Directory.Exists(root)) return;
         try
         {
-            foreach (var dir in Directory.GetDirectories(root).OrderByDescending(Directory.GetCreationTimeUtc).Skip(BackupRetention))
+            // 按 target.txt 记录的游戏分组：频繁保存某个游戏的配置不能挤掉其他游戏的备份。
+            // 每组最早的一份通常最接近安装汉化前的原始状态，始终保留。
+            foreach (var group in Directory.GetDirectories(root).GroupBy(BackupTarget, StringComparer.OrdinalIgnoreCase))
+            foreach (var dir in group.OrderByDescending(Directory.GetCreationTimeUtc).Skip(BackupRetention).SkipLast(1))
             {
                 try { Directory.Delete(dir, true); }
                 catch (IOException) { }                  // 被占用时留到下次清理
@@ -284,6 +287,12 @@ public static class Core
         }
         catch (IOException) { }
         catch (UnauthorizedAccessException) { }
+    }
+    private static string BackupTarget(string directory)
+    {
+        try { return File.ReadAllText(Path.Combine(directory, "target.txt")).Trim(); }
+        catch (IOException) { return ""; }
+        catch (UnauthorizedAccessException) { return ""; }
     }
     // 每次写入前保存原始字节；失败时恢复。备份留在用户数据目录，卸载不会删除它。
     public static void Transaction(string root, IEnumerable<string> relative, Action action)

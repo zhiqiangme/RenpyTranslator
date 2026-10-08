@@ -250,6 +250,21 @@ public static class SelfTest
             var legacyConfig = Core.Config(legacyGame);
             Assert(Core.ReadString(legacyConfig, "model") == "legacy-model" && !Core.ReadBool(legacyConfig, "enabled") && Core.ReadBool(legacyConfig, "json_response_format") && legacyConfig["protected_names"]!.AsArray().Count > 0 && Core.ReadString(legacyConfig, "api_key_encrypted") == "", "Legacy config fills missing fields with game defaults only");
             Reject(() => Core.ReadBool(new JsonObject { ["enabled"] = "true" }, "enabled"), "true 或 false", "Non-boolean flag produces Chinese diagnostic");
+            // 备份按游戏分别保留最近 10 份，并始终保留每个游戏最早的一份。
+            var testBackups = Core.Backups; var pruneRoot = Path.Combine(root, "prune-backups"); Core.Backups = pruneRoot;
+            try
+            {
+                string Backup(string target, int minutesAgo)
+                {
+                    var dir = Path.Combine(pruneRoot, Guid.NewGuid().ToString("N")); Directory.CreateDirectory(dir);
+                    File.WriteAllText(Path.Combine(dir, "target.txt"), target); Directory.SetCreationTimeUtc(dir, DateTime.UtcNow.AddMinutes(-minutesAgo)); return dir;
+                }
+                var busyGame = Enumerable.Range(0, 13).Select(i => Backup(@"D:\Games\Busy", i)).ToArray();
+                var quietGame = Backup(@"D:\Games\Quiet", 1000);
+                Core.PruneBackups();
+                Assert(busyGame.Take(10).All(Directory.Exists) && Directory.Exists(busyGame[12]) && !Directory.Exists(busyGame[10]) && !Directory.Exists(busyGame[11]) && Directory.Exists(quietGame), "Backup retention is per game and keeps the earliest backup");
+            }
+            finally { Core.Backups = testBackups; }
             Assert(!Core.Backups.StartsWith(realBackups, StringComparison.OrdinalIgnoreCase) && Directory.Exists(Core.Backups), "Self-test backups stay inside the test directory");
             Assert(Core.ManagerVersion == File.ReadAllText(Path.Combine(Core.Resources, "version.txt")).Trim(), "Manager and resource versions match");
             var zip = Path.Combine(root, "bad.zip"); using (var archive = ZipFile.Open(zip, ZipArchiveMode.Create)) { using var writer = new StreamWriter(archive.CreateEntry("../escape.txt").Open()); writer.Write("unsafe"); }
