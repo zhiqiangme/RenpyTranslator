@@ -23,6 +23,12 @@ public static class Core
         if (obj[key] is JsonValue value && value.TryGetValue<string>(out var text)) return text;
         throw new UserError($"配置字段 {key} 必须是字符串。");
     }
+    public static bool ReadBool(JsonObject obj, string key)
+    {
+        if (obj[key] is null) return false;
+        if (obj[key] is JsonValue value && value.TryGetValue<bool>(out var flag)) return flag;
+        throw new UserError($"配置字段 {key} 必须是 true 或 false。");
+    }
     public static JsonObject ReadJson(string path)
     {
         try { return JsonNode.Parse(File.ReadAllText(path)) as JsonObject ?? throw new UserError($"配置文件必须是 JSON 对象：{Path.GetFileName(path)}"); }
@@ -171,8 +177,17 @@ public static class Core
         return Path.TrimEndingDirectorySeparator(full);
     }
     public static string Data(string root) => Path.Combine(Game(root), "game", "live_translator");
-    public static JsonObject Config(string root) => File.Exists(Path.Combine(Data(root), "config.json"))
-        ? ReadJson(Path.Combine(Data(root), "config.json")) : Defaults();
+    public static JsonObject Config(string root)
+    {
+        var path = Path.Combine(Data(root), "config.json");
+        if (!File.Exists(path)) return Defaults();
+        var config = ReadJson(path);
+        // 旧版配置可能缺少后来新增的字段：界面会把缺失的开关显示为关闭，保存后误关翻译。
+        // 按游戏实际采用的默认值补齐（含保护人名），密钥字段不补。
+        foreach (var (key, value) in ReadJson(Path.Combine(Resources, "config.default.json")))
+            if (key is not ("api_key" or "api_key_encrypted") && !config.ContainsKey(key)) config[key] = value?.DeepClone();
+        return config;
+    }
     public static JsonObject Defaults()
     {
         var config = ReadJson(Path.Combine(Resources, "config.default.json"));
