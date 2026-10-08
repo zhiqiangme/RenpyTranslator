@@ -594,14 +594,14 @@ init 999 python:
         try:
             import requests
         except ImportError:
-            raise RuntimeError("游戏环境缺少 requests 模块")
+            raise RuntimeError(u"游戏环境缺少 requests 模块")
 
         model = _live_translator_config.get("model", "")
         api_key = _live_translator_api_key()
         if not model or model == "your-model-name":
-            raise RuntimeError("config.json 尚未填写 model")
+            raise RuntimeError(u"config.json 尚未填写 model")
         if not api_key:
-            raise RuntimeError("config.json 尚未填写 api_key")
+            raise RuntimeError(u"config.json 尚未填写 api_key")
 
         user_content = _live_translator_json_module.dumps(
             {"texts": sources},
@@ -690,19 +690,19 @@ init 999 python:
         array_type = type(_live_translator_json_module.loads("[]"))
         translations = translated_data.get("translations") if isinstance(translated_data, object_type) else None
         if not isinstance(translations, array_type):
-            raise ValueError("API 返回缺少 translations 数组")
+            raise ValueError(u"API 返回缺少 translations 数组")
         if len(translations) != len(sources):
-            raise ValueError("API 返回的译文数量与原文不一致")
+            raise ValueError(u"API 返回的译文数量与原文不一致")
 
         normalized = []
         for translation in translations:
             if not isinstance(translation, _live_translator_text_type):
-                raise ValueError("API 返回的译文必须是字符串")
+                raise ValueError(u"API 返回的译文必须是字符串")
             normalized_translation = _live_translator_to_text(
                 translation
             ).strip()
             if not normalized_translation:
-                raise ValueError("API 返回了空译文")
+                raise ValueError(u"API 返回了空译文")
             normalized.append(normalized_translation)
         return normalized
 
@@ -729,57 +729,91 @@ init 999 python:
         if not renpy.is_init_phase():
             renpy.invoke_in_main_thread(_live_translator_refresh)
 
+    def _live_translator_config_number(key, default, convert):
+        # 配置可能被手工改成错误类型；回退默认值，不能让后台线程因此退出。
+        try:
+            return convert(_live_translator_config.get(key, default))
+        except Exception:
+            return default
+
+    def _live_translator_error_text(error):
+        # Python 2 中含中文字节串的异常直接转 unicode 会抛 UnicodeDecodeError，
+        # 失败处理本身不能再抛异常，因此逐级退回到 str/repr。
+        for describe in (
+            lambda: _live_translator_text_type(error),
+            lambda: _live_translator_to_text(str(error)),
+            lambda: _live_translator_to_text(repr(error))
+        ):
+            try:
+                return describe()
+            except Exception:
+                continue
+        return u"未知错误"
+
     def _live_translator_fail_batch(sources, error):
         global _live_translator_last_error
 
-        cooldown = float(
-            _live_translator_config.get("retry_cooldown_seconds", 30)
+        cooldown = _live_translator_config_number(
+            "retry_cooldown_seconds", 30.0, float
         )
         retry_time = _live_translator_time_module.time() + max(5.0, cooldown)
         with _live_translator_lock:
             for source in sources:
                 _live_translator_pending.discard(source)
                 _live_translator_retry_after[source] = retry_time
-        _live_translator_last_error = _live_translator_to_text(error)
-        _live_translator_log("LiveTranslator: request failed: %s" % error)
+        error_text = _live_translator_error_text(error)
+        _live_translator_last_error = error_text
+        _live_translator_log(u"LiveTranslator: request failed: %s" % error_text)
+
+    def _live_translator_release_batch(sources):
+        with _live_translator_lock:
+            for source in sources:
+                _live_translator_pending.discard(source)
 
     def _live_translator_worker():
+        # 整个循环体都受保护：任何异常都只影响当前批次，线程退出会让本次游戏不再翻译，
+        # 且已入队文本会永久留在 pending 中无法重新排队。
         while True:
-            first_source = _live_translator_queue.get()
-            batch = [first_source]
-            batch_size = max(
-                1, int(_live_translator_config.get("batch_size", 8))
-            )
-            wait_seconds = max(
-                0.0,
-                float(
-                    _live_translator_config.get("batch_wait_ms", 180)
-                ) / 1000.0
-            )
-            deadline = _live_translator_time_module.time() + wait_seconds
-
-            while len(batch) < batch_size:
-                remaining = deadline - _live_translator_time_module.time()
-                if remaining <= 0:
-                    break
-                try:
-                    batch.append(
-                        _live_translator_queue.get(timeout=remaining)
-                    )
-                except _live_translator_queue_module.Empty:
-                    break
-
+            batch = []
             try:
+                batch.append(_live_translator_queue.get())
+                batch_size = max(
+                    1, _live_translator_config_number("batch_size", 8, int)
+                )
+                wait_seconds = max(
+                    0.0,
+                    _live_translator_config_number(
+                        "batch_wait_ms", 180.0, float
+                    ) / 1000.0
+                )
+                deadline = _live_translator_time_module.time() + wait_seconds
+
+                while len(batch) < batch_size:
+                    remaining = deadline - _live_translator_time_module.time()
+                    if remaining <= 0:
+                        break
+                    try:
+                        batch.append(
+                            _live_translator_queue.get(timeout=remaining)
+                        )
+                    except _live_translator_queue_module.Empty:
+                        break
+
                 translations = _live_translator_request_batch(batch)
                 if translations is None:
                     # 关闭时丢弃未发送批次并释放 pending，重新开启后允许再次排队。
-                    with _live_translator_lock:
-                        for source in batch:
-                            _live_translator_pending.discard(source)
+                    _live_translator_release_batch(batch)
                 else:
                     _live_translator_finish_batch(batch, translations)
             except Exception as error:
-                _live_translator_fail_batch(batch, error)
+                try:
+                    _live_translator_fail_batch(batch, error)
+                except Exception:
+                    # 最后防线：至少释放 pending，保证这些文本之后还能重新排队。
+                    try:
+                        _live_translator_release_batch(batch)
+                    except Exception:
+                        pass
 
     def _live_translator_enqueue(source):
         # 没有有效 API 配置时保留英文原文，也不创建失败重试任务。
