@@ -54,7 +54,7 @@ Manager data is stored under `%LOCALAPPDATA%/RenpyTranslator`:
 | `games.json` | Previously added game directories |
 | `backups/<operation-id>/` | Files before modification; `target.txt` identifies the game root |
 | `updates/<operation-id>/previous/` | Previous application version backed up before an update |
-| `tests/<id>/` | Simulated game directories created by self-tests; the latest 4 are retained |
+| `tests/<id>/` | Simulated game directories created by self-tests, with their own backups (separate from `backups`); the latest 4 are retained |
 | `self-test.log`, `updater-test.log` | Automated validation results |
 
 The Data and Logs page (数据与日志) can export caches, back up and clear caches, open the backup directory, and export the current operation log. To restore a backup, close the game first, then copy files back using their relative paths into the `game` folder of the game identified by `target.txt`. The latest 10 backups and 4 self-test directories are retained; excess directories are automatically removed during the next operation or self-test.

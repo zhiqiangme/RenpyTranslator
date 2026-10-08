@@ -182,7 +182,7 @@ public partial class MainWindow : Window
     private void OpenDirectory(string path) { Directory.CreateDirectory(path); Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); }
     private async void OpenGame(object sender, RoutedEventArgs e) => await Run(() => { OpenDirectory(Root()); return Task.CompletedTask; });
     private async void OpenData(object sender, RoutedEventArgs e) => await Run(() => { OpenDirectory(Core.Data(Root())); return Task.CompletedTask; });
-    private async void OpenBackups(object sender, RoutedEventArgs e) => await Run(() => { OpenDirectory(Path.Combine(Core.Home, "backups")); return Task.CompletedTask; });
+    private async void OpenBackups(object sender, RoutedEventArgs e) => await Run(() => { OpenDirectory(Core.Backups); return Task.CompletedTask; });
     private async void ExportLog(object sender, RoutedEventArgs e) => await Run(() => { var dialog = new SaveFileDialog { FileName = "translator.log", Filter = "日志|*.log" }; if (dialog.ShowDialog(this) == true) Core.AtomicWrite(dialog.FileName, LogBox.Text); return Task.CompletedTask; });
     private async void CheckUpdate(object sender, RoutedEventArgs e) => await Run(async () =>
     {
