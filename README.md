@@ -117,3 +117,7 @@ dotnet build desktop/Translator/Translator.csproj -c Release
 沿用项目 [LICENSE](LICENSE)。本项目是第三方翻译模组，与游戏开发商无关，请支持正版游戏。
 
 Markdown 解析使用开源 [Markdig](https://github.com/xoofx/markdig)（BSD-2-Clause）；其许可证随发行包置于 `Resources/licenses/Markdig-LICENSE.txt`。
+
+## 免责声明
+
+本项目为第三方爱好者制作的翻译模组，与游戏开发商无关。译文仅供学习交流，请支持正版。任何再分发、销售或商业化行为均由使用者自行承担全部法律责任，原作者不承担任何连带责任。如版权方要求，原作者将配合移除相关内容。
