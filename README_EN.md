@@ -117,3 +117,7 @@ Existing Camp Buddy Scoutmaster Season translations are stored under `translatio
 The project's [LICENSE](LICENSE) continues to apply. This is a third-party translation mod, unaffiliated with the game developers. Please support legitimate copies of the games.
 
 Markdown parsing uses the open-source [Markdig](https://github.com/xoofx/markdig) library (BSD-2-Clause). Its license is included in release packages at `Resources/licenses/Markdig-LICENSE.txt`.
+
+## Disclaimer
+
+This project is a translation mod created by third-party fans and is not affiliated with the game developer. The translations are provided for learning and communication purposes only. Please support the official release. Any redistribution, sale, or commercial use is solely the responsibility of the user; the original author assumes no joint or several liability. If requested by the copyright holder, the original author will cooperate in removing the relevant content.
