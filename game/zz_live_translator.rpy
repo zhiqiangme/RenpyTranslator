@@ -10,10 +10,8 @@ init 999 python:
     import threading as _live_translator_threading_module
     import time as _live_translator_time_module
 
-    try:
-        import Queue as _live_translator_queue_module
-    except ImportError:
-        import queue as _live_translator_queue_module
+    from collections import deque as _live_translator_deque
+    from renpy.text.text import Text as _live_translator_text_displayable
 
     try:
         import __builtin__ as _live_translator_builtins_module
@@ -142,18 +140,15 @@ init 999 python:
     _live_translator_runtime_normalized_cache = _live_translator_plain_dict()
     _live_translator_pending = _live_translator_plain_set()
     _live_translator_retry_after = _live_translator_plain_dict()
-    # 同一原文因译文内容问题（数量不符、空译文、非 JSON）累计失败的次数。
-    _live_translator_content_failures = _live_translator_plain_dict()
+    # 原文 -> (各类失败次数，当前原因，诊断)。网络超时不能耗掉单句原样返回的重试机会。
+    _live_translator_failures = _live_translator_plain_dict()
     # 曾在多条批次中出错的原文改为单独请求，避免一条坏文本拖累整批。
     _live_translator_isolated = _live_translator_plain_set()
-    # 达到失败上限后本次游戏不再请求，防止同一文本无限重试持续产生费用。
-    _live_translator_abandoned = _live_translator_plain_set()
-    _live_translator_max_content_failures = 3
-    _live_translator_queue = _live_translator_queue_module.Queue()
-    _live_translator_lock = _live_translator_threading_module.RLock()
+    _live_translator_queue = _live_translator_deque()
+    _live_translator_lock = _live_translator_threading_module.Condition()
     # 运行状态放在原生字典中原地修改：重新赋值 store 变量会让 Ren'Py 把它写进存档并参与回滚。
     _live_translator_state = _live_translator_plain_dict(
-        last_error=u"",
+        generation=0,
         request_count=0,
         success_count=0
     )
@@ -224,7 +219,8 @@ init 999 python:
         cache_path,
         cache_name,
         target_cache,
-        target_normalized_cache
+        target_normalized_cache,
+        runtime=False
     ):
         if not _live_translator_os_module.path.isfile(cache_path):
             return 0
@@ -244,6 +240,8 @@ init 999 python:
                         translation = _live_translator_to_text(
                             record["translation"]
                         )
+                        if runtime and _live_translator_is_echo(source, translation):
+                            continue
                         target_cache[source] = translation
                         _live_translator_index_normalized_source(
                             source,
@@ -279,28 +277,6 @@ init 999 python:
             _live_translator_log(
                 "LiveTranslator: cache write failed: %s" % error
             )
-
-    # 分别加载离线预翻译与运行时缓存；查找时预翻译优先（见 _live_translator_lookup），
-    # 已校对的预翻译不会被旧的 API 缓存覆盖。
-    _live_translator_pretranslated_count = _live_translator_load_cache(
-        _live_translator_pretranslated_path,
-        "pretranslated cache",
-        _live_translator_pretranslated_cache,
-        _live_translator_pretranslated_normalized_cache
-    )
-    _live_translator_runtime_cache_count = _live_translator_load_cache(
-        _live_translator_cache_path,
-        "runtime cache",
-        _live_translator_runtime_cache,
-        _live_translator_runtime_normalized_cache
-    )
-    _live_translator_log(
-        "LiveTranslator: loaded pretranslated=%d runtime_cache=%d"
-        % (
-            _live_translator_pretranslated_count,
-            _live_translator_runtime_cache_count
-        )
-    )
 
     _live_translator_english_pattern = _live_translator_re_module.compile(
         r"[A-Za-z]"
@@ -425,6 +401,42 @@ init 999 python:
             if skip_pattern.search(stripped):
                 return False
         return True
+
+    def _live_translator_is_echo(source, translation):
+        if source.strip() != translation.strip() or not _live_translator_should_translate(source):
+            return False
+        # 标签、插值和 printf 占位符不参与判断。只拦截有普通小写词的英文句子，
+        # 让姓名、全大写缩写和短标签仍可原样返回。
+        visible = _live_translator_re_module.sub(
+            r"\{[^{}]*\}|\[[^\]]*\]|%(?:\([^)]+\))?[-+#0-9.*]*[a-zA-Z%]", " ", source
+        ).strip()
+        if _live_translator_is_protected_name_text(visible):
+            return False
+        words = _live_translator_re_module.findall(r"[A-Za-z]+(?:'[A-Za-z]+)?", visible)
+        if len(words) < 2 or not any(word.islower() for word in words):
+            return False
+        if words[0][0].isupper() and words[-1][0].isupper() and all(
+            word[0].isupper() or word in ("de", "del", "der", "van", "von", "of", "the", "and")
+            for word in words
+        ):
+            return False
+        if visible.rstrip(u"\"'”’)").endswith((u".", u"?", u"!", u"…", u"。", u"？", u"！")):
+            return True
+        return any(word.lower() in ("i", "we", "you", "they", "the", "this", "that", "please")
+                   for word in words)
+
+    # 人工预译文优先。旧缓存只在读入时过滤，已有的有效译文和磁盘文件均可保留。
+    _live_translator_pretranslated_count = _live_translator_load_cache(
+        _live_translator_pretranslated_path, "pretranslated cache",
+        _live_translator_pretranslated_cache, _live_translator_pretranslated_normalized_cache
+    )
+    _live_translator_runtime_cache_count = _live_translator_load_cache(
+        _live_translator_cache_path, "runtime cache",
+        _live_translator_runtime_cache, _live_translator_runtime_normalized_cache, runtime=True
+    )
+    _live_translator_log("LiveTranslator: loaded pretranslated=%d runtime_cache=%d" % (
+        _live_translator_pretranslated_count, _live_translator_runtime_cache_count
+    ))
 
     def _live_translator_is_save_metadata(source):
         stripped = source.strip()
@@ -615,9 +627,9 @@ init 999 python:
         return payload
 
     def _live_translator_anthropic_text(response_data):
-        # 拒绝与具体文本相关，按内容错误计次；回复可能以 thinking 块开头，只取 text 块。
+        # 单句明确拒绝后停止；回复可能以 thinking 块开头，只取 text 块。
         if response_data.get("stop_reason") == "refusal":
-            raise _LiveTranslatorContentError(u"Claude 拒绝翻译这批文本")
+            raise _LiveTranslatorRefusal(u"Claude 拒绝翻译这批文本")
         return u"".join(
             _live_translator_to_text(block.get("text", u""))
             for block in response_data.get("content") or []
@@ -761,13 +773,23 @@ init 999 python:
         # 仅在 400/422 上归类为内容风控，避免把 401/403/404/429/5xx 误判为文本内容问题。
         if status_code in (400, 422) and is_content_blocked:
             if detail:
-                raise _LiveTranslatorContentError(
+                raise _LiveTranslatorRefusal(
                     u"触发服务商内容审查（HTTP %d：%s）"
                     % (status_code, detail)
                 )
-            raise _LiveTranslatorContentError(
+            raise _LiveTranslatorRefusal(
                 u"触发服务商内容审查（HTTP %d）" % status_code
             )
+        if status_code in (408, 429) or 500 <= status_code < 600:
+            message = u"HTTP %d" % status_code
+            if detail:
+                message += u"：%s" % detail
+            error = _LiveTranslatorTemporaryError(message)
+            # 服务商给出等待秒数时，采用它和本地冷却时间中的较大值。
+            value = getattr(response, "headers", {}).get("Retry-After", "")
+            if isinstance(value, (_live_translator_text_type, str)) and value.strip().isdigit():
+                error.retry_seconds = int(value)
+            raise error
         if detail:
             raise RuntimeError(u"HTTP %d：%s" % (status_code, detail))
         response.raise_for_status()
@@ -786,7 +808,7 @@ init 999 python:
             raise _LiveTranslatorContentError(u"API 返回缺少 choices 结果")
         # 命中内容审查或显式拒答时优先给出明确原因，按内容错误计次以便拆批隔离。
         if choice.get("finish_reason") == "content_filter":
-            raise _LiveTranslatorContentError(
+            raise _LiveTranslatorRefusal(
                 u"触发服务商内容审查（content_filter）"
             )
         message = choice.get("message")
@@ -796,7 +818,7 @@ init 999 python:
         if isinstance(refusal, (_live_translator_text_type, str)):
             refusal_text = _live_translator_sanitize_error_detail(refusal)
             if refusal_text:
-                raise _LiveTranslatorContentError(
+                raise _LiveTranslatorRefusal(
                     u"模型拒绝翻译这批文本：%s" % refusal_text[:80]
                 )
         message_content = message.get("content")
@@ -834,11 +856,22 @@ init 999 python:
         return _live_translator_json_module.loads(cleaned)
 
     class _LiveTranslatorContentError(ValueError):
-        # 模型返回内容本身有问题（非 JSON、数量不符、空译文），通常与具体原文相关；
-        # 只有这类错误计入单条原文的失败次数，网络、鉴权等全局错误只做冷却。
-        pass
+        kind = "invalid"
+        max_attempts = 3
 
-    def _live_translator_request_batch(sources):
+    class _LiveTranslatorRefusal(_LiveTranslatorContentError):
+        kind = "refused"
+        max_attempts = 1
+
+    class _LiveTranslatorEcho(_LiveTranslatorContentError):
+        kind = "echo"
+        max_attempts = 2
+
+    class _LiveTranslatorTemporaryError(RuntimeError):
+        kind = "temporary"
+        max_attempts = 3
+
+    def _live_translator_request_batch(sources, generation=None):
         if not _live_translator_config.get("enabled", True):
             return None
 
@@ -919,17 +952,19 @@ init 999 python:
         )
 
         # 组批期间可能按 F9 关闭；发送前再次检查，已发出的请求不强行中断。
-        if not _live_translator_config.get("enabled", True):
-            return None
-        _live_translator_state["request_count"] += 1
-        response = requests.post(
-            _live_translator_endpoint(),
-            data=_live_translator_json_module.dumps(
-                payload, ensure_ascii=False
-            ).encode("utf-8"),
-            headers=headers,
-            timeout=timeout_seconds
-        )
+        with _live_translator_lock:
+            if (not _live_translator_config.get("enabled", True)
+                    or (generation is not None and generation != _live_translator_state["generation"])):
+                return None
+            _live_translator_state["request_count"] += 1
+        try:
+            response = requests.post(
+                _live_translator_endpoint(),
+                data=_live_translator_json_module.dumps(payload, ensure_ascii=False).encode("utf-8"),
+                headers=headers, timeout=timeout_seconds
+            )
+        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as error:
+            raise _LiveTranslatorTemporaryError(_live_translator_error_text(error))
         status_code = getattr(response, "status_code", None)
         if (
             isinstance(status_code, int)
@@ -970,13 +1005,37 @@ init 999 python:
             normalized.append(normalized_translation)
         return normalized
 
-    def _live_translator_refresh():
-        if not renpy.is_init_phase():
-            renpy.restart_interaction()
+    def _live_translator_refresh(sources=None):
+        if renpy.is_init_phase():
+            return
+
+        def invalidate(widget):
+            if not isinstance(widget, _live_translator_text_displayable):
+                return
+            if sources is not None:
+                parts = (part for part in (widget.text or ()) if isinstance(part, (_live_translator_text_type, str)))
+                if not any(source in part for part in parts for source in sources):
+                    return
+            # Ren'Py 会复用 Text 和已分词的排版结果。仅重启交互不会再次调用
+            # config.replace_text，需要让受影响的可见控件在主线程重新分词。
+            widget.dirty = True
+            renpy.redraw(widget, 0)
+
+        for layer in config.layers:
+            for tag in renpy.get_showing_tags(layer=layer, sort=True):
+                root = renpy.get_screen(tag, layer=layer)
+                if root is not None:
+                    root.visit_all(invalidate)
+        renpy.restart_interaction()
 
     def _live_translator_finish_batch(sources, translations):
         with _live_translator_lock:
             for source, translation in zip(sources, translations):
+                if _live_translator_is_echo(source, translation):
+                    # translations 已按位置校验，其他成功句可以直接交付。
+                    _live_translator_isolated.add(source)
+                    _live_translator_fail_batch([source], _LiveTranslatorEcho(u"模型返回原文"))
+                    continue
                 _live_translator_runtime_cache[source] = translation
                 _live_translator_index_normalized_source(
                     source,
@@ -985,15 +1044,10 @@ init 999 python:
                 )
                 _live_translator_pending.discard(source)
                 _live_translator_retry_after.pop(source, None)
-                _live_translator_content_failures.pop(source, None)
+                _live_translator_failures.pop(source, None)
                 _live_translator_isolated.discard(source)
                 _live_translator_append_cache(source, translation)
                 _live_translator_state["success_count"] += 1
-            # 请求已恢复正常，F10 不再显示之前的错误。
-            _live_translator_state["last_error"] = u""
-
-        if not renpy.is_init_phase():
-            renpy.invoke_in_main_thread(_live_translator_refresh)
 
     def _live_translator_config_number(key, default, convert):
         # 配置可能被手工改成错误类型；回退默认值，不能让后台线程因此退出。
@@ -1017,79 +1071,83 @@ init 999 python:
         return u"未知错误"
 
     def _live_translator_fail_batch(sources, error):
-        cooldown = _live_translator_config_number(
-            "retry_cooldown_seconds", 30.0, float
-        )
-        retry_time = _live_translator_time_module.time() + max(5.0, cooldown)
-        content_error = isinstance(error, _LiveTranslatorContentError)
-        abandoned_count = 0
+        message = _live_translator_error_text(error)
+        kind = getattr(error, "kind", "error")
+        limit = getattr(error, "max_attempts", 1)
+        split = isinstance(error, _LiveTranslatorContentError) and len(sources) > 1
+        cooldown = max(5.0, _live_translator_config_number("retry_cooldown_seconds", 30.0, float))
+        deadline = _live_translator_time_module.time() + max(cooldown, getattr(error, "retry_seconds", 0))
         with _live_translator_lock:
             for source in sources:
+                previous = _live_translator_failures.get(source)
+                attempts = previous[0] if previous else _live_translator_plain_dict()
+                if split:
+                    # 整批被拒时还不能判断是哪句触发；保留 pending，立即逐句验证。
+                    _live_translator_isolated.add(source)
+                    _live_translator_failures[source] = (attempts, "split", message)
+                    _live_translator_queue.append(source)
+                    continue
+                attempts[kind] = attempts.get(kind, 0) + 1
                 _live_translator_pending.discard(source)
-                if content_error:
-                    failures = (
-                        _live_translator_content_failures.get(source, 0) + 1
-                    )
-                    _live_translator_content_failures[source] = failures
-                    # 多条批次无法判断是哪条出错，之后逐条单独请求。
-                    if len(sources) > 1:
-                        _live_translator_isolated.add(source)
-                    if failures >= _live_translator_max_content_failures:
-                        _live_translator_abandoned.add(source)
-                        _live_translator_retry_after.pop(source, None)
-                        abandoned_count += 1
-                        continue
-                _live_translator_retry_after[source] = retry_time
-        error_text = _live_translator_error_text(error)
-        _live_translator_state["last_error"] = error_text
-        _live_translator_log(u"LiveTranslator: request failed: %s" % error_text)
-        if abandoned_count:
-            _live_translator_log(
-                u"LiveTranslator: %d 条文本多次返回无效译文，本次游戏不再请求"
-                % abandoned_count
-            )
+                _live_translator_failures[source] = (attempts, kind, message)
+                if attempts[kind] < limit:
+                    _live_translator_retry_after[source] = deadline
+                else:
+                    _live_translator_isolated.discard(source)
+        _live_translator_log(u"LiveTranslator: request failed: %s" % message)
 
-    def _live_translator_release_batch(sources):
+    def _live_translator_take_batch():
+        # 新文本入队或最近一次冷却到期都会唤醒同一个工作线程；没有任务时一直阻塞。
         with _live_translator_lock:
-            for source in sources:
-                _live_translator_pending.discard(source)
+            while True:
+                now = _live_translator_time_module.time()
+                for source, due in list(_live_translator_retry_after.items()):
+                    if due <= now:
+                        del _live_translator_retry_after[source]
+                        _live_translator_pending.add(source)
+                        _live_translator_queue.append(source)
+                if _live_translator_queue:
+                    break
+                timeout = min(_live_translator_retry_after.values()) - now if _live_translator_retry_after else None
+                _live_translator_lock.wait(timeout)
+
+            generation = _live_translator_state["generation"]
+            size = max(1, _live_translator_config_number("batch_size", 8, int))
+            wait_ms = _live_translator_config_number("batch_wait_ms", 180.0, float)
+            deadline = now + max(0.0, wait_ms / 1000.0)
+            while len(_live_translator_queue) < size:
+                remaining = deadline - _live_translator_time_module.time()
+                if remaining <= 0:
+                    break
+                _live_translator_lock.wait(remaining)
+                if generation != _live_translator_state["generation"]:
+                    return generation, []
+            return generation, [
+                _live_translator_queue.popleft() for _ in range(min(size, len(_live_translator_queue)))
+            ]
+
+    def _live_translator_work_once():
+        generation, batch = _live_translator_take_batch()
+        try:
+            for group in _live_translator_split_batch(batch):
+                _live_translator_process_batch(group, generation)
+        except Exception as error:
+            # 失败处理本身出错时也要释放任务；已经拆批重新排队的原文仍属于 pending。
+            with _live_translator_lock:
+                if generation == _live_translator_state["generation"]:
+                    for source in batch:
+                        if source in _live_translator_pending and source not in _live_translator_queue:
+                            _live_translator_pending.discard(source)
+                            _live_translator_failures.pop(source, None)
+                            _live_translator_isolated.discard(source)
+            _live_translator_log(u"LiveTranslator: batch error: %s" % _live_translator_error_text(error))
 
     def _live_translator_worker():
-        # 整个循环体都受保护：任何异常都只影响当前批次，线程退出会让本次游戏不再翻译，
-        # 且已入队文本会永久留在 pending 中无法重新排队。
         while True:
-            batch = []
             try:
-                batch.append(_live_translator_queue.get())
-                batch_size = max(
-                    1, _live_translator_config_number("batch_size", 8, int)
-                )
-                wait_seconds = max(
-                    0.0,
-                    _live_translator_config_number(
-                        "batch_wait_ms", 180.0, float
-                    ) / 1000.0
-                )
-                deadline = _live_translator_time_module.time() + wait_seconds
-
-                while len(batch) < batch_size:
-                    remaining = deadline - _live_translator_time_module.time()
-                    if remaining <= 0:
-                        break
-                    try:
-                        batch.append(
-                            _live_translator_queue.get(timeout=remaining)
-                        )
-                    except _live_translator_queue_module.Empty:
-                        break
-
-                groups = _live_translator_split_batch(batch)
-            except Exception:
-                # 组批阶段出错时尚未发送请求，释放 pending 以便之后重新排队。
-                _live_translator_release_quietly(batch)
-                continue
-            for group in groups:
-                _live_translator_process_batch(group)
+                _live_translator_work_once()
+            except Exception as error:
+                _live_translator_log(u"LiveTranslator: worker error: %s" % _live_translator_error_text(error))
 
     def _live_translator_split_batch(batch):
         # 曾在多条批次中出错的原文单独请求，其余仍合并成一批。
@@ -1104,42 +1162,39 @@ init 999 python:
             groups.append(remaining)
         return groups
 
-    def _live_translator_release_quietly(sources):
+    def _live_translator_process_batch(batch, generation):
         try:
-            _live_translator_release_batch(sources)
-        except Exception:
-            pass
-
-    def _live_translator_process_batch(batch):
-        try:
-            translations = _live_translator_request_batch(batch)
-            if translations is None:
-                # 关闭时丢弃未发送批次并释放 pending，重新开启后允许再次排队。
-                _live_translator_release_batch(batch)
-            else:
-                _live_translator_finish_batch(batch, translations)
+            translations = _live_translator_request_batch(batch, generation)
         except Exception as error:
-            try:
+            with _live_translator_lock:
+                if generation != _live_translator_state["generation"]:
+                    return
                 _live_translator_fail_batch(batch, error)
-            except Exception:
-                # 最后防线：至少释放 pending，保证这些文本之后还能重新排队。
-                _live_translator_release_quietly(batch)
+                if all(source in _live_translator_pending or source in _live_translator_retry_after for source in batch):
+                    return
+        else:
+            with _live_translator_lock:
+                if generation != _live_translator_state["generation"]:
+                    return
+                if translations is None:
+                    _live_translator_pending.difference_update(batch)
+                    return
+                _live_translator_finish_batch(batch, translations)
+        if not renpy.is_init_phase():
+            renpy.invoke_in_main_thread(_live_translator_refresh, batch)
 
     def _live_translator_enqueue(source):
-        # 没有有效 API 配置时保留英文原文，也不创建失败重试任务。
-        if not _live_translator_config.get("enabled", True) or not _live_translator_runtime_api_ready():
-            return
-        now = _live_translator_time_module.time()
         with _live_translator_lock:
-            retry_time = _live_translator_retry_after.get(source, 0)
-            if (
-                source in _live_translator_pending
-                or source in _live_translator_abandoned
-                or now < retry_time
-            ):
-                return
+            if not _live_translator_config.get("enabled", True) or not _live_translator_runtime_api_ready():
+                return False
+            if source in _live_translator_pending or source in _live_translator_retry_after:
+                return True
+            if source in _live_translator_failures or source in _live_translator_runtime_cache:
+                return False
             _live_translator_pending.add(source)
-        _live_translator_queue.put(source)
+            _live_translator_queue.append(source)
+            _live_translator_lock.notify()
+            return True
 
     def _live_translator_lookup(source):
         # 预制译文优先，确保旧 API 缓存不能覆盖已校对文案。
@@ -1320,50 +1375,56 @@ init 999 python:
         if cached_translation is not None:
             return cached_translation
 
-        _live_translator_enqueue(source)
+        waiting = _live_translator_enqueue(source)
         pending_text = _live_translator_config.get("pending_text", "")
-        if pending_text:
+        if waiting and pending_text:
             return _live_translator_to_text(pending_text)
         return original_value
 
     def _live_translator_toggle():
-        _live_translator_config["enabled"] = not _live_translator_config.get(
-            "enabled", True
-        )
-        if _live_translator_config["enabled"]:
-            renpy.notify(u"实时翻译：已开启")
-        else:
-            renpy.notify(u"实时翻译：已关闭")
-        renpy.restart_interaction()
+        with _live_translator_lock:
+            enabled = not _live_translator_config.get("enabled", True)
+            _live_translator_config["enabled"] = enabled
+            if not enabled:
+                # F9 取消已排队的重试。代号让开关前已发出的响应不能覆盖新任务。
+                _live_translator_state["generation"] += 1
+                _live_translator_queue.clear()
+                _live_translator_pending.clear()
+                _live_translator_retry_after.clear()
+                _live_translator_isolated.clear()
+                _live_translator_failures.clear()
+                _live_translator_lock.notify()
+        renpy.notify(u"实时翻译：已开启" if enabled else u"实时翻译：已关闭")
+        _live_translator_refresh()
 
     def _live_translator_show_status():
         if not _live_translator_config.get("enabled", True):
             status_message = u"实时翻译已关闭"
         elif not _live_translator_api_key():
             status_message = u"实时翻译：请填写 API Key"
-        elif (
-            not _live_translator_config.get("model")
-            or _live_translator_config.get("model") == "your-model-name"
-        ):
+        elif not _live_translator_runtime_api_ready():
             status_message = u"实时翻译：请填写模型名称"
-        elif _live_translator_state["last_error"]:
-            status_message = (
-                u"翻译错误：" + _live_translator_state["last_error"][:120]
-            )
         else:
-            status_message = (
-                u"实时翻译正常：预翻译 %d 条，缓存 %d 条，请求 %d 次"
-                % (
+            with _live_translator_lock:
+                status_message = u"实时翻译：预翻译 %d 条，缓存 %d 条，请求 %d 次" % (
                     _live_translator_pretranslated_count,
-                    _live_translator_runtime_cache_count
-                    + _live_translator_state["success_count"],
+                    _live_translator_runtime_cache_count + _live_translator_state["success_count"],
                     _live_translator_state["request_count"]
                 )
-            )
-            if _live_translator_abandoned:
-                status_message += (
-                    u"，%d 条多次失败已停止请求" % len(_live_translator_abandoned)
-                )
+                counts = {u"等待重试": len(_live_translator_retry_after), u"处理中": len(_live_translator_pending)}
+                detail = u""
+                for source, (_, kind, message) in _live_translator_failures.items():
+                    if not detail and kind in ("temporary", "invalid", "error"):
+                        detail = message
+                    if source in _live_translator_pending or source in _live_translator_retry_after:
+                        continue
+                    label = {"refused": u"服务商拒绝", "echo": u"模型返回原文"}.get(kind, u"其他失败")
+                    counts[label] = counts.get(label, 0) + 1
+                for label in (u"处理中", u"等待重试", u"服务商拒绝", u"模型返回原文", u"其他失败"):
+                    if counts.get(label):
+                        status_message += u"，%s %d 条" % (label, counts[label])
+                if detail:
+                    status_message += u"（%s）" % detail[:120]
         renpy.notify(status_message)
 
     def _live_translator_apply_font():

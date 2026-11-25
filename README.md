@@ -20,13 +20,17 @@ Windows x64 桌面程序：用图形界面安装、升级和卸载汉化，配�
 
 管理器不会启动游戏。原模组已有的兼容性范围仍适用；尚未实测的 Ren'Py 版本不能保证兼容。图片内的英文不在文本翻译范围内。
 
+实时翻译遇到整批内容被拦截时，会自动逐句请求。停在当前画面即可看到成功的译文，服务商明确拒绝的单句保留原文。超时或限流会按冷却时间重试，最多再试两次。模型原样返回明显的英文句子时会单独再试一次，旧运行时缓存中的这类记录也会跳过。
+
+按 F10 可以查看处理中的条数，以及有多少句等待重试、被服务商拒绝或仍是原文。按 F9 关闭翻译会取消待处理请求；再次开启后，当前画面可以重新尝试。
+
 ## API 与配置
 
 - 支持自定义 OpenAI 兼容 `/chat/completions` 接口，地址可填写到端点或其上一级。
 - 服务商预设沿用旧版，模型名、端点与账户可用性需以服务商实际支持为准；订阅端点也可手动填写。
 - API Key 留空表示保留，清除密钥需勾选对应选项。密钥通过 Windows DPAPI CurrentUser 加密，与旧 PowerShell 配置兼容，跨用户或跨机器需重新填写。
 - “测试连接 / 翻译”发送一条 Hello 请求，可能产生少量费用；不会保存测试译文到游戏缓存。
-- 支持 Anthropic Claude：选择“Anthropic Claude”预设即使用 `https://api.anthropic.com/v1` 与默认模型 `claude-haiku-5-5`（Claude Haiku 5.5），按 Messages API（`/v1/messages`、`x-api-key` 鉴权）请求。Claude 不发送温度参数（当前模型拒绝非默认值）；未启用思考模式时以 `effort: low` 降低思考开销，开启后使用模型默认深度；“请求 JSON 格式”对应结构化输出，保证返回 `translations` 数组。Claude 拒绝翻译时按内容错误计次。仅识别官方地址，第三方中转请使用其 OpenAI 兼容地址。
+- 支持 Anthropic Claude：选择“Anthropic Claude”预设即使用 `https://api.anthropic.com/v1` 与默认模型 `claude-haiku-5-5`（Claude Haiku 5.5），按 Messages API（`/v1/messages`、`x-api-key` 鉴权）请求。Claude 不发送温度参数（当前模型拒绝非默认值）；未启用思考模式时以 `effort: low` 降低思考开销，开启后使用模型默认深度；“请求 JSON 格式”对应结构化输出，保证返回 `translations` 数组。仅识别官方地址，第三方中转请使用其 OpenAI 兼容地址。
 - 思考模式开关只对 DeepSeek、智谱、豆包等已确认支持的服务商显式发送；其他兼容接口仅在勾选启用时发送 `thinking` 字段，避免严格接口拒绝未知参数。OpenAI 官方地址自动改用 `max_completion_tokens`，且不发送 `temperature` 与 `thinking` 字段以兼容各代模型。
 - 高级设置支持批量大小、等待、超时、冷却、输出 token、温度、提示词、人名和跳过规则。恢复默认值仅修改编辑区，点击保存后才写入游戏。
 - 每个游戏独立保存配置。未知配置字段会保留。地址要求 HTTPS，本机回环服务可用 HTTP。

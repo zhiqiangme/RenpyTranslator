@@ -11,7 +11,8 @@ import textwrap
 import unittest
 import threading
 import time
-import queue
+from collections import deque
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 
@@ -27,18 +28,22 @@ def load_functions():
         "_live_translator_worker", "_live_translator_api_host",
         "_live_translator_apply_provider_options", "_live_translator_config_number",
         "_live_translator_error_text", "_live_translator_fail_batch",
-        "_live_translator_release_batch", "_live_translator_split_batch",
-        "_live_translator_release_quietly", "_live_translator_process_batch",
+        "_live_translator_take_batch", "_live_translator_work_once", "_live_translator_split_batch",
+        "_live_translator_toggle", "_live_translator_show_status", "_live_translator_process_batch",
         "_live_translator_finish_batch", "_LiveTranslatorContentError",
         "_live_translator_accepts_end_animation", "_live_translator_uses_anthropic",
         "_live_translator_anthropic_payload", "_live_translator_anthropic_text",
         "_live_translator_endpoint", "_live_translator_sanitize_error_detail",
         "_live_translator_is_content_block", "_live_translator_extract_api_error",
         "_live_translator_raise_http_error", "_live_translator_openai_text",
+        "_live_translator_is_echo", "_live_translator_is_protected_name_text", "_live_translator_should_translate",
+        "_LiveTranslatorRefusal", "_LiveTranslatorEcho", "_LiveTranslatorTemporaryError",
+        "_live_translator_replace_text", "_live_translator_refresh", "_live_translator_lookup",
     }
     constants = {
         "_live_translator_thinking_hosts", "_live_translator_thinking_host_suffixes",
-        "_live_translator_host_pattern", "_live_translator_max_content_failures",
+        "_live_translator_host_pattern", "_live_translator_english_pattern", "_live_translator_chinese_pattern",
+        "_live_translator_name_punctuation_pattern", "_live_translator_text_tag_pattern",
         "_live_translator_anthropic_host", "_live_translator_anthropic_version",
         "_live_translator_translation_schema", "_live_translator_content_block_markers",
     }
@@ -62,6 +67,8 @@ def load_functions():
         "_live_translator_log": lambda message: None,
         "_live_translator_plain_dict": dict,
         "_live_translator_plain_set": set,
+        "_live_translator_protected_names": {"yoshinorinagira"},
+        "_live_translator_skip_patterns": [],
     }
     exec(compile(selected, "zz_live_translator.rpy", "exec"), scope)
     return scope
@@ -70,6 +77,28 @@ def load_functions():
 class CacheTests(unittest.TestCase):
     def setUp(self):
         self.functions = load_functions()
+
+    def test_only_runtime_cache_ignores_unchanged_sentences(self):
+        sentence = "Please open the window."
+        records = [
+            (sentence, sentence), ("Stay with me!", "陪我！"), ("Stay with me!", "Stay with me!"),
+            ("Yoshinori Nagira", "Yoshinori Nagira"), ("U.S.A.", "U.S.A."),
+            ("Ludwig van Beethoven.", "Ludwig van Beethoven."),
+            ("{b}[first_name] %(last_name)s{/b}", "{b}[first_name] %(last_name)s{/b}"),
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "cache.jsonl"
+            path.write_text("\n".join(json.dumps({"source": s, "translation": t}) for s, t in records), encoding="utf-8")
+            exact, normalized = {}, {}
+            load = self.functions["_live_translator_load_cache"]
+            self.assertEqual(load(str(path), "runtime", exact, normalized, runtime=True), 5)
+            self.assertNotIn(sentence, exact)
+            self.assertNotIn(sentence, normalized)
+            self.assertEqual(exact["Stay with me!"], "陪我！")
+            for source, target in records[3:]:
+                self.assertEqual(exact[source], target)
+            load(str(path), "pretranslated", exact, normalized)
+            self.assertEqual(exact[sentence], sentence)
 
     def test_conflicts_keep_first_fallback_and_exact_variants(self):
         records = [
@@ -115,10 +144,13 @@ class RuntimeTests(unittest.TestCase):
             "_live_translator_config": {"enabled": True, "model": "mock", "batch_size": 1},
             "_live_translator_default_config": {"system_prompt": "mock"},
             "_live_translator_name_prompt_rule": "names",
-            "_live_translator_state": {"last_error": "", "request_count": 0, "success_count": 0},
-            "_live_translator_content_failures": {},
+            "_live_translator_state": {"generation": 0, "request_count": 0, "success_count": 0},
+            "_live_translator_failures": {},
             "_live_translator_isolated": set(),
-            "_live_translator_abandoned": set(),
+            "_live_translator_pretranslated_count": 0,
+            "_live_translator_runtime_cache_count": 0,
+            "_live_translator_pretranslated_cache": {},
+            "_live_translator_pretranslated_normalized_cache": {},
             "_live_translator_runtime_cache": {},
             "_live_translator_runtime_normalized_cache": {},
             "_live_translator_index_normalized_source": lambda source, translation, cache: None,
@@ -128,15 +160,19 @@ class RuntimeTests(unittest.TestCase):
             "_live_translator_endpoint": lambda: "mock://no-network",
             "_live_translator_runtime_api_ready": lambda: True,
             "_live_translator_time_module": time,
-            "_live_translator_queue_module": queue,
-            "_live_translator_queue": queue.Queue(),
-            "_live_translator_lock": threading.RLock(),
+            "_live_translator_queue": deque(),
+            "_live_translator_lock": threading.Condition(),
             "_live_translator_pending": set(),
             "_live_translator_retry_after": {},
-            "_live_translator_should_translate": lambda text: True,
-            "_live_translator_lookup": lambda text: "cached translation",
+            "_live_translator_previous_replace_text": None,
+            "_live_translator_local_weekday_translation": lambda source: None,
+            "_live_translator_local_save_slot_translation": lambda source: None,
+            "_live_translator_local_image_not_found_translation": lambda source: None,
+            "_live_translator_is_save_metadata": lambda source: False,
         })
         self.requests = Mock()
+        self.requests.exceptions.Timeout = TimeoutError
+        self.requests.exceptions.ConnectionError = ConnectionError
         self.module_patch = patch.dict("sys.modules", {"requests": self.requests})
         self.module_patch.start()
         self.addCleanup(self.module_patch.stop)
@@ -214,22 +250,18 @@ class RuntimeTests(unittest.TestCase):
         self.scope["_live_translator_enqueue"]("Blocked line")
         self.run_one_batch()
         self.assertEqual(self.scope["_live_translator_isolated"], {"Normal line", "Blocked line"})
-        self.assertEqual(self.scope["_live_translator_content_failures"]["Normal line"], 1)
-        self.assertEqual(self.scope["_live_translator_content_failures"]["Blocked line"], 1)
-        self.assertIn("内容审查", self.scope["_live_translator_state"]["last_error"])
-        self.assertIn("Content Exists Risk", self.scope["_live_translator_state"]["last_error"])
+        for attempts, kind, message in self.scope["_live_translator_failures"].values():
+            self.assertEqual((attempts, kind), ({}, "split"))
+            self.assertIn("内容审查", message)
+            self.assertIn("Content Exists Risk", message)
 
-    def test_http_400_parameter_error_preserves_detail_without_abandoning(self):
-        self.http_error_response(
-            400,
-            json.dumps({"error": {"message": "Unsupported value: 'temperature' does not support 0.1"}})
-        )
+    def test_http_400_parameter_error_preserves_detail_without_auto_retry(self):
+        self.http_error_response(400, json.dumps({"error": {"message": "Unsupported value: temperature"}}))
         self.scope["_live_translator_enqueue"]("Hello")
         self.run_one_batch()
-        self.assertFalse(self.scope["_live_translator_content_failures"])
-        self.assertFalse(self.scope["_live_translator_abandoned"])
-        self.assertIn("HTTP 400", self.scope["_live_translator_state"]["last_error"])
-        self.assertIn("temperature", self.scope["_live_translator_state"]["last_error"])
+        self.assertFalse(self.scope["_live_translator_retry_after"])
+        self.assertIn("HTTP 400", self.status())
+        self.assertIn("temperature", self.status())
 
     def test_http_error_detail_redacts_api_key(self):
         self.http_error_response(
@@ -238,7 +270,7 @@ class RuntimeTests(unittest.TestCase):
         )
         self.scope["_live_translator_enqueue"]("Hello")
         self.run_one_batch()
-        last_error = self.scope["_live_translator_state"]["last_error"]
+        last_error = self.status()
         self.assertIn("***", last_error)
         self.assertNotIn("mock-key", last_error)
 
@@ -331,7 +363,7 @@ class RuntimeTests(unittest.TestCase):
         self.scope["_live_translator_lookup"] = lambda text: None
         self.assertEqual(self.scope["_live_translator_confirm_message"]("Uncached"), "Uncached")
         self.scope["_live_translator_enqueue"]("Direct enqueue")
-        self.assertTrue(self.scope["_live_translator_queue"].empty())
+        self.assertFalse(self.scope["_live_translator_queue"])
         self.assertFalse(self.scope["_live_translator_pending"])
 
     def test_disable_before_send_skips_network(self):
@@ -344,23 +376,11 @@ class RuntimeTests(unittest.TestCase):
         self.requests.post.assert_not_called()
 
     def run_one_batch(self):
-        class StopWorker(BaseException):
-            pass
-        actual_queue = self.scope["_live_translator_queue"]
-        # 确定性结束无限工作循环，不创建线程或依赖等待时长。
-        def get(**kwargs):
-            if actual_queue.empty():
-                # 组批阶段的限时等待按真实队列语义返回 Empty；阻塞取首条时结束循环。
-                if "timeout" in kwargs:
-                    raise queue.Empty()
-                raise StopWorker()
-            return actual_queue.get_nowait()
-        self.scope["_live_translator_queue"] = Mock(get=get)
-        try:
-            with self.assertRaises(StopWorker):
-                self.scope["_live_translator_worker"]()
-        finally:
-            self.scope["_live_translator_queue"] = actual_queue
+        self.scope["_live_translator_work_once"]()
+
+    def status(self):
+        self.scope["_live_translator_show_status"]()
+        return self.scope["renpy"].notify.call_args.args[0]
 
     def test_disabled_batch_releases_pending_and_can_be_requeued(self):
         self.scope["_live_translator_enqueue"]("Hello")
@@ -385,7 +405,7 @@ class RuntimeTests(unittest.TestCase):
         self.run_one_batch()
         self.assertFalse(self.scope["_live_translator_pending"])
         self.assertGreater(self.scope["_live_translator_retry_after"]["Hello"], time.time())
-        self.assertIn("API", self.scope["_live_translator_state"]["last_error"])
+        self.assertIn("API", self.scope["_live_translator_failures"]["Hello"][2])
 
     def test_failure_handler_error_still_releases_pending(self):
         self.scope["_live_translator_enqueue"]("Hello")
@@ -409,30 +429,39 @@ class RuntimeTests(unittest.TestCase):
         self.assertIn("Unprintable", self.scope["_live_translator_error_text"](Unprintable()))
         self.assertEqual(self.scope["_live_translator_error_text"](RuntimeError("中文")), "中文")
 
-    def retry_now(self):
-        # 跳过冷却时间，模拟玩家稍后再次看到同一文本。
-        self.scope["_live_translator_retry_after"].clear()
+    def simulate_cooldown(self):
+        # 等待时推进虚拟时钟，由真实调度器自行取出到期任务。
+        clock = Mock(return_value=1000.0)
+        self.scope["_live_translator_time_module"] = Mock(time=clock)
+        def advance(seconds):
+            self.assertIsNotNone(seconds, "没有待处理任务，工作线程将永久等待")
+            clock.return_value += seconds
+        self.scope["_live_translator_lock"].wait = Mock(side_effect=advance)
 
     def test_repeated_invalid_content_is_abandoned(self):
+        self.simulate_cooldown()
         self.response({"translations": []})
-        for _ in range(3):
-            self.retry_now()
-            self.scope["_live_translator_enqueue"]("Bad")
-            self.run_one_batch()
-        self.assertIn("Bad", self.scope["_live_translator_abandoned"])
-        self.retry_now()
         self.scope["_live_translator_enqueue"]("Bad")
-        self.assertTrue(self.scope["_live_translator_queue"].empty())
+        for _ in range(3):
+            self.run_one_batch()
+        self.assertFalse(self.scope["_live_translator_enqueue"]("Bad"))
+        self.assertIn("其他失败 1 条", self.status())
         self.assertEqual(self.requests.post.call_count, 3)
 
-    def test_network_errors_do_not_count_against_text(self):
-        self.requests.post.side_effect = RuntimeError("network down")
-        for _ in range(5):
-            self.retry_now()
-            self.scope["_live_translator_enqueue"]("Hello")
-            self.run_one_batch()
-        self.assertFalse(self.scope["_live_translator_content_failures"])
-        self.assertFalse(self.scope["_live_translator_abandoned"])
+    def test_timeout_and_rate_limit_retry_with_cooldown_and_stop(self):
+        self.simulate_cooldown()
+        self.http_error_response(429, json.dumps({"error": "rate limited"}))
+        self.requests.post.return_value.headers = {"Retry-After": "45"}
+        self.requests.post.side_effect = [TimeoutError("timeout"), self.requests.post.return_value, self.requests.post.return_value]
+        self.scope["_live_translator_enqueue"]("Hello")
+        self.run_one_batch()
+        self.assertIn("等待重试 1 条", self.status())
+        self.run_one_batch()
+        self.run_one_batch()
+        self.assertEqual(self.scope["_live_translator_time_module"].time(), 1075)
+        self.assertFalse(self.scope["_live_translator_enqueue"]("Hello"))
+        self.assertIn("HTTP 429", self.status())
+        self.assertNotIn("服务商拒绝", self.status())
 
     def test_invalid_multi_batch_isolates_sources(self):
         self.scope["_live_translator_config"]["batch_size"] = 2
@@ -445,14 +474,101 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual(split(["A", "C", "B", "D"]), [["A"], ["B"], ["C", "D"]])
 
     def test_success_clears_error_and_failure_state(self):
-        self.scope["_live_translator_state"]["last_error"] = "old error"
-        self.scope["_live_translator_content_failures"]["Hello"] = 2
+        self.scope["_live_translator_failures"]["Hello"] = ({"invalid": 2}, "invalid", "old error")
         self.scope["_live_translator_isolated"].add("Hello")
         self.scope["_live_translator_finish_batch"](["Hello"], ["你好"])
-        self.assertEqual(self.scope["_live_translator_state"]["last_error"], "")
-        self.assertNotIn("Hello", self.scope["_live_translator_content_failures"])
+        self.assertNotIn("Hello", self.scope["_live_translator_failures"])
         self.assertNotIn("Hello", self.scope["_live_translator_isolated"])
         self.assertEqual(self.scope["_live_translator_runtime_cache"]["Hello"], "你好")
+
+    def test_static_screen_recovers_without_user_input_and_retains_refusal(self):
+        self.scope["_live_translator_config"].update(batch_size=2, pending_text="…")
+        render = self.scope["_live_translator_replace_text"]
+        blocked, good = "This line was refused.", "Where is the station?"
+        self.assertEqual([render(blocked), render(good)], ["…", "…"])
+        self.http_error_response(400, json.dumps({"error": "Content Exists Risk"}))
+        refused = self.requests.post.return_value
+        translated = Mock(status_code=200)
+        translated.json.return_value = {"choices": [{"message": {"content": json.dumps({"translations": ["车站在哪里？"]})}}]}
+        self.requests.post.side_effect = [refused, refused, translated]
+        self.scope["renpy"].is_init_phase = lambda: False
+        self.run_one_batch()
+        self.run_one_batch()
+        batches = [json.loads(json.loads(call.kwargs["data"])["messages"][-1]["content"])["texts"]
+                   for call in self.requests.post.call_args_list]
+        self.assertEqual(batches, [[blocked, good], [blocked], [good]])
+        self.assertEqual([render(blocked), render(good)], [blocked, "车站在哪里？"])
+        self.assertIn("服务商拒绝 1 条", self.status())
+        self.assertNotIn("等待重试", self.status())
+        self.assertFalse(self.scope["_live_translator_queue"])
+        self.scope["renpy"].invoke_in_main_thread.assert_called_with(self.scope["_live_translator_refresh"], [good])
+
+    def test_refresh_invalidates_only_widgets_containing_changed_text(self):
+        class TextWidget:
+            def __init__(self, text):
+                self.text = [text]
+                self.dirty = False
+
+        changed = TextWidget("{i}Where is the station?{/i}")
+        other = TextWidget("Settings")
+        screen = Mock()
+        def visit(callback):
+            for widget in (screen, changed, other):
+                callback(widget)
+        screen.visit_all.side_effect = visit
+        api = self.scope["renpy"]
+        api.is_init_phase = lambda: False
+        api.get_showing_tags.return_value = ["fixture"]
+        api.get_screen.return_value = screen
+        self.scope.update(config=SimpleNamespace(layers=["screens"]), _live_translator_text_displayable=TextWidget)
+        self.scope["_live_translator_refresh"](["Where is the station?"])
+        self.assertTrue(changed.dirty)
+        self.assertFalse(other.dirty)
+        api.redraw.assert_called_once_with(changed, 0)
+        api.restart_interaction.assert_called_once()
+
+    def test_echo_retries_only_echoed_line_once_after_a_timeout(self):
+        self.simulate_cooldown()
+        self.scope["_live_translator_config"]["batch_size"] = 2
+        sentence, good = "Please open the window.", "Good morning!"
+        for source in (sentence, good):
+            self.scope["_live_translator_enqueue"](source)
+        self.requests.post.side_effect = TimeoutError("timeout")
+        self.run_one_batch()
+        self.requests.post.side_effect = None
+        self.response({"translations": [sentence, "早安！"]})
+        self.run_one_batch()
+        self.assertEqual(self.scope["_live_translator_runtime_cache"], {good: "早安！"})
+        self.response({"translations": [sentence]})
+        self.run_one_batch()
+        self.assertEqual(json.loads(self.sent_payload()["messages"][-1]["content"])["texts"], [sentence])
+        self.assertFalse(self.scope["_live_translator_enqueue"](sentence))
+        self.assertIn("模型返回原文 1 条", self.status())
+        self.scope["_live_translator_append_cache"].assert_called_once_with(good, "早安！")
+
+    def test_f9_cancels_cooldown_and_discards_inflight_reply_after_reenable(self):
+        self.simulate_cooldown()
+        enqueue = self.scope["_live_translator_enqueue"]
+        toggle = self.scope["_live_translator_toggle"]
+        enqueue("Old")
+        self.requests.post.side_effect = TimeoutError("timeout")
+        self.run_one_batch()
+        enqueue("Hello")
+        self.response({"translations": ["旧回复"]})
+        def toggle_during_request(*args, **kwargs):
+            toggle()
+            toggle()
+            enqueue("Hello")
+            return self.requests.post.return_value
+        self.requests.post.side_effect = toggle_during_request
+        self.run_one_batch()
+        self.assertFalse(self.scope["_live_translator_retry_after"])
+        self.assertFalse(self.scope["_live_translator_runtime_cache"])
+        self.assertEqual(self.scope["_live_translator_pending"], {"Hello"})
+        self.requests.post.side_effect = None
+        self.response({"translations": ["新回复"]})
+        self.run_one_batch()
+        self.assertEqual(self.scope["_live_translator_runtime_cache"], {"Hello": "新回复"})
 
     def test_invalid_batch_never_reaches_cache_writer(self):
         self.scope["_live_translator_enqueue"]("Hello")
