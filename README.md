@@ -1,9 +1,3 @@
-<div align="right">
-
-**简体中文** | [English](README_EN.md)
-
-</div>
-
 # Ren'Py 汉化管理器
 
 Windows x64 桌面程序：用图形界面安装、升级和卸载汉化，配置 OpenAI 兼容模型 API，管理译文缓存并更新软件。
@@ -121,3 +115,5 @@ Markdown 解析使用开源 [Markdig](https://github.com/xoofx/markdig)（BSD-2-
 ## 免责声明
 
 本项目为第三方爱好者制作的翻译模组，与游戏开发商无关。译文仅供学习交流，请支持正版。任何再分发、销售或商业化行为均由使用者自行承担全部法律责任，原作者不承担任何连带责任。如版权方要求，原作者将配合移除相关内容。
+
+This project is a translation mod created by third-party fans and is not affiliated with the game developer. The translations are provided for learning and communication purposes only. Please support the official release. Any redistribution, sale, or commercial use is solely the responsibility of the user; the original author assumes no joint or several liability. If requested by the copyright holder, the original author will cooperate in removing the relevant content.
