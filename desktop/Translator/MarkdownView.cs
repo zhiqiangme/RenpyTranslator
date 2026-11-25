@@ -20,9 +20,9 @@ internal static class MarkdownView
         var document = new FlowDocument
         {
             FontFamily = new FontFamily("Microsoft YaHei UI"), FontSize = 14, FontWeight = FontWeights.Normal,
-            Foreground = new SolidColorBrush(Color.FromRgb(32, 40, 52)),
             PagePadding = new Thickness(12), ColumnWidth = double.PositiveInfinity
         };
+        document.SetResourceReference(TextElement.ForegroundProperty, "TextPrimaryBrush");
         Blocks(Markdown.Parse(markdown, Pipeline), document.Blocks);
         return document;
     }
@@ -44,12 +44,17 @@ internal static class MarkdownView
                     foreach (var item in list.OfType<ListItemBlock>()) { var entry = new ListItem(); Blocks(item, entry.Blocks); items.ListItems.Add(entry); }
                     target.Add(items); break;
                 case QuoteBlock quote:
-                    var section = new Section { BorderBrush = Brushes.LightGray, BorderThickness = new Thickness(3, 0, 0, 0), Padding = new Thickness(12, 4, 0, 4), Margin = new Thickness(0, 4, 0, 10) };
+                    var section = new Section { BorderThickness = new Thickness(3, 0, 0, 0), Padding = new Thickness(12, 4, 0, 4), Margin = new Thickness(0, 4, 0, 10) };
+                    section.SetResourceReference(System.Windows.Documents.Block.BorderBrushProperty, "BorderStrongBrush");
                     Blocks(quote, section.Blocks); target.Add(section); break;
                 case CodeBlock code:
-                    target.Add(new Paragraph(new Run(code.Lines.ToString())) { FontFamily = new FontFamily("Consolas"), FontSize = 13, Background = Brushes.WhiteSmoke, Padding = new Thickness(10), Margin = new Thickness(0, 4, 0, 12) }); break;
+                    var codeBlock = new Paragraph(new Run(code.Lines.ToString())) { FontFamily = new FontFamily("Consolas"), FontSize = 13, Padding = new Thickness(10), Margin = new Thickness(0, 4, 0, 12) };
+                    codeBlock.SetResourceReference(TextElement.BackgroundProperty, "CodeBlockBackgroundBrush");
+                    target.Add(codeBlock); break;
                 case ThematicBreakBlock:
-                    target.Add(new Paragraph { BorderBrush = Brushes.LightGray, BorderThickness = new Thickness(0, 1, 0, 0), Margin = new Thickness(0, 8, 0, 8) }); break;
+                    var divider = new Paragraph { BorderThickness = new Thickness(0, 1, 0, 0), Margin = new Thickness(0, 8, 0, 8) };
+                    divider.SetResourceReference(System.Windows.Documents.Block.BorderBrushProperty, "BorderBrush");
+                    target.Add(divider); break;
                 case MdTable table:
                     var grid = new System.Windows.Documents.Table { CellSpacing = 0, Margin = new Thickness(0, 4, 0, 12) };
                     var rows = new TableRowGroup(); grid.RowGroups.Add(rows);
@@ -58,7 +63,8 @@ internal static class MarkdownView
                         var output = new TableRow(); rows.Rows.Add(output);
                         foreach (var cell in row.OfType<MdCell>())
                         {
-                            var content = new TableCell { Padding = new Thickness(6), BorderBrush = Brushes.LightGray, BorderThickness = new Thickness(0.5), FontWeight = row.IsHeader ? FontWeights.SemiBold : FontWeights.Normal };
+                            var content = new TableCell { Padding = new Thickness(6), BorderThickness = new Thickness(0.5), FontWeight = row.IsHeader ? FontWeights.SemiBold : FontWeights.Normal };
+                            content.SetResourceReference(TableCell.BorderBrushProperty, "BorderStrongBrush");
                             Blocks(cell, content.Blocks); output.Cells.Add(content);
                         }
                     }
@@ -76,7 +82,10 @@ internal static class MarkdownView
             switch (inline)
             {
                 case LiteralInline literal: target.Add(new Run(literal.Content.ToString())); break;
-                case CodeInline code: target.Add(new Run(code.Content) { FontFamily = new FontFamily("Consolas"), Background = Brushes.WhiteSmoke }); break;
+                case CodeInline code:
+                    var codeRun = new Run(code.Content) { FontFamily = new FontFamily("Consolas") };
+                    codeRun.SetResourceReference(TextElement.BackgroundProperty, "CodeBlockBackgroundBrush");
+                    target.Add(codeRun); break;
                 case LineBreakInline line: target.Add(line.IsHard ? new LineBreak() : new Run(" ")); break;
                 case EmphasisInline emphasis:
                     var span = new Span();
@@ -87,6 +96,7 @@ internal static class MarkdownView
                     if (!link.IsImage && Uri.TryCreate(link.Url, UriKind.Absolute, out var uri) && uri.Scheme is "https" or "http")
                     {
                         var hyperlink = new Hyperlink { NavigateUri = uri };
+                        hyperlink.SetResourceReference(TextElement.ForegroundProperty, "HyperlinkBrush");
                         Inlines(link, hyperlink.Inlines);
                         hyperlink.RequestNavigate += (_, args) =>
                         {

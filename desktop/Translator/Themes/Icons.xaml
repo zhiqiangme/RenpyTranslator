@@ -1,6 +1,6 @@
 <!--
-  线性矢量图标：统一绘制在 16×16 网格上，使用时设置 Stretch="None"、Width/Height=16，
-  保证各图标笔画粗细与视觉大小一致。
+  线性矢量图标：常规图标统一绘制在 16×16 网格上，窗口控制图标绘制在 10×10 网格上，
+  使用时设置 Stretch="None"，保证各图标笔画粗细与视觉大小一致。
 -->
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
@@ -24,4 +24,18 @@
 
  <!-- 提示：感叹号 -->
  <Geometry x:Key="IconInfo">M8,4.4 V8.6 M8,11.3 V11.6</Geometry>
+
+ <!-- 标题栏：侧边栏切换（16×16） -->
+ <Geometry x:Key="IconSidebar">M2.5,3.5 H13.5 V12.5 H2.5 Z M6.2,3.5 V12.5</Geometry>
+
+ <!-- 主题模式：跟随系统（显示器） / 浅色（太阳） / 深色（月亮）（16×16） -->
+ <Geometry x:Key="IconThemeSystem">M2.6,3.5 H13.4 V10.3 H2.6 Z M5.8,12.8 H10.2 M8,10.3 V12.8</Geometry>
+ <Geometry x:Key="IconThemeLight">M8,5.2 A2.8,2.8 0 1 1 7.99,5.2 Z M8,2.2 V3.4 M8,12.6 V13.8 M2.2,8 H3.4 M12.6,8 H13.8 M3.9,3.9 L4.8,4.8 M11.2,11.2 L12.1,12.1 M12.1,3.9 L11.2,4.8 M4.8,11.2 L3.9,12.1</Geometry>
+ <Geometry x:Key="IconThemeDark">M11.8,9.9 A4.6,4.6 0 0 1 6.1,4.2 A4.6,4.6 0 1 0 11.8,9.9 Z</Geometry>
+
+ <!-- 窗口控制按钮（10×10，1px 锐利线条） -->
+ <Geometry x:Key="IconWinMinimize">M0,5 H10</Geometry>
+ <Geometry x:Key="IconWinMaximize">M0.5,0.5 H9.5 V9.5 H0.5 Z</Geometry>
+ <Geometry x:Key="IconWinRestore">M0.5,2.5 H7.5 V9.5 H0.5 Z M2.5,2.5 V0.5 H9.5 V7.5 H7.5</Geometry>
+ <Geometry x:Key="IconWinClose">M0.5,0.5 L9.5,9.5 M9.5,0.5 L0.5,9.5</Geometry>
 </ResourceDictionary>

@@ -21,6 +21,7 @@ public partial class MainWindow : Window
     private readonly Dictionary<string, CheckBox> flags = new();
     private ProviderCatalog catalog = Providers.Load();
     private bool suppressProviderChange;
+    private bool suppressThemeChange;
     private bool liveModelsLoaded;
     private string loadedRoot = "";
     private Release? release;
@@ -29,6 +30,10 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        WindowChromeHelper.Attach(this, RootFrame, UpdateWindowStateChrome);
+        ThemeManager.ThemeChanged += SyncThemeUi;
+        SyncThemeUi();
+        UpdateWindowStateChrome();
         Directory.CreateDirectory(Core.Home);
         Updates.PruneUpdates(Path.Combine(Core.Home, "updates"));
         ApplyCatalog(catalog, preserveInputs: false);
@@ -51,6 +56,71 @@ public partial class MainWindow : Window
         NoticeInstallSuccess.IsChecked = !Core.HintHidden(Core.InstallSuccessHint);
         ContentRendered += async (_, _) => await AutoRefreshCatalogAsync();
         Closing += (_, e) => { if (busy) { e.Cancel = true; StatusText.Text = "请等待当前操作完成。"; } };
+        Closed += (_, _) => ThemeManager.ThemeChanged -= SyncThemeUi;
+    }
+    private void MinimizeWindow(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
+    private void ToggleMaximizeWindow(object sender, RoutedEventArgs e) => WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+    private void CloseWindow(object sender, RoutedEventArgs e) => Close();
+    private void ToggleSidebar(object sender, RoutedEventArgs e)
+    {
+        var collapsed = !WindowChromeHelper.GetIsSidebarCollapsed(Pages);
+        WindowChromeHelper.SetIsSidebarCollapsed(Pages, collapsed);
+        SidebarToggleButton.ToolTip = collapsed ? "展开侧边栏" : "收起侧边栏";
+    }
+    private void UpdateWindowStateChrome()
+    {
+        var maximized = WindowState == WindowState.Maximized;
+        MaximizeIcon.Data = (Geometry)Application.Current.FindResource(maximized ? "IconWinRestore" : "IconWinMaximize");
+        MaximizeButton.ToolTip = maximized ? "向下还原" : "最大化";
+    }
+    private void OpenThemeMenu(object sender, RoutedEventArgs e)
+    {
+        ThemeContextMenu.PlacementTarget = ThemeMenuButton;
+        ThemeContextMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+        ThemeContextMenu.IsOpen = true;
+    }
+    private void ThemeMenuSelected(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem item && item.Tag is string tag)
+        {
+            var mode = ThemeManager.ParseMode(tag);
+            ThemeManager.SetMode(mode, persist: true);
+            Log($"外观主题已切换为：{ThemeManager.DisplayName(mode)}。");
+        }
+    }
+    private void ThemeChoiceChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (suppressThemeChange || !IsLoaded || ThemeChoice.SelectedIndex < 0) return;
+        var mode = ThemeChoice.SelectedIndex switch { 1 => AppThemeMode.Light, 2 => AppThemeMode.Dark, _ => AppThemeMode.System };
+        ThemeManager.SetMode(mode, persist: true);
+        Log($"外观主题已切换为：{ThemeManager.DisplayName(mode)}。");
+    }
+    private void SyncThemeUi()
+    {
+        var mode = ThemeManager.CurrentMode;
+        var iconKey = mode switch
+        {
+            AppThemeMode.Light => "IconThemeLight",
+            AppThemeMode.Dark => "IconThemeDark",
+            _ => "IconThemeSystem"
+        };
+        ThemeButtonIcon.Data = (Geometry)Application.Current.FindResource(iconKey);
+        ThemeButtonLabel.Text = ThemeManager.DisplayName(mode);
+        MenuThemeSystem.IsChecked = mode == AppThemeMode.System;
+        MenuThemeLight.IsChecked = mode == AppThemeMode.Light;
+        MenuThemeDark.IsChecked = mode == AppThemeMode.Dark;
+
+        suppressThemeChange = true;
+        try
+        {
+            ThemeChoice.SelectedIndex = mode switch { AppThemeMode.Light => 1, AppThemeMode.Dark => 2, _ => 0 };
+        }
+        finally { suppressThemeChange = false; }
+
+        var activeLabel = ThemeManager.IsDark ? "深色" : "浅色";
+        ThemeStatus.Text = mode == AppThemeMode.System
+            ? $"当前跟随 Windows 系统（已应用{activeLabel}模式），系统切换时将自动更新；也可点击窗口右上角快速切换。"
+            : $"当前固定使用{activeLabel}模式；切换为「跟随系统」可自动适配 Windows 浅色 / 深色设置。";
     }
     private string Root() => Core.Game(Games.Text);
     private void Log(string message)
@@ -63,7 +133,7 @@ public partial class MainWindow : Window
     {
         if (busy) return; busy = true; Pages.IsEnabled = false; Progress.Visibility = Visibility.Visible;
         try { await work(); }
-        catch (Exception ex) { var message = Core.Explain(ex); Log(message); MessageBox.Show(this, message, "操作未完成", MessageBoxButton.OK, MessageBoxImage.Warning); }
+        catch (Exception ex) { var message = Core.Explain(ex); Log(message); NoticeDialog.Show(this, "操作未完成", "操作未完成", message, error: true); }
         finally { busy = false; Pages.IsEnabled = true; Progress.Visibility = Visibility.Collapsed; }
     }
     private void NoticeChanged(object sender, RoutedEventArgs e)
@@ -262,8 +332,8 @@ public partial class MainWindow : Window
     {
         var root = Root(); var next = Form(); bool bundled = Pack.SelectedIndex == 1;
         var customDirectory = Pack.SelectedIndex == 2 ? Core.TranslationDirectory(CustomPackDirectory.Text) : null;
-        if (bundled && MessageBox.Show(this, "确认所选游戏是 Camp Buddy Scoutmaster Season？专属译文将覆盖已有预译文，并保存备份。", "安装专属译文", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
-        if (customDirectory is not null && MessageBox.Show(this, "将导入所选文件夹及子目录中的全部 JSONL，替换游戏已有预译文并保存备份。确认这些译文适用于当前游戏？\n\n" + customDirectory, "安装自定义汉化包", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
+        if (bundled && !NoticeDialog.Ask(this, "安装专属译文", "确认所选游戏是 Camp Buddy Scoutmaster Season？专属译文将覆盖已有预译文，并保存备份。", "继续安装")) return;
+        if (customDirectory is not null && !NoticeDialog.Ask(this, "安装自定义汉化包", "将导入所选文件夹及子目录中的全部 JSONL，替换游戏已有预译文并保存备份。确认这些译文适用于当前游戏？\n\n" + customDirectory, "继续安装")) return;
         // 自定义项沿用已保存的字体路径；系统预设交给 Core 解析，预设 0 优先雅黑并在缺失时回退。
         var font = FontChoice.SelectedIndex == Core.CustomFontPreset
             ? Core.ReadString(next, "font")
@@ -288,7 +358,7 @@ public partial class MainWindow : Window
     private async void Uninstall(object sender, RoutedEventArgs e) => await Run(async () =>
     {
         var root = Root(); var clear = RemoveData.IsChecked == true;
-        if (MessageBox.Show(this, clear ? "卸载汉化并删除 game/live_translator 内的全部文件？包括配置、缓存、译文、字体及自行存放的文件。操作前会备份。" : "卸载汉化？配置和缓存将保留。", "卸载汉化", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
+        if (!NoticeDialog.Ask(this, "卸载汉化", clear ? "卸载汉化并删除 game/live_translator 内的全部文件？包括配置、缓存、译文、字体及自行存放的文件。操作前会备份。" : "卸载汉化？配置和缓存将保留。", "确认卸载", danger: true)) return;
         await Task.Run(() => Core.Uninstall(root, clear)); await LoadGame(); Log("汉化已卸载，原始游戏文件和存档未修改。");
     });
     private async void Save(object sender, RoutedEventArgs e) => await Run(async () => { var root = Root(); var next = Form(); await Task.Run(() => Core.SaveConfig(root, next)); config = next; ShowConfig(); Log("配置已保存，请重新启动游戏生效。"); });
@@ -302,7 +372,7 @@ public partial class MainWindow : Window
         ShowParameters(basic);
         Log("已载入默认参数，点保存后写入游戏目录。");
     }
-    private async void TestApi(object sender, RoutedEventArgs e) => await Run(async () => { if (MessageBox.Show(this, "将向所填接口发送一条 Hello 翻译请求，可能产生少量费用，是否继续？", "测试连接", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return; var next = Form(); Log("正在发送测试请求…"); await Api.Test(next); Log("连接成功，翻译响应格式有效。"); });
+    private async void TestApi(object sender, RoutedEventArgs e) => await Run(async () => { if (!NoticeDialog.Ask(this, "测试连接", "将向所填接口发送一条 Hello 翻译请求，可能产生少量费用，是否继续？", "开始测试")) return; var next = Form(); Log("正在发送测试请求…"); await Api.Test(next); Log("连接成功，翻译响应格式有效。"); });
     private async void ValidateTranslations(object sender, RoutedEventArgs e) => await Run(async () =>
     {
         bool custom = Pack.SelectedIndex == 2;
@@ -311,7 +381,7 @@ public partial class MainWindow : Window
         Log($"{(custom ? "自定义汉化包" : "内置译文")}校验通过：{result.Count} 条译文，无重复原文。");
     });
     private async void ExportCache(object sender, RoutedEventArgs e) => await Run(() => { var path = Path.Combine(Core.Data(Root()), "cache.jsonl"); if (!File.Exists(path)) throw new UserError("当前没有缓存。"); var dialog = new SaveFileDialog { FileName = "cache-export.jsonl", Filter = "JSONL|*.jsonl" }; if (dialog.ShowDialog(this) == true) { File.Copy(path, dialog.FileName, true); Log("缓存已导出。"); } return Task.CompletedTask; });
-    private async void ClearCache(object sender, RoutedEventArgs e) => await Run(async () => { var root = Root(); if (MessageBox.Show(this, "备份并清空运行时缓存？已有预译文仍会保留。", "清空缓存", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return; await Task.Run(() => Core.Transaction(root, ["live_translator/cache.jsonl"], () => Core.AtomicWrite(Path.Combine(Core.Data(root), "cache.jsonl"), ""))); Log("缓存已备份并清空。"); });
+    private async void ClearCache(object sender, RoutedEventArgs e) => await Run(async () => { var root = Root(); if (!NoticeDialog.Ask(this, "清空缓存", "备份并清空运行时缓存？已有预译文仍会保留。", "确认清空", danger: true)) return; await Task.Run(() => Core.Transaction(root, ["live_translator/cache.jsonl"], () => Core.AtomicWrite(Path.Combine(Core.Data(root), "cache.jsonl"), ""))); Log("缓存已备份并清空。"); });
     private void OpenDirectory(string path) { Directory.CreateDirectory(path); Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); }
     private async void OpenGame(object sender, RoutedEventArgs e) => await Run(() => { OpenDirectory(Root()); return Task.CompletedTask; });
     private async void OpenData(object sender, RoutedEventArgs e) => await Run(() => { OpenDirectory(Core.Data(Root())); return Task.CompletedTask; });
@@ -344,8 +414,9 @@ public partial class MainWindow : Window
     /// 把每个页面渲染为 PNG，用于界面回归核对。
     /// 参数可以是 "all"（缺省）或单个页索引；结果写入 snapshot.log，失败原因不再被吞掉。
     /// </summary>
-    public async void SaveSnapshot(string? pages)
+    public async void SaveSnapshot(string? pages, string? prefix = null)
     {
+        var namePrefix = string.IsNullOrWhiteSpace(prefix) ? "preview" : prefix.Trim();
         var report = new List<string>();
         try
         {
@@ -367,7 +438,7 @@ public partial class MainWindow : Window
                 bitmap.Render(surface);
                 var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
                 using var buffer = new MemoryStream(); encoder.Save(buffer);
-                var path = Path.Combine(Core.Home, $"preview-{index}.png");
+                var path = Path.Combine(Core.Home, $"{namePrefix}-{index}.png");
                 File.WriteAllBytes(path, buffer.ToArray());
                 report.Add("PASS " + path);
             }

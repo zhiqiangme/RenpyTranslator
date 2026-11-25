@@ -70,7 +70,29 @@ public static class SelfTest
             Assert(focusTemplate.LoadContent() is null, "Default keyboard focus visual has no dotted border");
             // 弹窗 XAML 只在运行时解析，构造一次可提前发现资源键或控件缺失。
             var notice = new NoticeDialog();
-            Assert(notice.Headline.Text.Length > 0 && notice.Never.Visibility == System.Windows.Visibility.Collapsed, "Notice dialog loads its XAML with the do-not-remind box hidden by default");
+            Assert(notice.Headline.Text.Length > 0 && notice.Never.Visibility == System.Windows.Visibility.Collapsed && notice.Cancel.Visibility == System.Windows.Visibility.Collapsed, "Notice dialog loads its custom-chrome XAML with optional controls hidden by default");
+            // 主题系统：模式解析、跟随系统计算、浅深色板键集一致、运行时切换与设置持久化。
+            Assert(ThemeManager.ParseMode(null) == AppThemeMode.System && ThemeManager.ParseMode("system") == AppThemeMode.System && ThemeManager.ParseMode("LIGHT") == AppThemeMode.Light && ThemeManager.ParseMode("dark") == AppThemeMode.Dark && ThemeManager.ParseMode("unknown") == AppThemeMode.System, "Theme mode parsing falls back to system for unknown values");
+            Assert(!ThemeManager.ResolveDark(AppThemeMode.System, false) && ThemeManager.ResolveDark(AppThemeMode.System, true) && !ThemeManager.ResolveDark(AppThemeMode.Light, true) && ThemeManager.ResolveDark(AppThemeMode.Dark, false), "Theme resolution honors follow-system, light, and dark modes");
+            var lightDict = new System.Windows.ResourceDictionary { Source = new Uri("Themes/Light.xaml", UriKind.Relative) };
+            var darkDict = new System.Windows.ResourceDictionary { Source = new Uri("Themes/Dark.xaml", UriKind.Relative) };
+            var lightKeys = lightDict.Keys.Cast<object>().Select(k => k.ToString()!).Order(StringComparer.Ordinal).ToArray();
+            var darkKeys = darkDict.Keys.Cast<object>().Select(k => k.ToString()!).Order(StringComparer.Ordinal).ToArray();
+            Assert(lightKeys.Length >= 30 && lightKeys.SequenceEqual(darkKeys), "Light and dark theme dictionaries define identical brush key sets");
+            var savedAppThemeMode = ThemeManager.CurrentMode;
+            try
+            {
+                ThemeManager.SetMode(AppThemeMode.Dark, persist: false);
+                var darkWindowBrush = ((System.Windows.Media.SolidColorBrush)System.Windows.Application.Current.FindResource("WindowBrush")).Color;
+                ThemeManager.SetMode(AppThemeMode.Light, persist: false);
+                var lightWindowBrush = ((System.Windows.Media.SolidColorBrush)System.Windows.Application.Current.FindResource("WindowBrush")).Color;
+                Assert(darkWindowBrush != lightWindowBrush && darkWindowBrush.R < 60 && lightWindowBrush.R > 220, "Runtime theme switching swaps active application color resources");
+            }
+            finally { ThemeManager.SetMode(savedAppThemeMode, persist: false); }
+            var mainWindow = new MainWindow();
+            Assert(System.Windows.Shell.WindowChrome.GetWindowChrome(mainWindow) is not null && !WindowChromeHelper.GetIsSidebarCollapsed(mainWindow.Pages), "Main window initializes custom WindowChrome with expanded sidebar");
+            WindowChromeHelper.SetIsSidebarCollapsed(mainWindow.Pages, true);
+            Assert(WindowChromeHelper.GetIsSidebarCollapsed(mainWindow.Pages), "Sidebar collapsed attached property toggles cleanly");
             Directory.CreateDirectory(Path.Combine(root, "game")); Directory.CreateDirectory(Path.Combine(root, "renpy"));
             Assert(Core.Game(root + "\\") == root && Core.Game(root + "/") == root, "Normalize trailing game separators");
             Assert(Core.IsInside("D:\\", "D:\\game\\test.exe") && !Core.IsInside(root, root + "-other\\test.exe"), "Path containment handles drive roots and sibling prefixes");
@@ -202,6 +224,9 @@ public static class SelfTest
             Assert(!Core.HintHidden(settingsFile, Core.InstallSuccessHint), "Damaged settings file shows the notice");
             Core.SetHintHidden(settingsFile, Core.InstallSuccessHint, true);
             Assert(Core.HintHidden(settingsFile, Core.InstallSuccessHint) && !Core.HintHidden(settingsFile, "other"), "Suppression flag persists per key");
+            Assert(Core.ReadSetting(settingsFile, Core.ThemeSettingKey, "system") == "system", "Missing theme setting falls back to system");
+            Core.WriteSetting(settingsFile, Core.ThemeSettingKey, "dark");
+            Assert(Core.ReadSetting(settingsFile, Core.ThemeSettingKey, "system") == "dark" && Core.HintHidden(settingsFile, Core.InstallSuccessHint), "Theme setting persists without clobbering hint settings");
             // 系统英文异常不会进入弹窗，统一转换成中文说明；自带中文诊断保持不变。
             Assert(Core.Explain(new ArgumentException("The path is empty. (Parameter 'path')")) == "路径或参数无效，请重新选择游戏目录。", "English system exception is localized");
             Assert(Core.Explain(new UserError("所选字体不存在。")) == "所选字体不存在。", "User-facing diagnostics pass through unchanged");

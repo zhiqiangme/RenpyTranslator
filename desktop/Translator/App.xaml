@@ -5,10 +5,11 @@
    <Style x:Key="{x:Static SystemParameters.FocusVisualStyleKey}">
     <Setter Property="Control.Template"><Setter.Value><ControlTemplate/></Setter.Value></Setter>
    </Style>
-   <!-- 顺序固定：令牌 → 图标 → 控件模板，后者依赖前者 -->
+   <!-- 顺序固定：结构令牌 → 图标 → 主题色板（运行时替换） → 控件模板 -->
    <ResourceDictionary.MergedDictionaries>
     <ResourceDictionary Source="Themes/Tokens.xaml"/>
     <ResourceDictionary Source="Themes/Icons.xaml"/>
+    <ResourceDictionary Source="Themes/Light.xaml"/>
     <ResourceDictionary Source="Themes/Controls.xaml"/>
    </ResourceDictionary.MergedDictionaries>
   </ResourceDictionary>

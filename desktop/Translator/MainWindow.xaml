@@ -1,15 +1,65 @@
 <Window x:Class="RenpyTranslator.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         Title="Ren'Py 汉化管理器" Width="1120" Height="780" MinWidth="960" MinHeight="640"
-        Background="{StaticResource WindowBrush}" FontFamily="Microsoft YaHei UI" FontSize="{StaticResource FontBody}"
+        Background="{DynamicResource ChromeBrush}" Foreground="{DynamicResource TextPrimaryBrush}" FontFamily="Microsoft YaHei UI" FontSize="{StaticResource FontBody}"
         Icon="/Assets/app.ico" WindowStartupLocation="CenterScreen"
         UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
- <Grid Background="{StaticResource WindowBrush}">
-  <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+ <shell:WindowChrome.WindowChrome>
+  <shell:WindowChrome CaptionHeight="38" CornerRadius="0" GlassFrameThickness="0,0,0,1" ResizeBorderThickness="6" UseAeroCaptionButtons="False"/>
+ </shell:WindowChrome.WindowChrome>
 
-  <!-- 五个页面，导航外观由 Themes/Controls.xaml 中的 TabControl / TabItem 模板重塑为左侧导航栏 -->
-  <TabControl x:Name="Pages" Grid.Row="0">
+ <Grid x:Name="RootFrame" Background="{DynamicResource ChromeBrush}">
+  <Grid.RowDefinitions>
+   <RowDefinition Height="38"/>
+   <RowDefinition Height="*"/>
+   <RowDefinition Height="Auto"/>
+  </Grid.RowDefinitions>
+
+  <!-- 顶部自定义无边框标题栏（DSH 风格：左折叠与标识、中拖动区、右主题切换与窗口控制） -->
+  <Grid Grid.Row="0" Background="{DynamicResource ChromeBrush}">
+   <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="8,0,0,0">
+    <Button x:Name="SidebarToggleButton" Style="{StaticResource TitleBarIconButton}" Click="ToggleSidebar" ToolTip="收起侧边栏">
+     <Path Data="{StaticResource IconSidebar}" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Stretch="None" Width="16" Height="16"/>
+    </Button>
+    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0" IsHitTestVisible="False">
+     <Border Width="18" Height="18" CornerRadius="5" Background="{DynamicResource AccentBrush}" VerticalAlignment="Center">
+      <TextBlock Text="R" Foreground="{DynamicResource TextOnAccentBrush}" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+     </Border>
+     <TextBlock Text="Ren'Py 汉化管理器" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="8,0,0,0" VerticalAlignment="Center" TextWrapping="NoWrap"/>
+    </StackPanel>
+   </StackPanel>
+
+   <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+    <Button x:Name="ThemeMenuButton" Style="{StaticResource TitleBarIconButton}" Click="OpenThemeMenu" Margin="0,0,4,0" ToolTip="切换外观主题（跟随系统 / 浅色 / 深色）">
+     <Button.ContextMenu>
+      <ContextMenu x:Name="ThemeContextMenu">
+       <MenuItem x:Name="MenuThemeSystem" Header="跟随系统" IsCheckable="True" Click="ThemeMenuSelected" Tag="system"/>
+       <MenuItem x:Name="MenuThemeLight" Header="浅色模式" IsCheckable="True" Click="ThemeMenuSelected" Tag="light"/>
+       <MenuItem x:Name="MenuThemeDark" Header="深色模式" IsCheckable="True" Click="ThemeMenuSelected" Tag="dark"/>
+      </ContextMenu>
+     </Button.ContextMenu>
+     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+      <Path x:Name="ThemeButtonIcon" Data="{StaticResource IconThemeSystem}" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Stretch="None" Width="16" Height="16" VerticalAlignment="Center"/>
+      <TextBlock x:Name="ThemeButtonLabel" Text="跟随系统" FontSize="12" Margin="6,0,2,0" VerticalAlignment="Center" TextWrapping="NoWrap" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+     </StackPanel>
+    </Button>
+    <Border Width="1" Height="16" Background="{DynamicResource BorderBrush}" Margin="2,0,4,0" VerticalAlignment="Center"/>
+    <Button Style="{StaticResource WindowCaptionButton}" Click="MinimizeWindow" ToolTip="最小化">
+     <Path Data="{StaticResource IconWinMinimize}" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1" Stretch="None" Width="10" Height="10"/>
+    </Button>
+    <Button x:Name="MaximizeButton" Style="{StaticResource WindowCaptionButton}" Click="ToggleMaximizeWindow" ToolTip="最大化">
+     <Path x:Name="MaximizeIcon" Data="{StaticResource IconWinMaximize}" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1" Stretch="None" Width="10" Height="10"/>
+    </Button>
+    <Button Style="{StaticResource WindowCloseButton}" Click="CloseWindow" ToolTip="关闭">
+     <Path Data="{StaticResource IconWinClose}" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1" Stretch="None" Width="10" Height="10"/>
+    </Button>
+   </StackPanel>
+  </Grid>
+
+  <!-- 五个页面，导航外观由 Themes/Controls.xaml 中的 TabControl / TabItem 模板重塑为左侧导航栏 + 右侧圆角工作区 -->
+  <TabControl x:Name="Pages" Grid.Row="1">
    <TabItem>
     <TabItem.Header>
      <StackPanel Orientation="Horizontal">
@@ -35,7 +85,7 @@
          <Button Content="读取 / 检查状态" Click="Reload"/>
          <Button Content="打开游戏目录" Click="OpenGame"/>
         </StackPanel>
-        <Border Background="{StaticResource SurfaceSunkenBrush}" CornerRadius="{StaticResource RadiusMd}" Padding="12,9" Margin="0,4,0,0">
+        <Border Background="{DynamicResource SurfaceSunkenBrush}" CornerRadius="{StaticResource RadiusMd}" Padding="12,9" Margin="0,4,0,0">
          <TextBlock x:Name="GameStatus" Text="选择游戏根目录，读取已有配置。" Style="{StaticResource Status}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
         </Border>
        </StackPanel>
@@ -245,7 +295,7 @@
          <Button Content="检查 GitHub 更新" Click="CheckUpdate"/>
          <Button x:Name="UpdateButton" Content="下载并重启更新" Click="ApplyUpdate" IsEnabled="False" Style="{StaticResource PrimaryButton}"/>
         </StackPanel>
-        <TextBlock x:Name="UpdateStatus" Text="更新来源：zhiqiangme/RenpyTranslator" Margin="0,12,0,0"/>
+        <TextBlock x:Name="UpdateStatus" Text="更新来源：zhiqiangme/RenpyTranslator" Style="{StaticResource Status}" Margin="0,12,0,0"/>
         <FlowDocumentScrollViewer x:Name="ReleaseNotes" Height="300" Margin="0,12,0,0" VerticalScrollBarVisibility="Auto" IsToolBarVisible="False" FocusVisualStyle="{x:Null}" Visibility="Collapsed"/>
        </StackPanel>
       </Border>
@@ -268,7 +318,7 @@
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="150"/></Grid.ColumnDefinitions>
       <StackPanel Grid.Column="0" Margin="28,26,0,28">
       <TextBlock Text="数据与日志" Style="{StaticResource PageTitle}"/>
-      <TextBlock Text="校验译文、维护缓存与导出操作记录" Style="{StaticResource PageSubtitle}"/>
+      <TextBlock Text="校验译文、维护缓存、外观设置与导出操作记录" Style="{StaticResource PageSubtitle}"/>
 
       <Border Style="{StaticResource Card}" Margin="0,20,0,14">
        <StackPanel>
@@ -283,6 +333,18 @@
          <Button Content="导出操作日志" Click="ExportLog"/>
          <Button Content="打开游戏数据目录" Click="OpenData"/>
         </WrapPanel>
+       </StackPanel>
+      </Border>
+
+      <Border Style="{StaticResource Card}" Margin="0,0,0,14">
+       <StackPanel>
+        <TextBlock Text="外观主题" Style="{StaticResource SectionTitle}"/>
+        <ComboBox x:Name="ThemeChoice" SelectedIndex="0" Width="420" HorizontalAlignment="Left" SelectionChanged="ThemeChoiceChanged">
+         <ComboBoxItem Content="跟随系统（自动适配 Windows 浅色 / 深色）"/>
+         <ComboBoxItem Content="浅色模式"/>
+         <ComboBoxItem Content="深色模式"/>
+        </ComboBox>
+        <TextBlock x:Name="ThemeStatus" Style="{StaticResource Hint}" Text="默认跟随 Windows 系统浅色 / 深色设置，系统切换时自动更新；也可点击窗口右上角快速切换。"/>
        </StackPanel>
       </Border>
 
@@ -307,8 +369,8 @@
   </TabControl>
 
   <!-- 底部状态栏 -->
-  <Border Grid.Row="1" Background="{StaticResource SurfaceAltBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0">
-   <Grid Margin="28,0">
+  <Border Grid.Row="2" Background="{DynamicResource ChromeBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="0,6">
+   <Grid Margin="20,0">
     <Grid.ColumnDefinitions><ColumnDefinition Width="150"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
     <ProgressBar x:Name="Progress" Grid.Column="0" MaxWidth="140" HorizontalAlignment="Left" VerticalAlignment="Center" Visibility="Collapsed" IsIndeterminate="True"/>
     <TextBlock x:Name="StatusText" Grid.Column="1" Text="就绪" Style="{StaticResource Status}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>

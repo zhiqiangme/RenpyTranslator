@@ -11,6 +11,10 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        // 支持 --theme light|dark|system 仅覆盖当次进程外观（用于截图验证，不改动用户保存的设置）。
+        var themeArg = ValueOf(e.Args, "--theme");
+        AppThemeMode? themeOverride = themeArg is null ? null : ThemeManager.ParseMode(themeArg);
+        ThemeManager.Initialize(themeOverride);
         // ComboBox 聚焦后滚轮会直接切换选中项，滚动页面时极易误改服务商、游戏目录等选项。
         // 下拉未展开时拦截滚轮并转发给外层 ScrollViewer；展开后保留原生滚轮浏览。
         EventManager.RegisterClassHandler(typeof(ComboBox), UIElement.PreviewMouseWheelEvent, new MouseWheelEventHandler(ForwardComboBoxWheel));
@@ -44,9 +48,14 @@ public partial class App : Application
                 var fixture = ValueOf(e.Args, "--release-fixture");
                 if (fixture is not null) window.ShowRelease(Updates.SelectRelease(System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(fixture))!.AsArray(), Core.ManagerVersion));
                 if (e.Args.Contains("--snapshot-focus")) Keyboard.Focus((IInputElement)window.FindName("Pages"));
-                window.SaveSnapshot(ValueOf(e.Args, "--snapshot"));
+                window.SaveSnapshot(ValueOf(e.Args, "--snapshot"), ValueOf(e.Args, "--snapshot-prefix"));
             };
         }
+    }
+    protected override void OnExit(ExitEventArgs e)
+    {
+        ThemeManager.Shutdown();
+        base.OnExit(e);
     }
     /// <summary>吞掉未展开 ComboBox 的滚轮事件，并转发给最近的 ScrollViewer 以维持页面滚动。</summary>
     private static void ForwardComboBoxWheel(object sender, MouseWheelEventArgs args)

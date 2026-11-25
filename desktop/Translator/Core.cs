@@ -34,8 +34,9 @@ public static class Core
         try { return JsonNode.Parse(File.ReadAllText(path)) as JsonObject ?? throw new UserError($"配置文件必须是 JSON 对象：{Path.GetFileName(path)}"); }
         catch (JsonException ex) { throw new UserError($"配置 JSON 错误：{Path.GetFileName(path)}，第 {(ex.LineNumber ?? 0) + 1} 行。", ex); }
     }
-    // 界面提示开关（“不再提醒”）与游戏配置分离，单独保存在用户数据目录。
+    // 界面提示开关（“不再提醒”）与外观设置与游戏配置分离，单独保存在用户数据目录。
     public const string InstallSuccessHint = "install_success";
+    public const string ThemeSettingKey = "theme";
     /// <summary>读取“不再提醒”开关；文件缺失或损坏都按未勾选处理，不阻塞界面。</summary>
     public static bool HintHidden(string key) => HintHidden(Path.Combine(Home, "settings.json"), key);
     internal static bool HintHidden(string path, string key)
@@ -49,6 +50,20 @@ public static class Core
         JsonObject settings;
         try { settings = File.Exists(path) ? ReadJson(path) : new JsonObject(); } catch (Exception) { settings = new JsonObject(); }
         settings[key] = hidden; WriteJson(path, settings);
+    }
+    /// <summary>读取字符串型应用设置；文件缺失、损坏或类型不符时返回默认值。</summary>
+    public static string ReadSetting(string key, string fallback = "") => ReadSetting(Path.Combine(Home, "settings.json"), key, fallback);
+    internal static string ReadSetting(string path, string key, string fallback = "")
+    {
+        try { return File.Exists(path) && ReadJson(path)[key] is JsonValue value && value.TryGetValue<string>(out var text) ? text : fallback; }
+        catch (Exception) { return fallback; }
+    }
+    public static void WriteSetting(string key, string value) => WriteSetting(Path.Combine(Home, "settings.json"), key, value);
+    internal static void WriteSetting(string path, string key, string value)
+    {
+        JsonObject settings;
+        try { settings = File.Exists(path) ? ReadJson(path) : new JsonObject(); } catch (Exception) { settings = new JsonObject(); }
+        settings[key] = value; WriteJson(path, settings);
     }
     /// <summary>面向用户的中文提示：本程序自带的中文诊断原样使用，系统英文异常按类型转换成中文说明。</summary>
     public static string Explain(Exception error)

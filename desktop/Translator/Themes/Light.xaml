@@ -1,0 +1,64 @@
+<!--
+  浅色主题色板：与 Themes/Dark.xaml 保持完全一致的资源键集合。
+  页面与控件模板必须通过 DynamicResource 引用颜色画刷，以支持运行时无缝切换深浅色。
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+ <!-- 表面层级：外框（标题栏与侧边栏） → 主工作区底 → 卡片面 → 次级面 → 凹陷面 -->
+ <SolidColorBrush x:Key="ChromeBrush" Color="#EEF0F4"/>
+ <SolidColorBrush x:Key="WindowBrush" Color="#F6F7F9"/>
+ <SolidColorBrush x:Key="SurfaceBrush" Color="#FFFFFF"/>
+ <SolidColorBrush x:Key="SurfaceAltBrush" Color="#FAFBFC"/>
+ <SolidColorBrush x:Key="SurfaceSunkenBrush" Color="#EFF1F5"/>
+
+ <!-- 交互反馈底色：悬停 / 按下 / 叠加层 -->
+ <SolidColorBrush x:Key="HoverBrush" Color="#E6E9EF"/>
+ <SolidColorBrush x:Key="PressedBrush" Color="#DCE0E7"/>
+ <SolidColorBrush x:Key="OverlayBrush" Color="#000000"/>
+
+ <!-- 边框：常规 / 强调（输入框描边） / 悬停 -->
+ <SolidColorBrush x:Key="BorderBrush" Color="#E3E6EC"/>
+ <SolidColorBrush x:Key="BorderStrongBrush" Color="#D0D5DD"/>
+ <SolidColorBrush x:Key="BorderHoverBrush" Color="#B6BEC9"/>
+
+ <!-- 文字层级 -->
+ <SolidColorBrush x:Key="TextPrimaryBrush" Color="#1F2328"/>
+ <SolidColorBrush x:Key="TextSecondaryBrush" Color="#5A6472"/>
+ <SolidColorBrush x:Key="TextTertiaryBrush" Color="#848E9C"/>
+ <SolidColorBrush x:Key="TextDisabledBrush" Color="#B4BCC7"/>
+ <SolidColorBrush x:Key="TextOnAccentBrush" Color="#FFFFFF"/>
+
+ <!-- 强调色：常态 / 悬停 / 按下 / 浅底（选中态） -->
+ <SolidColorBrush x:Key="AccentBrush" Color="#2F7DE1"/>
+ <SolidColorBrush x:Key="AccentHoverBrush" Color="#2A6FCA"/>
+ <SolidColorBrush x:Key="AccentPressedBrush" Color="#245CB0"/>
+ <SolidColorBrush x:Key="AccentSubtleBrush" Color="#E4EFFC"/>
+ <SolidColorBrush x:Key="AccentBorderBrush" Color="#BBD5F5"/>
+
+ <!-- 语义色 -->
+ <SolidColorBrush x:Key="SuccessBrush" Color="#1F9254"/>
+ <SolidColorBrush x:Key="SuccessSubtleBrush" Color="#E8F5EE"/>
+ <SolidColorBrush x:Key="WarningBrush" Color="#B7791F"/>
+ <SolidColorBrush x:Key="WarningSubtleBrush" Color="#FCF4E4"/>
+ <SolidColorBrush x:Key="DangerBrush" Color="#D13438"/>
+ <SolidColorBrush x:Key="DangerSubtleBrush" Color="#FCECEC"/>
+ <SolidColorBrush x:Key="DangerBorderBrush" Color="#F0BFBF"/>
+
+ <!-- 自定义标题栏按钮 -->
+ <SolidColorBrush x:Key="TitleBarButtonHoverBrush" Color="#E2E5EC"/>
+ <SolidColorBrush x:Key="TitleBarButtonPressedBrush" Color="#D5D9E2"/>
+ <SolidColorBrush x:Key="CloseButtonHoverBrush" Color="#E81123"/>
+ <SolidColorBrush x:Key="CloseButtonPressedBrush" Color="#C50F1F"/>
+ <SolidColorBrush x:Key="CloseButtonHoverForegroundBrush" Color="#FFFFFF"/>
+
+ <!-- 滚动条 -->
+ <SolidColorBrush x:Key="ScrollThumbBrush" Color="#C6CCD4"/>
+ <SolidColorBrush x:Key="ScrollThumbHoverBrush" Color="#A9B2BD"/>
+ <SolidColorBrush x:Key="ScrollThumbDragBrush" Color="#8B95A3"/>
+
+ <!-- 提示气泡与 Markdown 渲染 -->
+ <SolidColorBrush x:Key="TooltipBackgroundBrush" Color="#2B3038"/>
+ <SolidColorBrush x:Key="TooltipForegroundBrush" Color="#FFFFFF"/>
+ <SolidColorBrush x:Key="TooltipBorderBrush" Color="#2B3038"/>
+ <SolidColorBrush x:Key="CodeBlockBackgroundBrush" Color="#F0F2F5"/>
+ <SolidColorBrush x:Key="HyperlinkBrush" Color="#2F7DE1"/>
+</ResourceDictionary>
