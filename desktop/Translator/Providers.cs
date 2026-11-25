@@ -95,10 +95,13 @@ public static class Providers
     internal static ProviderCatalog Load(string cacheDirectory, string bundledPath)
     {
         var cachePath = Path.Combine(cacheDirectory, "providers.cache.json");
-        if (TryLoadFile(cachePath, ReadMetaSource(cacheDirectory) is { Length: > 0 } cachedSource ? cachedSource : "云端缓存", fromCache: true, out var cached))
-            return cached!;
-        if (TryLoadFile(bundledPath, "内置", fromCache: false, out var bundled))
-            return bundled!;
+        var hasCached = TryLoadFile(cachePath, ReadMetaSource(cacheDirectory) is { Length: > 0 } cachedSource ? cachedSource : "云端缓存", fromCache: true, out var cached);
+        var hasBundled = TryLoadFile(bundledPath, "内置", fromCache: false, out var bundled);
+        // 软件升级后内置清单日期可能新于旧的本地云端缓存，此时优先采用内置新清单。
+        if (hasCached && hasBundled)
+            return string.CompareOrdinal(bundled!.UpdatedAt, cached!.UpdatedAt) > 0 ? bundled : cached!;
+        if (hasCached) return cached!;
+        if (hasBundled) return bundled!;
         return FallbackCatalog();
     }
 
@@ -318,9 +321,9 @@ public static class Providers
         "内置兜底",
         [
             Custom,
-            new("deepseek", "DeepSeek", "https://api.deepseek.com", "deepseek-flash", [new("deepseek-flash", "推荐")]),
             new("anthropic", "Anthropic Claude", "https://api.anthropic.com/v1", "claude-haiku-5-5", [new("claude-haiku-5-5", "推荐")]),
-            new("openai", "OpenAI", "https://api.openai.com/v1", "gpt-5.6-luna", [new("gpt-5.6-luna", "推荐")])
+            new("deepseek", "DeepSeek", "https://api.deepseek.com", "deepseek-flash", [new("deepseek-flash", "推荐")]),
+            new("openai", "OpenAI", "https://api.openai.com/v1", "gpt-6-luna", [new("gpt-6-luna", "推荐")])
         ],
         "内置兜底",
         false);

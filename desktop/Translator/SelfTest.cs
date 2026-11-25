@@ -330,7 +330,7 @@ public static class SelfTest
             Reject(() => Api.AnthropicText(JsonNode.Parse("{\"content\":[],\"stop_reason\":\"refusal\"}")!), "拒绝", "Claude refusal produces Chinese diagnostic");
             Assert(Providers.All.Any(p => p.Url == "https://api.anthropic.com/v1" && p.Model == "claude-haiku-5-5"), "Claude preset defaults to Haiku 5.5");
             // 模型清单：内置解析、三层回退、白名单、远端 ETag 304 与主备源切换，全部在隔离目录与回环服务完成。
-            Assert(File.Exists(Providers.BundledPath) && Providers.All[0].Id == "custom" && Providers.All.Count >= 12 && Providers.All.Skip(1).All(p => p.Models.Count > 0), "Bundled providers catalog loads with custom entry and recommended models");
+            Assert(File.Exists(Providers.BundledPath) && Providers.All[0].Id == "custom" && Providers.All[1].Id == "anthropic" && Providers.All[2].Id == "deepseek" && Providers.All.Count >= 12 && Providers.All.Skip(1).All(p => p.Models.Count > 0), "Bundled providers catalog loads with custom entry, alphabetical order and recommended models");
             Assert(Providers.IsTrustedCatalogUrl("https://cdn.jsdelivr.net/gh/zhiqiangme/RenpyTranslator@master/providers.json")
                 && Providers.IsTrustedCatalogUrl("https://raw.githubusercontent.com/zhiqiangme/RenpyTranslator/master/providers.json")
                 && Providers.IsTrustedCatalogUrl("https://zhiqiangme.github.io/RenpyTranslator/providers.json")
@@ -346,6 +346,8 @@ public static class SelfTest
             Assert(!Providers.Load(catalogDir, Providers.BundledPath).FromCache, "Incompatible schema_version cache falls back to bundled catalog");
             File.WriteAllText(cacheFile, "{\"schema_version\":1,\"updated_at\":\"2026-11-25\",\"providers\":[{\"id\":\"a\",\"name\":\"A\",\"base_url\":\"http://api.example.com\",\"default_model\":\"m1\",\"models\":[{\"id\":\"m1\"}]}]}");
             Assert(!Providers.Load(catalogDir, Providers.BundledPath).FromCache, "Non-HTTPS base_url in cache is rejected and falls back");
+            File.WriteAllText(cacheFile, "{\"schema_version\":1,\"updated_at\":\"2026-01-01\",\"providers\":[{\"id\":\"old\",\"name\":\"Old\",\"base_url\":\"https://api.example.com\",\"default_model\":\"m1\",\"models\":[{\"id\":\"m1\"}]}]}");
+            Assert(!Providers.Load(catalogDir, Providers.BundledPath).FromCache, "Older catalog cache yields to newer bundled catalog");
             File.Delete(cacheFile);
             const string remoteCatalogJson = "{\"schema_version\":1,\"updated_at\":\"2026-12-01\",\"providers\":[{\"id\":\"remote-one\",\"name\":\"Remote One\",\"base_url\":\"https://api.remote.example/v1\",\"default_model\":\"r-fast\",\"models\":[{\"id\":\"r-fast\",\"label\":\"推荐\"},{\"id\":\"r-pro\",\"label\":\"高质量\"}]}]}";
             using (var catalogSocket = new TcpListener(IPAddress.Loopback, 0))
