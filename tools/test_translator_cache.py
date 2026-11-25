@@ -32,13 +32,15 @@ def load_functions():
         "_live_translator_finish_batch", "_LiveTranslatorContentError",
         "_live_translator_accepts_end_animation", "_live_translator_uses_anthropic",
         "_live_translator_anthropic_payload", "_live_translator_anthropic_text",
-        "_live_translator_endpoint",
+        "_live_translator_endpoint", "_live_translator_sanitize_error_detail",
+        "_live_translator_is_content_block", "_live_translator_extract_api_error",
+        "_live_translator_raise_http_error", "_live_translator_openai_text",
     }
     constants = {
         "_live_translator_thinking_hosts", "_live_translator_thinking_host_suffixes",
         "_live_translator_host_pattern", "_live_translator_max_content_failures",
         "_live_translator_anthropic_host", "_live_translator_anthropic_version",
-        "_live_translator_translation_schema",
+        "_live_translator_translation_schema", "_live_translator_content_block_markers",
     }
 
     def wanted(node):
@@ -163,6 +165,19 @@ class RuntimeTests(unittest.TestCase):
         self.scope["_live_translator_request_batch"](["Hello"])
         payload = self.sent_payload()
         self.assertNotIn("thinking", payload)
+        self.assertNotIn("temperature", payload)
+        self.assertNotIn("max_tokens", payload)
+        self.assertEqual(payload["max_completion_tokens"], 2400)
+
+    def test_openai_ignores_thinking_enabled_and_omits_temperature(self):
+        self.scope["_live_translator_config"].update(
+            {"base_url": "https://api.openai.com/v1", "thinking_enabled": True}
+        )
+        self.response({"translations": ["你好"]})
+        self.scope["_live_translator_request_batch"](["Hello"])
+        payload = self.sent_payload()
+        self.assertNotIn("thinking", payload)
+        self.assertNotIn("temperature", payload)
         self.assertNotIn("max_tokens", payload)
         self.assertEqual(payload["max_completion_tokens"], 2400)
 
@@ -170,13 +185,84 @@ class RuntimeTests(unittest.TestCase):
         self.scope["_live_translator_config"]["base_url"] = "https://API.deepseek.com"
         self.response({"translations": ["你好"]})
         self.scope["_live_translator_request_batch"](["Hello"])
-        self.assertEqual(self.sent_payload()["thinking"], {"type": "disabled"})
+        payload = self.sent_payload()
+        self.assertEqual(payload["thinking"], {"type": "disabled"})
+        self.assertIn("temperature", payload)
 
     def test_provider_options_match_manager_rules(self):
         apply = self.scope["_live_translator_apply_provider_options"]
-        self.assertNotIn("thinking", apply({"max_tokens": 1}, "generativelanguage.googleapis.com", False))
-        self.assertIn("thinking", apply({"max_tokens": 1}, "ark.cn-beijing.volces.com", False))
-        self.assertEqual(apply({"max_tokens": 1}, "127.0.0.1", True)["thinking"], {"type": "enabled"})
+        self.assertNotIn("thinking", apply({"max_tokens": 1, "temperature": 0.1}, "generativelanguage.googleapis.com", False))
+        self.assertIn("thinking", apply({"max_tokens": 1, "temperature": 0.1}, "ark.cn-beijing.volces.com", False))
+        self.assertEqual(apply({"max_tokens": 1, "temperature": 0.1}, "127.0.0.1", True)["thinking"], {"type": "enabled"})
+        openai_enabled = apply({"max_tokens": 1, "temperature": 0.1}, "api.openai.com", True)
+        self.assertEqual(openai_enabled, {"max_completion_tokens": 1})
+
+    def http_error_response(self, status_code, body):
+        resp = Mock()
+        resp.status_code = status_code
+        resp.text = body
+        resp.raise_for_status.side_effect = RuntimeError("HTTP %d" % status_code)
+        self.requests.post.return_value = resp
+
+    def test_http_400_content_risk_is_content_error_and_isolates_batch(self):
+        self.scope["_live_translator_config"]["batch_size"] = 2
+        self.http_error_response(
+            400,
+            json.dumps({"error": {"message": "Content Exists Risk", "type": "invalid_request_error"}})
+        )
+        self.scope["_live_translator_enqueue"]("Normal line")
+        self.scope["_live_translator_enqueue"]("Blocked line")
+        self.run_one_batch()
+        self.assertEqual(self.scope["_live_translator_isolated"], {"Normal line", "Blocked line"})
+        self.assertEqual(self.scope["_live_translator_content_failures"]["Normal line"], 1)
+        self.assertEqual(self.scope["_live_translator_content_failures"]["Blocked line"], 1)
+        self.assertIn("内容审查", self.scope["_live_translator_state"]["last_error"])
+        self.assertIn("Content Exists Risk", self.scope["_live_translator_state"]["last_error"])
+
+    def test_http_400_parameter_error_preserves_detail_without_abandoning(self):
+        self.http_error_response(
+            400,
+            json.dumps({"error": {"message": "Unsupported value: 'temperature' does not support 0.1"}})
+        )
+        self.scope["_live_translator_enqueue"]("Hello")
+        self.run_one_batch()
+        self.assertFalse(self.scope["_live_translator_content_failures"])
+        self.assertFalse(self.scope["_live_translator_abandoned"])
+        self.assertIn("HTTP 400", self.scope["_live_translator_state"]["last_error"])
+        self.assertIn("temperature", self.scope["_live_translator_state"]["last_error"])
+
+    def test_http_error_detail_redacts_api_key(self):
+        self.http_error_response(
+            401,
+            json.dumps({"error": {"message": "Incorrect API key provided: mock-key"}})
+        )
+        self.scope["_live_translator_enqueue"]("Hello")
+        self.run_one_batch()
+        last_error = self.scope["_live_translator_state"]["last_error"]
+        self.assertIn("***", last_error)
+        self.assertNotIn("mock-key", last_error)
+
+    def test_openai_content_filter_refusal_and_blank_content_are_content_errors(self):
+        content_error = self.scope["_LiveTranslatorContentError"]
+        self.requests.post.return_value.json.return_value = {
+            "choices": [{"finish_reason": "content_filter", "message": {"content": ""}}]
+        }
+        with self.assertRaises(content_error) as ctx_filter:
+            self.scope["_live_translator_request_batch"](["Hello"])
+        self.assertIn("内容审查", str(ctx_filter.exception))
+
+        self.requests.post.return_value.json.return_value = {
+            "choices": [{"finish_reason": "stop", "message": {"content": None, "refusal": "Policy refusal"}}]
+        }
+        with self.assertRaises(content_error) as ctx_refusal:
+            self.scope["_live_translator_request_batch"](["Hello"])
+        self.assertIn("拒绝", str(ctx_refusal.exception))
+
+        self.requests.post.return_value.json.return_value = {
+            "choices": [{"finish_reason": "stop", "message": {"content": "   "}}]
+        }
+        with self.assertRaises(content_error):
+            self.scope["_live_translator_request_batch"](["Hello"])
 
     def use_claude(self):
         self.scope["_live_translator_config"].update(

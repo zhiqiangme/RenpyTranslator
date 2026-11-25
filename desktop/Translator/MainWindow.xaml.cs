@@ -461,15 +461,89 @@ public static class Api
             throw new UserError("API 地址需使用 HTTPS；本机服务可使用 HTTP。地址不能包含账号、查询参数或片段。");
         return text.TrimEnd('/');
     }
+    // 服务商内容风控常见特征词（小写比对），与游戏模组 _live_translator_content_block_markers 保持一致。
+    private static readonly string[] ContentModerationMarkers =
+    [
+        "content exists risk",
+        "content_policy_violation",
+        "content policy",
+        "content_filter",
+        "datainspectionfailed",
+        "inappropriate content",
+        "sensitive content",
+        "敏感内容",
+        "内容安全",
+        "违规内容",
+        "审核未通过"
+    ];
     /// <summary>按服务商调整请求字段，规则与游戏模组 _live_translator_apply_provider_options 保持一致。</summary>
     internal static void ApplyProviderOptions(JsonObject payload, string host, bool thinkingEnabled)
     {
         host = host.ToLowerInvariant();
-        // OpenAI 新模型拒绝已弃用的 max_tokens，所有模型都接受 max_completion_tokens。
-        if (host == "api.openai.com" && payload.Remove("max_tokens", out var maxTokens)) payload["max_completion_tokens"] = maxTokens;
+        if (host == "api.openai.com")
+        {
+            // OpenAI 推理模型（GPT-5/6、o 系列等）拒绝已弃用的 max_tokens、非默认 temperature
+            // 与扩展字段 thinking；省略 temperature 与 thinking 并改用 max_completion_tokens 可兼容全部新旧模型。
+            if (payload.Remove("max_tokens", out var maxTokens)) payload["max_completion_tokens"] = maxTokens;
+            payload.Remove("temperature");
+            return;
+        }
         // 已知服务商显式关闭思考以降低延迟；其他接口仅在用户主动开启时发送。
         if (ThinkingHosts.Contains(host) || host.EndsWith(ThinkingHostSuffix, StringComparison.Ordinal) || thinkingEnabled)
             payload["thinking"] = new JsonObject { ["type"] = thinkingEnabled ? "enabled" : "disabled" };
+    }
+    /// <summary>从服务商错误响应 JSON 中提取精简诊断并识别内容审查拦截；同步脱敏已发送的密钥。</summary>
+    internal static (string Detail, bool IsContentBlocked) ExtractErrorDetail(string rawBody, string apiKey = "")
+    {
+        if (string.IsNullOrWhiteSpace(rawBody)) return ("", false);
+        JsonObject? obj;
+        try { obj = JsonNode.Parse(rawBody) as JsonObject; }
+        catch (JsonException) { return ("", false); }
+        if (obj is null) return ("", false);
+
+        var parts = new List<string>();
+        string message = "";
+        if (obj["error"] is JsonObject errObj)
+        {
+            foreach (var key in new[] { "code", "type", "message" })
+            {
+                if (errObj[key] is JsonValue val && val.TryGetValue<string>(out var text) && !string.IsNullOrWhiteSpace(text))
+                {
+                    var trimmed = text.Trim();
+                    parts.Add(trimmed);
+                    if (key == "message") message = trimmed;
+                }
+            }
+        }
+        else if (obj["error"] is JsonValue errVal && errVal.TryGetValue<string>(out var errText) && !string.IsNullOrWhiteSpace(errText))
+        {
+            message = errText.Trim();
+            parts.Add(message);
+        }
+
+        if (message.Length == 0)
+        {
+            foreach (var key in new[] { "message", "detail" })
+            {
+                if (obj[key] is JsonValue val && val.TryGetValue<string>(out var text) && !string.IsNullOrWhiteSpace(text))
+                {
+                    message = text.Trim();
+                    parts.Add(message);
+                    break;
+                }
+            }
+        }
+
+        var combined = string.Join(" ", parts);
+        var chosen = message.Length > 0 ? message : combined;
+        var detail = System.Text.RegularExpressions.Regex.Replace(chosen, @"[\r\n\t ]+", " ").Trim();
+        var trimmedKey = apiKey.Trim();
+        if (trimmedKey.Length > 0 && detail.Contains(trimmedKey, StringComparison.Ordinal))
+            detail = detail.Replace(trimmedKey, "***", StringComparison.Ordinal);
+        if (detail.Length > 200) detail = detail[..200].TrimEnd() + "…";
+        var lowered = combined.ToLowerInvariant();
+        var blocked = ContentModerationMarkers.Any(marker => lowered.Contains(marker, StringComparison.Ordinal));
+        return (detail, blocked);
     }
     // Claude 官方地址走 Anthropic Messages API，其余地址按 OpenAI 兼容接口处理；与游戏模组规则一致。
     private const string AnthropicHost = "api.anthropic.com";
@@ -597,9 +671,25 @@ public static class Api
         if (response["stop_reason"]?.GetValue<string>() == "refusal") throw new UserError("连接成功，但 Claude 拒绝了这次测试翻译。");
         return string.Concat((response["content"] as JsonArray ?? []).Where(block => block?["type"]?.GetValue<string>() == "text").Select(block => block!["text"]!.GetValue<string>()));
     }
+    /// <summary>取出 OpenAI 兼容接口回复正文，并优先识别内容审查与模型拒答。</summary>
+    internal static string OpenAiText(JsonNode response)
+    {
+        if (response["choices"] is not JsonArray choices || choices.Count == 0 || choices[0] is not JsonObject choice)
+            throw new FormatException();
+        if (choice["finish_reason"] is JsonValue finishVal && finishVal.TryGetValue<string>(out var finishReason) && finishReason == "content_filter")
+            throw new UserError("连接成功，但服务商因内容审查拦截了这次测试翻译。");
+        if (choice["message"] is not JsonObject message) throw new FormatException();
+        if (message["refusal"] is JsonValue refusalVal && refusalVal.TryGetValue<string>(out var refusalText) && !string.IsNullOrWhiteSpace(refusalText))
+            throw new UserError("连接成功，但模型拒绝了这次测试翻译。");
+        var node = message["content"] ?? throw new FormatException();
+        var text = node is JsonArray blocks ? string.Concat(blocks.Select(x => x?["text"]?.GetValue<string>() ?? "")) : node.GetValue<string>();
+        if (string.IsNullOrWhiteSpace(text)) throw new FormatException();
+        return text;
+    }
     public static async Task Test(JsonObject config)
     {
         var secret = Core.ReadString(config, "api_key_encrypted"); if (secret.Length == 0) throw new UserError("请填写 API Key。");
+        var apiKey = Secret.Unprotect(secret);
         using var client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(Math.Clamp(config["request_timeout_seconds"]!.GetValue<int>(), 1, 300)) };
         var url = Endpoint(Core.ReadString(config, "base_url")); var host = new Uri(url).Host; bool anthropic = IsAnthropic(host);
         const string userContent = "{\"texts\":[\"Hello\"]}";
@@ -607,33 +697,37 @@ public static class Api
         JsonObject payload;
         if (anthropic)
         {
-            request.Headers.Add("x-api-key", Secret.Unprotect(secret)); request.Headers.Add("anthropic-version", AnthropicVersion);
+            request.Headers.Add("x-api-key", apiKey); request.Headers.Add("anthropic-version", AnthropicVersion);
             payload = AnthropicPayload(config, userContent);
         }
         else
         {
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", Secret.Unprotect(secret));
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
             payload = new JsonObject { ["model"] = Core.ReadString(config, "model"), ["messages"] = new JsonArray(new JsonObject { ["role"] = "system", ["content"] = Core.ReadString(config, "system_prompt") }, new JsonObject { ["role"] = "user", ["content"] = userContent }), ["temperature"] = config["temperature"]!.DeepClone(), ["max_tokens"] = config["max_output_tokens"]!.DeepClone() };
             if (Core.ReadBool(config, "json_response_format")) payload["response_format"] = new JsonObject { ["type"] = "json_object" };
             ApplyProviderOptions(payload, host, Core.ReadBool(config, "thinking_enabled"));
         }
         request.Content = new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json");
         using var response = await client.SendAsync(request);
-        if (!response.IsSuccessStatusCode) throw new UserError($"API 返回 HTTP {(int)response.StatusCode}。401/403：鉴权或权限；404：地址或模型；429：配额或限流。请核对服务商控制台。");
-        var body = JsonNode.Parse(await response.Content.ReadAsStringAsync());
-        // 拒绝属于明确结论，先于格式校验给出，不并入“响应格式无效”。
-        var content = anthropic && body is not null ? AnthropicText(body) : null;
+        if (!response.IsSuccessStatusCode)
+        {
+            var code = (int)response.StatusCode;
+            var (detail, blocked) = ExtractErrorDetail(await response.Content.ReadAsStringAsync(), apiKey);
+            var detailSuffix = detail.Length > 0 ? $"（服务商返回：{detail}）" : "";
+            if (code is 400 or 422 && blocked)
+                throw new UserError($"API 返回 HTTP {code}，触发服务商内容审查{detailSuffix}。");
+            throw new UserError($"API 返回 HTTP {code}{detailSuffix}。400：参数或内容被拒；401/403：鉴权或权限；404：地址或模型；429：配额或限流。请核对服务商控制台。");
+        }
         try
         {
-            if (content is null)
-            {
-                var node = body!["choices"]![0]!["message"]!["content"]!;
-                content = node is JsonArray blocks ? string.Concat(blocks.Select(x => x?["text"]?.GetValue<string>() ?? "")) : node.GetValue<string>();
-            }
+            var body = JsonNode.Parse(await response.Content.ReadAsStringAsync()) ?? throw new FormatException();
+            // 拒绝与内容审查属于明确结论，先于格式校验给出，不并入“响应格式无效”。
+            var content = anthropic ? AnthropicText(body) : OpenAiText(body);
             var start = content.IndexOf('{'); var end = content.LastIndexOf('}');
             var translations = JsonNode.Parse(content[start..(end + 1)])!["translations"]!.AsArray();
             if (translations.Count != 1 || string.IsNullOrWhiteSpace(translations[0]!.GetValue<string>())) throw new FormatException();
         }
+        catch (UserError) { throw; }
         catch { throw new UserError("连接成功，但响应不是模组要求的 translations JSON 数组。"); }
     }
 }

@@ -302,7 +302,7 @@ public static class SelfTest
             rejected = false; try { Updates.Extract(zip, Path.Combine(root, "extract")); } catch (IOException) { rejected = true; }
             Assert(rejected && !File.Exists(Path.Combine(root, "escape.txt")), "Reject update path traversal");
             // 使用回环地址模拟 API，验证网络协议而不调用真实模型或启动游戏。
-            void MockApi(int status, string body, bool shouldPass)
+            void MockApi(int status, string body, bool shouldPass, string expectedError = "")
             {
                 using var socket = new TcpListener(IPAddress.Loopback, 0); socket.Start(); var port = ((IPEndPoint)socket.LocalEndpoint).Port; socket.Stop();
                 using var listener = new HttpListener(); listener.Prefixes.Add($"http://127.0.0.1:{port}/"); listener.Start();
@@ -315,9 +315,10 @@ public static class SelfTest
                     var bytes = Encoding.UTF8.GetBytes(body); context.Response.StatusCode = status; context.Response.ContentType = "application/json"; context.Response.ContentLength64 = bytes.Length;
                     await context.Response.OutputStream.WriteAsync(bytes); context.Response.Close(); return valid;
                 });
-                bool passed = true;
-                try { Task.Run(() => Api.Test(sample)).GetAwaiter().GetResult(); } catch (IOException) { passed = false; }
-                Assert(server.GetAwaiter().GetResult() && passed == shouldPass, $"Mock API HTTP {status}, valid response = {shouldPass}");
+                bool passed = true; string errorMessage = "";
+                try { Task.Run(() => Api.Test(sample)).GetAwaiter().GetResult(); } catch (IOException ex) { passed = false; errorMessage = ex.Message; }
+                bool messageOk = expectedError.Length == 0 || errorMessage.Contains(expectedError, StringComparison.Ordinal);
+                Assert(server.GetAwaiter().GetResult() && passed == shouldPass && messageOk, $"Mock API HTTP {status}, valid response = {shouldPass}");
             }
             // Claude：Messages API 地址、无 temperature / thinking、effort 与结构化输出随开关变化。
             Assert(Api.Endpoint("https://api.anthropic.com/v1/") == "https://api.anthropic.com/v1/messages" && Api.Endpoint("https://api.anthropic.com/v1/messages") == "https://api.anthropic.com/v1/messages" && Api.Endpoint("https://api.deepseek.com") == "https://api.deepseek.com/chat/completions", "Claude endpoint uses Messages API while others keep chat completions");
@@ -330,15 +331,16 @@ public static class SelfTest
             Reject(() => Api.AnthropicText(JsonNode.Parse("{\"content\":[],\"stop_reason\":\"refusal\"}")!), "拒绝", "Claude refusal produces Chinese diagnostic");
             Assert(Providers.All.Any(p => p.Url == "https://api.anthropic.com/v1" && p.Model == "claude-haiku-5-5"), "Claude preset defaults to Haiku 5.5");
             // 模型清单：内置解析、三层回退、白名单、远端 ETag 304 与主备源切换，全部在隔离目录与回环服务完成。
-            Assert(File.Exists(Providers.BundledPath) && Providers.All[0].Id == "custom" && Providers.All[1].Id == "anthropic" && Providers.All[2].Id == "deepseek" && Providers.All.Count >= 12 && Providers.All.Skip(1).All(p => p.Models.Count > 0), "Bundled providers catalog loads with custom entry, alphabetical order and recommended models");
+            var catalogDir = Path.Combine(root, "catalog-cache"); Directory.CreateDirectory(catalogDir);
+            var bundledCatalog = Providers.Load(catalogDir, Providers.BundledPath);
+            var expectedBundled = Providers.Parse(File.ReadAllText(Providers.BundledPath), "内置", false);
+            Assert(File.Exists(Providers.BundledPath) && bundledCatalog.Items[0].Id == "custom" && bundledCatalog.Items[1].Id == "anthropic" && bundledCatalog.Items[2].Id == "deepseek" && bundledCatalog.Items.Count >= 12 && bundledCatalog.Items.Skip(1).All(p => p.Models.Count > 0), "Bundled providers catalog loads with custom entry, alphabetical order and recommended models");
             Assert(Providers.IsTrustedCatalogUrl("https://cdn.jsdelivr.net/gh/zhiqiangme/RenpyTranslator@master/providers.json")
                 && Providers.IsTrustedCatalogUrl("https://raw.githubusercontent.com/zhiqiangme/RenpyTranslator/master/providers.json")
                 && Providers.IsTrustedCatalogUrl("https://zhiqiangme.github.io/RenpyTranslator/providers.json")
                 && !Providers.IsTrustedCatalogUrl("https://evil.example.com/providers.json")
                 && !Providers.IsTrustedCatalogUrl("http://cdn.jsdelivr.net/gh/zhiqiangme/RenpyTranslator@master/providers.json"), "Catalog source URL allowlist enforces trusted HTTPS origins only");
-            var catalogDir = Path.Combine(root, "catalog-cache"); Directory.CreateDirectory(catalogDir);
-            var bundledCatalog = Providers.Load(catalogDir, Providers.BundledPath);
-            Assert(!bundledCatalog.FromCache && bundledCatalog.Items.Count == Providers.All.Count, "Missing cache falls back to bundled catalog");
+            Assert(!bundledCatalog.FromCache && bundledCatalog.Items.Count == expectedBundled.Items.Count, "Missing cache falls back to bundled catalog");
             var cacheFile = Path.Combine(catalogDir, "providers.cache.json");
             File.WriteAllText(cacheFile, "{broken");
             Assert(!Providers.Load(catalogDir, Providers.BundledPath).FromCache, "Corrupted catalog cache falls back to bundled catalog");
@@ -419,16 +421,34 @@ public static class SelfTest
                 Reject(() => Task.Run(() => Api.FetchModelsAsync($"http://127.0.0.1:{modelsPort}/v1", "list-key")).GetAwaiter().GetResult(), "HTTP 404", "FetchModelsAsync reports missing /models endpoint in Chinese");
                 Assert(modelsServer.GetAwaiter().GetResult(), "Mock /models server observed expected GET requests and Authorization header");
             }
-            // 服务商字段：严格接口不能收到 thinking；OpenAI 改用 max_completion_tokens。
-            JsonObject ProviderPayload(string host, bool thinking) { var payload = new JsonObject { ["max_tokens"] = 100 }; Api.ApplyProviderOptions(payload, host, thinking); return payload; }
+            // 服务商字段：严格接口不能收到 thinking；OpenAI 改用 max_completion_tokens 且省略 temperature 与 thinking。
+            JsonObject ProviderPayload(string host, bool thinking) { var payload = new JsonObject { ["max_tokens"] = 100, ["temperature"] = 0.1 }; Api.ApplyProviderOptions(payload, host, thinking); return payload; }
             var openAi = ProviderPayload("api.openai.com", false);
-            Assert(!openAi.ContainsKey("thinking") && !openAi.ContainsKey("max_tokens") && openAi["max_completion_tokens"]!.GetValue<int>() == 100, "OpenAI payload omits thinking and uses max_completion_tokens");
+            var openAiThinking = ProviderPayload("api.openai.com", true);
+            Assert(!openAi.ContainsKey("thinking") && !openAi.ContainsKey("temperature") && !openAi.ContainsKey("max_tokens") && openAi["max_completion_tokens"]!.GetValue<int>() == 100, "OpenAI payload omits thinking and temperature, uses max_completion_tokens");
+            Assert(!openAiThinking.ContainsKey("thinking") && !openAiThinking.ContainsKey("temperature") && !openAiThinking.ContainsKey("max_tokens") && openAiThinking["max_completion_tokens"]!.GetValue<int>() == 100, "OpenAI payload ignores thinking switch to avoid HTTP 400");
             Assert(!ProviderPayload("generativelanguage.googleapis.com", false).ContainsKey("thinking"), "Unknown providers omit disabled thinking flag");
-            Assert(ProviderPayload("API.DeepSeek.com", false)["thinking"]!["type"]!.GetValue<string>() == "disabled" && ProviderPayload("ark.cn-beijing.volces.com", false).ContainsKey("thinking"), "Known providers receive explicit thinking switch");
-            Assert(ProviderPayload("127.0.0.1", true)["thinking"]!["type"]!.GetValue<string>() == "enabled" && ProviderPayload("127.0.0.1", true).ContainsKey("max_tokens"), "User-enabled thinking is sent to custom endpoints");
+            var deepSeek = ProviderPayload("API.DeepSeek.com", false);
+            Assert(deepSeek["thinking"]!["type"]!.GetValue<string>() == "disabled" && deepSeek.ContainsKey("temperature") && ProviderPayload("ark.cn-beijing.volces.com", false).ContainsKey("thinking"), "Known providers receive explicit thinking switch and keep temperature");
+            Assert(ProviderPayload("127.0.0.1", true)["thinking"]!["type"]!.GetValue<string>() == "enabled" && ProviderPayload("127.0.0.1", true).ContainsKey("max_tokens") && ProviderPayload("127.0.0.1", true).ContainsKey("temperature"), "User-enabled thinking is sent to custom endpoints");
+            // 错误响应详情提取、密钥脱敏与内容审查识别。
+            var (riskDetail, riskBlocked) = Api.ExtractErrorDetail("{\"error\":{\"message\":\"Content Exists Risk\",\"type\":\"invalid_request_error\"}}");
+            Assert(riskDetail == "Content Exists Risk" && riskBlocked, "ExtractErrorDetail identifies DeepSeek Content Exists Risk");
+            var (paramDetail, paramBlocked) = Api.ExtractErrorDetail("{\"error\":{\"message\":\"Unsupported value: 'temperature'\"}}");
+            Assert(paramDetail.Contains("temperature") && !paramBlocked, "ExtractErrorDetail extracts parameter error without flagging moderation");
+            var (redactedDetail, _) = Api.ExtractErrorDetail("{\"error\":{\"message\":\"Incorrect API key provided: sk-secret-123\"}}", "sk-secret-123");
+            Assert(redactedDetail.Contains("***") && !redactedDetail.Contains("sk-secret-123"), "ExtractErrorDetail redacts echoed API key");
+            var (htmlDetail, htmlBlocked) = Api.ExtractErrorDetail("<html>502 Bad Gateway</html>");
+            Assert(htmlDetail == "" && !htmlBlocked, "ExtractErrorDetail ignores non-JSON error pages");
+            Reject(() => Api.OpenAiText(JsonNode.Parse("{\"choices\":[{\"finish_reason\":\"content_filter\",\"message\":{\"content\":\"\"}}]}")!), "内容审查", "OpenAI content_filter produces Chinese moderation diagnostic");
+            Reject(() => Api.OpenAiText(JsonNode.Parse("{\"choices\":[{\"finish_reason\":\"stop\",\"message\":{\"content\":null,\"refusal\":\"Cannot comply\"}}]}")!), "拒绝", "OpenAI refusal produces Chinese refusal diagnostic");
+            Assert(Api.OpenAiText(JsonNode.Parse("{\"choices\":[{\"finish_reason\":\"stop\",\"message\":{\"content\":[{\"type\":\"text\",\"text\":\"{\\\"translations\\\":[\\\"你好\\\"]}\"}]}}]}")!) == "{\"translations\":[\"你好\"]}", "OpenAiText concatenates content blocks");
             MockApi(200, "{\"choices\":[{\"message\":{\"content\":\"{\\\"translations\\\":[\\\"你好\\\"]}\"}}]}", true);
-            MockApi(401, "{\"error\":\"invalid key\"}", false);
-            MockApi(200, "{\"choices\":[{\"message\":{\"content\":\"{\\\"translations\\\":[]}\"}}]}", false);
+            MockApi(401, "{\"error\":\"invalid key\"}", false, "invalid key");
+            MockApi(400, "{\"error\":{\"message\":\"Content Exists Risk\"}}", false, "内容审查");
+            MockApi(400, "{\"error\":{\"message\":\"Unsupported value: temperature\"}}", false, "Unsupported value: temperature");
+            MockApi(200, "{\"choices\":[{\"finish_reason\":\"content_filter\",\"message\":{\"content\":\"\"}}]}", false, "内容审查");
+            MockApi(200, "{\"choices\":[{\"message\":{\"content\":\"{\\\"translations\\\":[]}\"}}]}", false, "translations");
             File.WriteAllLines(Path.Combine(Core.Home, "self-test.log"), log); return 0;
         }
         catch (Exception ex) { log.Add("FAIL " + ex); File.WriteAllLines(Path.Combine(Core.Home, "self-test.log"), log); return 1; }

@@ -648,8 +648,13 @@ init 999 python:
     def _live_translator_apply_provider_options(payload, host, thinking_enabled):
         # 与管理器 Api.ApplyProviderOptions 保持同一规则。
         if host == "api.openai.com":
-            # OpenAI 新模型拒绝已弃用的 max_tokens，所有模型都接受该替代字段。
-            payload["max_completion_tokens"] = payload.pop("max_tokens")
+            # OpenAI 推理模型（GPT-5/6、o 系列等）拒绝已弃用的 max_tokens、非默认
+            # temperature 与扩展字段 thinking；省略 temperature 与 thinking 并改用
+            # max_completion_tokens 可兼容全部 OpenAI 新旧模型。
+            if "max_tokens" in payload:
+                payload["max_completion_tokens"] = payload.pop("max_tokens")
+            payload.pop("temperature", None)
+            return payload
         supports_thinking = host in _live_translator_thinking_hosts or any(
             host.endswith(suffix)
             for suffix in _live_translator_thinking_host_suffixes
@@ -661,6 +666,158 @@ init 999 python:
                 "type": "enabled" if thinking_enabled else "disabled"
             }
         return payload
+
+    # 服务商内容风控常见特征词（小写比对）：用于将 HTTP 400/422 的内容拦截归类为
+    # _LiveTranslatorContentError，从而触发自动拆批隔离并避免单条敏感文本拖累整批。
+    _live_translator_content_block_markers = (
+        u"content exists risk",
+        u"content_policy_violation",
+        u"content policy",
+        u"content_filter",
+        u"datainspectionfailed",
+        u"inappropriate content",
+        u"sensitive content",
+        u"敏感内容",
+        u"内容安全",
+        u"违规内容",
+        u"审核未通过"
+    )
+
+    def _live_translator_sanitize_error_detail(text, api_key=u""):
+        cleaned = _live_translator_re_module.sub(
+            u"[\\r\\n\\t ]+", u" ", _live_translator_to_text(text)
+        ).strip()
+        if api_key:
+            key_text = _live_translator_to_text(api_key).strip()
+            if key_text and key_text in cleaned:
+                cleaned = cleaned.replace(key_text, u"***")
+        if len(cleaned) > 200:
+            cleaned = cleaned[:200].rstrip() + u"…"
+        return cleaned
+
+    def _live_translator_is_content_block(text):
+        lowered = _live_translator_to_text(text).lower()
+        for marker in _live_translator_content_block_markers:
+            if marker in lowered:
+                return True
+        return False
+
+    def _live_translator_extract_api_error(response_text, api_key=u""):
+        # 仅解析结构化 JSON 错误字段，避免把 HTML 错误页或长响应正文直接展示给用户。
+        raw = _live_translator_to_text(response_text or u"").strip()
+        if not raw:
+            return u"", False
+        try:
+            parsed = _live_translator_json_module.loads(raw)
+        except Exception:
+            return u"", False
+        if not hasattr(parsed, "get"):
+            return u"", False
+
+        parts = []
+        message = u""
+        error_field = parsed.get("error")
+        if hasattr(error_field, "get"):
+            for key in ("code", "type", "message"):
+                val = error_field.get(key)
+                if isinstance(val, (_live_translator_text_type, str)):
+                    val_text = _live_translator_to_text(val).strip()
+                    if val_text:
+                        parts.append(val_text)
+                        if key == "message":
+                            message = val_text
+        elif isinstance(error_field, (_live_translator_text_type, str)):
+            message = _live_translator_to_text(error_field).strip()
+            if message:
+                parts.append(message)
+
+        if not message:
+            for key in ("message", "detail"):
+                val = parsed.get(key)
+                if isinstance(val, (_live_translator_text_type, str)):
+                    val_text = _live_translator_to_text(val).strip()
+                    if val_text:
+                        message = val_text
+                        parts.append(val_text)
+                        break
+
+        combined = u" ".join(parts)
+        detail = _live_translator_sanitize_error_detail(
+            message or combined, api_key
+        )
+        return detail, _live_translator_is_content_block(combined)
+
+    def _live_translator_raise_http_error(response, status_code, api_key=u""):
+        response_text = u""
+        try:
+            raw_text = getattr(response, "text", u"")
+            if isinstance(raw_text, (_live_translator_text_type, str)):
+                response_text = raw_text
+        except Exception:
+            response_text = u""
+        detail, is_content_blocked = _live_translator_extract_api_error(
+            response_text, api_key
+        )
+        # 仅在 400/422 上归类为内容风控，避免把 401/403/404/429/5xx 误判为文本内容问题。
+        if status_code in (400, 422) and is_content_blocked:
+            if detail:
+                raise _LiveTranslatorContentError(
+                    u"触发服务商内容审查（HTTP %d：%s）"
+                    % (status_code, detail)
+                )
+            raise _LiveTranslatorContentError(
+                u"触发服务商内容审查（HTTP %d）" % status_code
+            )
+        if detail:
+            raise RuntimeError(u"HTTP %d：%s" % (status_code, detail))
+        response.raise_for_status()
+        raise RuntimeError(u"HTTP %d" % status_code)
+
+    def _live_translator_openai_text(response_data):
+        choices = (
+            response_data.get("choices")
+            if hasattr(response_data, "get")
+            else None
+        )
+        if not choices or not hasattr(choices, "__getitem__"):
+            raise _LiveTranslatorContentError(u"API 返回缺少 choices 结果")
+        choice = choices[0]
+        if not hasattr(choice, "get"):
+            raise _LiveTranslatorContentError(u"API 返回缺少 choices 结果")
+        # 命中内容审查或显式拒答时优先给出明确原因，按内容错误计次以便拆批隔离。
+        if choice.get("finish_reason") == "content_filter":
+            raise _LiveTranslatorContentError(
+                u"触发服务商内容审查（content_filter）"
+            )
+        message = choice.get("message")
+        if not hasattr(message, "get"):
+            raise _LiveTranslatorContentError(u"API 返回缺少 message 内容")
+        refusal = message.get("refusal")
+        if isinstance(refusal, (_live_translator_text_type, str)):
+            refusal_text = _live_translator_sanitize_error_detail(refusal)
+            if refusal_text:
+                raise _LiveTranslatorContentError(
+                    u"模型拒绝翻译这批文本：%s" % refusal_text[:80]
+                )
+        message_content = message.get("content")
+        # 兼容部分 OpenAI 兼容接口返回内容块数组的形式。
+        if (
+            not isinstance(message_content, _live_translator_text_type)
+            and hasattr(message_content, "append")
+        ):
+            content_parts = []
+            for content_block in message_content:
+                if hasattr(content_block, "get"):
+                    content_parts.append(content_block.get("text", u""))
+                else:
+                    content_parts.append(_live_translator_to_text(content_block))
+            message_content = u"".join(content_parts)
+        if message_content is None:
+            raise _LiveTranslatorContentError(u"API 返回了空内容")
+        text = _live_translator_to_text(message_content)
+        if not text.strip():
+            raise _LiveTranslatorContentError(u"API 返回了空内容")
+        return text
 
     def _live_translator_extract_json(content):
         cleaned = _live_translator_to_text(content).strip()
@@ -773,27 +930,19 @@ init 999 python:
             headers=headers,
             timeout=timeout_seconds
         )
+        status_code = getattr(response, "status_code", None)
+        if (
+            isinstance(status_code, int)
+            and not isinstance(status_code, bool)
+            and status_code >= 400
+        ):
+            _live_translator_raise_http_error(response, status_code, api_key)
         response.raise_for_status()
         response_data = response.json()
         if anthropic:
             message_content = _live_translator_anthropic_text(response_data)
         else:
-            message_content = (
-                response_data["choices"][0]["message"]["content"]
-            )
-
-        # 兼容部分 OpenAI 兼容接口返回内容块数组的形式。
-        if (
-            not isinstance(message_content, _live_translator_text_type)
-            and hasattr(message_content, "append")
-        ):
-            content_parts = []
-            for content_block in message_content:
-                if hasattr(content_block, "get"):
-                    content_parts.append(content_block.get("text", ""))
-                else:
-                    content_parts.append(_live_translator_to_text(content_block))
-            message_content = u"".join(content_parts)
+            message_content = _live_translator_openai_text(response_data)
 
         try:
             translated_data = _live_translator_extract_json(message_content)
