@@ -23,6 +23,28 @@
       ]
     },
     {
+      "id": "doubao",
+      "name": "Doubao 字节豆包",
+      "base_url": "https://ark.cn-beijing.volces.com/api/v3",
+      "default_model": "doubao-seed-2.1-lite",
+      "models": [
+        { "id": "doubao-seed-2.1-lite", "label": "推荐" },
+        { "id": "doubao-seed-2.1-turbo", "label": "高速" },
+        { "id": "doubao-seed-2.1-pro", "label": "旗舰" }
+      ]
+    },
+    {
+      "id": "zhipu",
+      "name": "GLM 智谱",
+      "base_url": "https://open.bigmodel.cn/api/paas/v4",
+      "default_model": "glm-5.3-flash",
+      "models": [
+        { "id": "glm-5.3-flash", "label": "推荐" },
+        { "id": "glm-5.3-flashx", "label": "极速" },
+        { "id": "glm-5.3", "label": "旗舰" }
+      ]
+    },
+    {
       "id": "gemini",
       "name": "Google Gemini",
       "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
@@ -34,6 +56,16 @@
       ]
     },
     {
+      "id": "hunyuan",
+      "name": "Hunyuan 腾讯混元",
+      "base_url": "https://api.hunyuan.cloud.tencent.com/v1",
+      "default_model": "hy4-flash",
+      "models": [
+        { "id": "hy4-flash", "label": "推荐" },
+        { "id": "hy4", "label": "旗舰" }
+      ]
+    },
+    {
       "id": "kimi",
       "name": "Kimi",
       "base_url": "https://api.moonshot.cn/v1",
@@ -41,6 +73,29 @@
       "models": [
         { "id": "kimi-k3.1-pro-highspeed", "label": "推荐" },
         { "id": "kimi-k3.1-pro", "label": "旗舰" }
+      ]
+    },
+    {
+      "id": "longcat",
+      "name": "LongCat 美团",
+      "base_url": "https://api.longcat.chat/openai/v1",
+      "default_model": "LongCat-Flash-Chat",
+      "models": [
+        { "id": "LongCat-Flash-Chat", "label": "推荐" },
+        { "id": "LongCat-Flash-Lite", "label": "轻量" },
+        { "id": "LongCat-Flash-Thinking", "label": "思考" },
+        { "id": "LongCat-2.5", "label": "旗舰" }
+      ]
+    },
+    {
+      "id": "mimo",
+      "name": "MiMo 小米",
+      "base_url": "https://api.xiaomimimo.com/v1",
+      "default_model": "mimo-v2.6-flash",
+      "models": [
+        { "id": "mimo-v2.6-flash", "label": "推荐" },
+        { "id": "mimo-v2.6-pro-ultraspeed", "label": "极速" },
+        { "id": "mimo-v2.6-pro", "label": "旗舰" }
       ]
     },
     {
@@ -98,18 +153,8 @@
       ]
     },
     {
-      "id": "xai",
-      "name": "xAI Grok",
-      "base_url": "https://api.x.ai/v1",
-      "default_model": "grok-4.3",
-      "models": [
-        { "id": "grok-4.3", "label": "推荐" },
-        { "id": "grok-4.7", "label": "旗舰" }
-      ]
-    },
-    {
       "id": "qwen",
-      "name": "阿里通义千问",
+      "name": "Qwen 阿里千问",
       "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
       "default_model": "qwen-flash",
       "models": [
@@ -119,7 +164,7 @@
     },
     {
       "id": "siliconflow",
-      "name": "硅基流动 SiliconFlow",
+      "name": "SiliconFlow 硅基流动",
       "base_url": "https://api.siliconflow.cn/v1",
       "default_model": "Qwen/Qwen3-8B",
       "models": [
@@ -128,7 +173,7 @@
     },
     {
       "id": "stepfun",
-      "name": "阶跃星辰 StepFun",
+      "name": "StepFun 阶跃星辰",
       "base_url": "https://api.stepfun.com/v1",
       "default_model": "step-3.7-flash",
       "models": [
@@ -137,58 +182,13 @@
       ]
     },
     {
-      "id": "longcat",
-      "name": "美团 LongCat",
-      "base_url": "https://api.longcat.chat/openai/v1",
-      "default_model": "LongCat-Flash-Chat",
+      "id": "xai",
+      "name": "xAI Grok",
+      "base_url": "https://api.x.ai/v1",
+      "default_model": "grok-4.3",
       "models": [
-        { "id": "LongCat-Flash-Chat", "label": "推荐" },
-        { "id": "LongCat-Flash-Lite", "label": "轻量" },
-        { "id": "LongCat-Flash-Thinking", "label": "思考" },
-        { "id": "LongCat-2.5", "label": "旗舰" }
-      ]
-    },
-    {
-      "id": "hunyuan",
-      "name": "腾讯混元",
-      "base_url": "https://api.hunyuan.cloud.tencent.com/v1",
-      "default_model": "hy4-flash",
-      "models": [
-        { "id": "hy4-flash", "label": "推荐" },
-        { "id": "hy4", "label": "旗舰" }
-      ]
-    },
-    {
-      "id": "mimo",
-      "name": "小米 MiMo",
-      "base_url": "https://api.xiaomimimo.com/v1",
-      "default_model": "mimo-v2.6-flash",
-      "models": [
-        { "id": "mimo-v2.6-flash", "label": "推荐" },
-        { "id": "mimo-v2.6-pro-ultraspeed", "label": "极速" },
-        { "id": "mimo-v2.6-pro", "label": "旗舰" }
-      ]
-    },
-    {
-      "id": "zhipu",
-      "name": "智谱 GLM",
-      "base_url": "https://open.bigmodel.cn/api/paas/v4",
-      "default_model": "glm-5.3-flash",
-      "models": [
-        { "id": "glm-5.3-flash", "label": "推荐" },
-        { "id": "glm-5.3-flashx", "label": "极速" },
-        { "id": "glm-5.3", "label": "旗舰" }
-      ]
-    },
-    {
-      "id": "doubao",
-      "name": "字节豆包",
-      "base_url": "https://ark.cn-beijing.volces.com/api/v3",
-      "default_model": "doubao-seed-2.1-lite",
-      "models": [
-        { "id": "doubao-seed-2.1-lite", "label": "推荐" },
-        { "id": "doubao-seed-2.1-turbo", "label": "高速" },
-        { "id": "doubao-seed-2.1-pro", "label": "旗舰" }
+        { "id": "grok-4.3", "label": "推荐" },
+        { "id": "grok-4.7", "label": "旗舰" }
       ]
     }
   ]
