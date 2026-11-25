@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Windows;
 using System.Windows.Controls;
@@ -18,15 +19,19 @@ public partial class MainWindow : Window
     private JsonObject config = Core.Defaults();
     private readonly Dictionary<string, TextBox> fields = new();
     private readonly Dictionary<string, CheckBox> flags = new();
+    private ProviderCatalog catalog = Providers.Load();
+    private bool suppressProviderChange;
+    private bool liveModelsLoaded;
     private string loadedRoot = "";
     private Release? release;
     private bool busy;
+    public bool SuppressBackgroundRefresh { get; set; }
     public MainWindow()
     {
         InitializeComponent();
         Directory.CreateDirectory(Core.Home);
         Updates.PruneUpdates(Path.Combine(Core.Home, "updates"));
-        foreach (var provider in Providers.All) Provider.Items.Add(provider.Name);
+        ApplyCatalog(catalog, preserveInputs: false);
         // 参数控件统一在 MainWindow.xaml 中声明（便于套用主题），此处只建立「配置键 → 控件」映射。
         foreach (var (key, box) in new (string Key, TextBox Box)[]
         {
@@ -44,6 +49,7 @@ public partial class MainWindow : Window
         ShowConfig();
         // 提示开关只影响成功提示；报错提示不受它控制。
         NoticeInstallSuccess.IsChecked = !Core.HintHidden(Core.InstallSuccessHint);
+        ContentRendered += async (_, _) => await AutoRefreshCatalogAsync();
         Closing += (_, e) => { if (busy) { e.Cancel = true; StatusText.Text = "请等待当前操作完成。"; } };
     }
     private string Root() => Core.Game(Games.Text);
@@ -67,10 +73,76 @@ public partial class MainWindow : Window
         Core.SetHintHidden(Core.InstallSuccessHint, NoticeInstallSuccess.IsChecked != true);
         Log(NoticeInstallSuccess.IsChecked == true ? "汉化成功提示已开启。" : "汉化成功提示已关闭；报错提示仍会弹出。");
     }
+    private void ApplyCatalog(ProviderCatalog nextCatalog, bool preserveInputs)
+    {
+        catalog = nextCatalog;
+        var currentUrl = preserveInputs ? BaseUrl.Text.Trim().TrimEnd('/') : "";
+        var currentModel = preserveInputs ? Model.Text : "";
+        suppressProviderChange = true;
+        try
+        {
+            Provider.Items.Clear();
+            foreach (var provider in catalog.Items) Provider.Items.Add(provider.Name);
+            CatalogStatus.Text = $"模型清单：{catalog.UpdatedAt}（{(catalog.FromCache ? "云端缓存" : "内置")}） · 预设仅作填写参考，实际可用地址与模型以服务商账户为准。";
+            if (preserveInputs)
+            {
+                var matched = FindProviderIndex(currentUrl);
+                Provider.SelectedIndex = matched;
+                if (!liveModelsLoaded)
+                {
+                    var options = matched >= 0 ? catalog.Items[matched].Models : [];
+                    SetModelChoices(options, currentModel);
+                }
+            }
+        }
+        finally { suppressProviderChange = false; }
+    }
+    private int FindProviderIndex(string baseUrl)
+    {
+        var normalized = baseUrl.Trim().TrimEnd('/');
+        if (normalized.Length == 0) return -1;
+        for (var i = 0; i < catalog.Items.Count; i++)
+            if (catalog.Items[i].Url.Length > 0 && catalog.Items[i].Url.Equals(normalized, StringComparison.OrdinalIgnoreCase))
+                return i;
+        return -1;
+    }
+    private void SetModelChoices(IEnumerable<ModelOption> options, string text)
+    {
+        Model.SelectedIndex = -1;
+        Model.Items.Clear();
+        foreach (var option in options) Model.Items.Add(option);
+        Model.Text = text;
+    }
+    private async Task AutoRefreshCatalogAsync()
+    {
+        if (SuppressBackgroundRefresh) return;
+        try
+        {
+            var result = await Providers.RefreshAsync(force: false);
+            if (result.Updated && result.Catalog is not null)
+            {
+                ApplyCatalog(result.Catalog, preserveInputs: true);
+                Log(result.Message);
+            }
+        }
+        catch (Exception) { } // 后台静默刷新失败不打扰用户，继续使用当前清单。
+    }
     private void ShowConfig()
     {
-        Provider.SelectedIndex = Array.FindIndex(Providers.All, p => p.Url == Core.ReadString(config, "base_url"));
-        BaseUrl.Text = Core.ReadString(config, "base_url"); Model.Text = Core.ReadString(config, "model"); ApiKey.Clear(); ClearKey.IsChecked = false;
+        var baseUrl = Core.ReadString(config, "base_url");
+        var model = Core.ReadString(config, "model");
+        liveModelsLoaded = false;
+        ModelFetchStatus.Visibility = Visibility.Collapsed;
+        suppressProviderChange = true;
+        try
+        {
+            var matched = FindProviderIndex(baseUrl);
+            Provider.SelectedIndex = matched;
+            BaseUrl.Text = baseUrl;
+            SetModelChoices(matched >= 0 ? catalog.Items[matched].Models : [], model);
+        }
+        finally { suppressProviderChange = false; }
+        ApiKey.Clear(); ClearKey.IsChecked = false;
         KeyStatus.Text = string.IsNullOrEmpty(Core.ReadString(config, "api_key_encrypted")) ? "尚未保存密钥" : "已有加密密钥；留空即可保留";
         ShowParameters(config);
     }
@@ -84,10 +156,9 @@ public partial class MainWindow : Window
     {
         if (loadedRoot != Root()) throw new UserError("请先点击读取 / 检查状态，以免将其他游戏的配置写入此目录。");
         var next = config.DeepClone().AsObject();
-        if (!Uri.TryCreate(BaseUrl.Text.Trim(), UriKind.Absolute, out var uri) || (uri.Scheme != "https" && !(uri.Scheme == "http" && uri.IsLoopback)) || uri.UserInfo.Length != 0 || uri.Query.Length != 0 || uri.Fragment.Length != 0)
-            throw new UserError("API 地址需使用 HTTPS；本机服务可使用 HTTP。地址不能包含账号、查询参数或片段。");
+        var baseUrl = Api.ValidateApiBaseUrl(BaseUrl.Text);
         if (string.IsNullOrWhiteSpace(Model.Text)) throw new UserError("请填写模型名称。");
-        next["base_url"] = BaseUrl.Text.Trim().TrimEnd('/'); next["model"] = Model.Text.Trim();
+        next["base_url"] = baseUrl; next["model"] = Model.Text.Trim();
         foreach (var (key, box) in fields)
         {
             if (key == "system_prompt") { if (string.IsNullOrWhiteSpace(box.Text)) throw new UserError("提示词不能为空。"); next[key] = box.Text; }
@@ -130,7 +201,63 @@ public partial class MainWindow : Window
         return Task.CompletedTask;
     });
     // “自定义”没有预设地址，选中时保留已填写的内容供用户修改。
-    private void ProviderChanged(object sender, SelectionChangedEventArgs e) { if (Provider.SelectedIndex < 0) return; var p = Providers.All[Provider.SelectedIndex]; if (p.Url.Length == 0) return; BaseUrl.Text = p.Url; Model.Text = p.Model; }
+    private void ProviderChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (suppressProviderChange || Provider.SelectedIndex < 0 || Provider.SelectedIndex >= catalog.Items.Count) return;
+        var p = catalog.Items[Provider.SelectedIndex];
+        liveModelsLoaded = false;
+        ModelFetchStatus.Visibility = Visibility.Collapsed;
+        if (p.Url.Length == 0) { SetModelChoices([], Model.Text); return; }
+        BaseUrl.Text = p.Url;
+        SetModelChoices(p.Models, p.Model);
+    }
+    private async void RefreshCatalog(object sender, RoutedEventArgs e) => await Run(async () =>
+    {
+        Log("正在刷新远程模型清单…");
+        var result = await Providers.RefreshAsync(force: true);
+        if (result.Catalog is not null) ApplyCatalog(result.Catalog, preserveInputs: true);
+        Log(result.Message);
+    });
+    private async void FetchModels(object sender, RoutedEventArgs e) => await Run(async () =>
+    {
+        var baseUrl = Api.ValidateApiBaseUrl(BaseUrl.Text);
+        var apiKey = ResolveApiKeyForUrl(baseUrl);
+        int timeout = int.TryParse(FieldTimeout.Text, out var parsed) ? parsed : 20;
+        Log("正在从服务商获取可用模型列表…");
+        var fetched = await Api.FetchModelsAsync(baseUrl, apiKey, timeout);
+        var matched = FindProviderIndex(baseUrl);
+        var recommended = matched >= 0
+            ? catalog.Items[matched].Models.ToDictionary(m => m.Id, m => m.Label, StringComparer.Ordinal)
+            : new Dictionary<string, string>(StringComparer.Ordinal);
+        // 命中的推荐模型优先排在列表前列，便于从长列表中快速定位常用翻译模型。
+        var options = fetched
+            .OrderByDescending(id => recommended.ContainsKey(id))
+            .ThenBy(id => id, StringComparer.OrdinalIgnoreCase)
+            .Select(id => new ModelOption(id, recommended.TryGetValue(id, out var label) ? label : ""))
+            .ToArray();
+        var currentText = Model.Text.Trim();
+        SetModelChoices(options, currentText.Length > 0 ? currentText : fetched[0]);
+        liveModelsLoaded = true;
+        ModelFetchStatus.Text = $"已从服务商获取 {fetched.Count} 个可用模型，可在下拉框中选择或继续手动输入。";
+        ModelFetchStatus.Visibility = Visibility.Visible;
+        Model.IsDropDownOpen = true;
+        Log($"已从服务商获取 {fetched.Count} 个可用模型。");
+    });
+    // 仅当新地址与已保存配置一致时才复用加密密钥，防止把旧服务商密钥误发给新填写的地址。
+    private string ResolveApiKeyForUrl(string normalizedBaseUrl)
+    {
+        var entered = ApiKey.Password.Trim();
+        if (entered.Length > 0) return entered;
+        if (ClearKey.IsChecked == true) return "";
+        var encrypted = Core.ReadString(config, "api_key_encrypted");
+        if (encrypted.Length == 0 || encrypted.Contains("请勿")) return "";
+        var savedUrl = Core.ReadString(config, "base_url").Trim().TrimEnd('/');
+        if (savedUrl.Equals(normalizedBaseUrl, StringComparison.OrdinalIgnoreCase))
+            return Secret.Unprotect(encrypted);
+        if (!new Uri(normalizedBaseUrl).IsLoopback)
+            throw new UserError("API 地址已变更，请先填写该服务商的 API Key（避免向新地址发送已保存的旧密钥）。");
+        return "";
+    }
     private async void Install(object sender, RoutedEventArgs e) => await Run(async () =>
     {
         var root = Root(); var next = Form(); bool bundled = Pack.SelectedIndex == 1;
@@ -250,16 +377,19 @@ public partial class MainWindow : Window
         Application.Current.Shutdown();
     }
 }
-public record Provider(string Name, string Url, string Model);
-public static class Providers
-{
-    public static readonly Provider[] All = [new("自定义", "", ""), new("Anthropic Claude", "https://api.anthropic.com/v1", "claude-haiku-5-5"), new("DeepSeek", "https://api.deepseek.com", "deepseek-flash"), new("智谱 GLM", "https://open.bigmodel.cn/api/paas/v4", "glm-5.3-flash"), new("OpenAI", "https://api.openai.com/v1", "gpt-5.6-luna"), new("小米 MiMo", "https://api.xiaomimimo.com/v1", "mimo-v2.5"), new("MiniMax", "https://api.minimax.chat/v1", "minimax-m3"), new("腾讯混元", "https://api.hunyuan.cloud.tencent.com/v1", "hy3"), new("Google Gemini", "https://generativelanguage.googleapis.com/v1beta/openai", "gemini-3.6-flash"), new("阿里通义千问", "https://dashscope.aliyuncs.com/compatible-mode/v1", "qwen-flash"), new("Kimi", "https://api.moonshot.cn/v1", "kimi-k2.8"), new("字节豆包", "https://ark.cn-beijing.volces.com/api/v3", "doubao-seed-2.0-lite")];
-}
 public static class Api
 {
+    private const int MaxModelsResponseBytes = 4 * 1024 * 1024;
     // 已确认接受 thinking 字段的服务商；OpenAI、Gemini 等严格接口遇到未知参数会返回 HTTP 400。
     private static readonly string[] ThinkingHosts = ["api.deepseek.com", "open.bigmodel.cn"];
     private const string ThinkingHostSuffix = ".volces.com";
+    internal static string ValidateApiBaseUrl(string rawBaseUrl)
+    {
+        var text = rawBaseUrl.Trim();
+        if (!Uri.TryCreate(text, UriKind.Absolute, out var uri) || (uri.Scheme != "https" && !(uri.Scheme == "http" && uri.IsLoopback)) || uri.UserInfo.Length != 0 || uri.Query.Length != 0 || uri.Fragment.Length != 0)
+            throw new UserError("API 地址需使用 HTTPS；本机服务可使用 HTTP。地址不能包含账号、查询参数或片段。");
+        return text.TrimEnd('/');
+    }
     /// <summary>按服务商调整请求字段，规则与游戏模组 _live_translator_apply_provider_options 保持一致。</summary>
     internal static void ApplyProviderOptions(JsonObject payload, string host, bool thinkingEnabled)
     {
@@ -279,6 +409,88 @@ public static class Api
         var url = baseUrl.TrimEnd('/');
         var suffix = IsAnthropic(new Uri(url).Host) ? "/messages" : "/chat/completions";
         return url.EndsWith(suffix, StringComparison.Ordinal) ? url : url + suffix;
+    }
+    internal static string ModelsEndpoint(string baseUrl)
+    {
+        var url = ValidateApiBaseUrl(baseUrl);
+        foreach (var suffix in new[] { "/chat/completions", "/messages" })
+            if (url.EndsWith(suffix, StringComparison.OrdinalIgnoreCase)) { url = url[..^suffix.Length]; break; }
+        return url.EndsWith("/models", StringComparison.OrdinalIgnoreCase) ? url : url + "/models";
+    }
+    internal static IReadOnlyList<string> ParseModelsResponse(string json)
+    {
+        JsonNode? root;
+        try { root = JsonNode.Parse(json); }
+        catch (JsonException ex) { throw new UserError("服务商返回的模型列表不是有效的 JSON。", ex); }
+        JsonArray? entries = root switch
+        {
+            JsonObject obj when obj["data"] is JsonArray data => data,
+            JsonObject obj when obj["models"] is JsonArray models => models,
+            JsonArray direct => direct,
+            _ => null
+        };
+        if (entries is null) throw new UserError("服务商返回的模型列表格式无法识别。");
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var ids = new List<string>();
+        foreach (var item in entries)
+        {
+            string id = "";
+            if (item is JsonValue textNode && textNode.TryGetValue<string>(out var rawId)) id = rawId.Trim();
+            else if (item is JsonObject obj)
+            {
+                if (obj["id"] is JsonValue idVal && idVal.TryGetValue<string>(out var idText)) id = idText.Trim();
+                else if (obj["name"] is JsonValue nameVal && nameVal.TryGetValue<string>(out var nameText)) id = nameText.Trim();
+            }
+            if (id.Length > 0 && seen.Add(id)) ids.Add(id);
+        }
+        if (ids.Count == 0) throw new UserError("服务商返回成功，但未找到可用模型。");
+        ids.Sort(StringComparer.OrdinalIgnoreCase);
+        return ids;
+    }
+    public static async Task<IReadOnlyList<string>> FetchModelsAsync(string baseUrl, string apiKey, int timeoutSeconds = 20, CancellationToken cancellationToken = default)
+    {
+        var url = ModelsEndpoint(baseUrl);
+        var uri = new Uri(url);
+        var anthropic = IsAnthropic(uri.Host);
+        if (string.IsNullOrWhiteSpace(apiKey) && !uri.IsLoopback)
+            throw new UserError("请先填写或保存 API Key，再获取可用模型。");
+        using var client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false })
+        {
+            Timeout = TimeSpan.FromSeconds(Math.Clamp(timeoutSeconds, 5, 60))
+        };
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("RenpyTranslator/" + Core.ManagerVersion);
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        if (anthropic)
+        {
+            request.Headers.Add("x-api-key", apiKey.Trim());
+            request.Headers.Add("anthropic-version", AnthropicVersion);
+        }
+        else if (!string.IsNullOrWhiteSpace(apiKey))
+        {
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey.Trim());
+        }
+        using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        var code = (int)response.StatusCode;
+        if (!response.IsSuccessStatusCode)
+        {
+            if (code is 401 or 403) throw new UserError($"获取模型列表失败（HTTP {code}）：鉴权失败或无权查看模型列表，请检查 API Key。");
+            if (code == 404) throw new UserError("该服务商未提供 /models 接口（HTTP 404），请直接手动填写模型名称。");
+            if (code == 429) throw new UserError("请求过于频繁或配额受限（HTTP 429），请稍后再试。");
+            if (code is >= 300 and < 400) throw new UserError($"接口返回重定向（HTTP {code}），为保护密钥已中止，请核对 API 地址。");
+            throw new UserError($"获取模型列表失败，服务商返回 HTTP {code}。");
+        }
+        if (response.Content.Headers.ContentLength is > MaxModelsResponseBytes)
+            throw new UserError("服务商返回的模型列表体积过大，无法解析。");
+        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        using var buffer = new MemoryStream();
+        var chunk = new byte[8192];
+        int read;
+        while ((read = await stream.ReadAsync(chunk, cancellationToken)) > 0)
+        {
+            if (buffer.Length + read > MaxModelsResponseBytes) throw new UserError("服务商返回的模型列表体积过大，无法解析。");
+            buffer.Write(chunk, 0, read);
+        }
+        return ParseModelsResponse(Encoding.UTF8.GetString(buffer.ToArray()));
     }
     /// <summary>Claude 请求体，规则与游戏模组 _live_translator_anthropic_payload 保持一致。</summary>
     internal static JsonObject AnthropicPayload(JsonObject config, string userContent)

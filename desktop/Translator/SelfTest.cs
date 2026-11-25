@@ -304,6 +304,94 @@ public static class SelfTest
             Assert(Api.AnthropicText(JsonNode.Parse("{\"content\":[{\"type\":\"thinking\",\"thinking\":\"\",\"signature\":\"s\"},{\"type\":\"text\",\"text\":\"{\\\"translations\\\":[\\\"你好\\\"]}\"}],\"stop_reason\":\"end_turn\"}")!) == "{\"translations\":[\"你好\"]}", "Claude response reads text blocks after thinking blocks");
             Reject(() => Api.AnthropicText(JsonNode.Parse("{\"content\":[],\"stop_reason\":\"refusal\"}")!), "拒绝", "Claude refusal produces Chinese diagnostic");
             Assert(Providers.All.Any(p => p.Url == "https://api.anthropic.com/v1" && p.Model == "claude-haiku-5-5"), "Claude preset defaults to Haiku 5.5");
+            // 模型清单：内置解析、三层回退、白名单、远端 ETag 304 与主备源切换，全部在隔离目录与回环服务完成。
+            Assert(File.Exists(Providers.BundledPath) && Providers.All[0].Id == "custom" && Providers.All.Count >= 12 && Providers.All.Skip(1).All(p => p.Models.Count > 0), "Bundled providers catalog loads with custom entry and recommended models");
+            Assert(Providers.IsTrustedCatalogUrl("https://cdn.jsdelivr.net/gh/zhiqiangme/RenpyTranslator@master/providers.json")
+                && Providers.IsTrustedCatalogUrl("https://raw.githubusercontent.com/zhiqiangme/RenpyTranslator/master/providers.json")
+                && Providers.IsTrustedCatalogUrl("https://zhiqiangme.github.io/RenpyTranslator/providers.json")
+                && !Providers.IsTrustedCatalogUrl("https://evil.example.com/providers.json")
+                && !Providers.IsTrustedCatalogUrl("http://cdn.jsdelivr.net/gh/zhiqiangme/RenpyTranslator@master/providers.json"), "Catalog source URL allowlist enforces trusted HTTPS origins only");
+            var catalogDir = Path.Combine(root, "catalog-cache"); Directory.CreateDirectory(catalogDir);
+            var bundledCatalog = Providers.Load(catalogDir, Providers.BundledPath);
+            Assert(!bundledCatalog.FromCache && bundledCatalog.Items.Count == Providers.All.Count, "Missing cache falls back to bundled catalog");
+            var cacheFile = Path.Combine(catalogDir, "providers.cache.json");
+            File.WriteAllText(cacheFile, "{broken");
+            Assert(!Providers.Load(catalogDir, Providers.BundledPath).FromCache, "Corrupted catalog cache falls back to bundled catalog");
+            File.WriteAllText(cacheFile, "{\"schema_version\":999,\"updated_at\":\"2026-11-25\",\"providers\":[{\"id\":\"a\",\"name\":\"A\",\"base_url\":\"https://api.example.com\",\"default_model\":\"m1\",\"models\":[{\"id\":\"m1\"}]}]}");
+            Assert(!Providers.Load(catalogDir, Providers.BundledPath).FromCache, "Incompatible schema_version cache falls back to bundled catalog");
+            File.WriteAllText(cacheFile, "{\"schema_version\":1,\"updated_at\":\"2026-11-25\",\"providers\":[{\"id\":\"a\",\"name\":\"A\",\"base_url\":\"http://api.example.com\",\"default_model\":\"m1\",\"models\":[{\"id\":\"m1\"}]}]}");
+            Assert(!Providers.Load(catalogDir, Providers.BundledPath).FromCache, "Non-HTTPS base_url in cache is rejected and falls back");
+            File.Delete(cacheFile);
+            const string remoteCatalogJson = "{\"schema_version\":1,\"updated_at\":\"2026-12-01\",\"providers\":[{\"id\":\"remote-one\",\"name\":\"Remote One\",\"base_url\":\"https://api.remote.example/v1\",\"default_model\":\"r-fast\",\"models\":[{\"id\":\"r-fast\",\"label\":\"推荐\"},{\"id\":\"r-pro\",\"label\":\"高质量\"}]}]}";
+            using (var catalogSocket = new TcpListener(IPAddress.Loopback, 0))
+            {
+                catalogSocket.Start(); var catalogPort = ((IPEndPoint)catalogSocket.LocalEndpoint).Port; catalogSocket.Stop();
+                using var catalogListener = new HttpListener();
+                catalogListener.Prefixes.Add($"http://127.0.0.1:{catalogPort}/"); catalogListener.Start();
+                int catalogRequests = 0; bool sawIfNoneMatch = false;
+                var catalogServer = Task.Run(async () =>
+                {
+                    for (int i = 0; i < 3; i++)
+                    {
+                        var ctx = await catalogListener.GetContextAsync().WaitAsync(TimeSpan.FromSeconds(10));
+                        catalogRequests++;
+                        if (ctx.Request.Url!.AbsolutePath == "/fail.json")
+                        {
+                            ctx.Response.StatusCode = 502; ctx.Response.Close(); continue;
+                        }
+                        if (ctx.Request.Headers["If-None-Match"] == "\"v1-etag\"")
+                        {
+                            sawIfNoneMatch = true; ctx.Response.StatusCode = 304; ctx.Response.Close(); continue;
+                        }
+                        var bytes = Encoding.UTF8.GetBytes(remoteCatalogJson);
+                        ctx.Response.StatusCode = 200; ctx.Response.ContentType = "application/json";
+                        ctx.Response.Headers["ETag"] = "\"v1-etag\""; ctx.Response.ContentLength64 = bytes.Length;
+                        await ctx.Response.OutputStream.WriteAsync(bytes); ctx.Response.Close();
+                    }
+                });
+                var testUrls = new[] { $"http://127.0.0.1:{catalogPort}/fail.json", $"http://127.0.0.1:{catalogPort}/providers.json" };
+                var refreshed = Task.Run(() => Providers.RefreshAsync(catalogDir, Providers.BundledPath, testUrls, force: true, allowUntrustedForTest: true)).GetAwaiter().GetResult();
+                Assert(refreshed.Updated && refreshed.Catalog is not null && refreshed.Catalog.UpdatedAt == "2026-12-01" && refreshed.Catalog.Items.Any(p => p.Id == "remote-one" && p.Models.Count == 2), "Catalog refresh falls back from failed primary source and writes cache");
+                var loadedFromCache = Providers.Load(catalogDir, Providers.BundledPath);
+                Assert(loadedFromCache.FromCache && loadedFromCache.UpdatedAt == "2026-12-01", "Valid catalog cache takes precedence over bundled catalog");
+                var cooldownSkipped = Task.Run(() => Providers.RefreshAsync(catalogDir, Providers.BundledPath, testUrls, force: false, allowUntrustedForTest: true)).GetAwaiter().GetResult();
+                Assert(cooldownSkipped.Skipped && !cooldownSkipped.Updated, "Auto refresh skips network request within cooldown window");
+                var notModified = Task.Run(() => Providers.RefreshAsync(catalogDir, Providers.BundledPath, [$"http://127.0.0.1:{catalogPort}/providers.json"], force: true, allowUntrustedForTest: true)).GetAwaiter().GetResult();
+                catalogServer.GetAwaiter().GetResult();
+                Assert(!notModified.Updated && sawIfNoneMatch && catalogRequests == 3, "Forced refresh sends If-None-Match and handles HTTP 304");
+            }
+            // /models 端点拼接、多格式解析与回环接口验证。
+            Assert(Api.ModelsEndpoint("https://api.openai.com/v1/") == "https://api.openai.com/v1/models"
+                && Api.ModelsEndpoint("https://api.deepseek.com/chat/completions") == "https://api.deepseek.com/models"
+                && Api.ModelsEndpoint("https://api.anthropic.com/v1/messages") == "https://api.anthropic.com/v1/models"
+                && Api.ModelsEndpoint("http://127.0.0.1:11434/v1/models") == "http://127.0.0.1:11434/v1/models", "ModelsEndpoint normalizes provider URLs and strips chat/messages suffix");
+            var openAiModels = Api.ParseModelsResponse("{\"data\":[{\"id\":\"gpt-b\"},{\"id\":\"gpt-a\"},{\"id\":\"gpt-b\"}]}");
+            Assert(openAiModels.SequenceEqual(["gpt-a", "gpt-b"]), "ParseModelsResponse deduplicates and sorts OpenAI data array");
+            var ollamaModels = Api.ParseModelsResponse("{\"models\":[{\"name\":\"qwen3:8b\"},{\"name\":\"deepseek-r1\"}]}");
+            Assert(ollamaModels.SequenceEqual(["deepseek-r1", "qwen3:8b"]), "ParseModelsResponse supports models[].name format");
+            Reject(() => Api.ParseModelsResponse("{\"data\":[]}"), "未找到可用模型", "Empty model list produces Chinese diagnostic");
+            using (var modelsSocket = new TcpListener(IPAddress.Loopback, 0))
+            {
+                modelsSocket.Start(); var modelsPort = ((IPEndPoint)modelsSocket.LocalEndpoint).Port; modelsSocket.Stop();
+                using var modelsListener = new HttpListener();
+                modelsListener.Prefixes.Add($"http://127.0.0.1:{modelsPort}/"); modelsListener.Start();
+                var modelsServer = Task.Run(async () =>
+                {
+                    var ctx1 = await modelsListener.GetContextAsync().WaitAsync(TimeSpan.FromSeconds(10));
+                    bool ok1 = ctx1.Request.HttpMethod == "GET" && ctx1.Request.Url!.AbsolutePath == "/v1/models" && ctx1.Request.Headers["Authorization"] == "Bearer list-key";
+                    var body1 = Encoding.UTF8.GetBytes("{\"data\":[{\"id\":\"model-beta\"},{\"id\":\"model-alpha\"}]}");
+                    ctx1.Response.StatusCode = 200; ctx1.Response.ContentType = "application/json"; ctx1.Response.ContentLength64 = body1.Length;
+                    await ctx1.Response.OutputStream.WriteAsync(body1); ctx1.Response.Close();
+                    var ctx2 = await modelsListener.GetContextAsync().WaitAsync(TimeSpan.FromSeconds(10));
+                    bool ok2 = ctx2.Request.Url!.AbsolutePath == "/v1/models";
+                    ctx2.Response.StatusCode = 404; ctx2.Response.Close();
+                    return ok1 && ok2;
+                });
+                var fetchedModels = Task.Run(() => Api.FetchModelsAsync($"http://127.0.0.1:{modelsPort}/v1", "list-key")).GetAwaiter().GetResult();
+                Assert(fetchedModels.SequenceEqual(["model-alpha", "model-beta"]), "FetchModelsAsync retrieves models from loopback OpenAI-compatible endpoint");
+                Reject(() => Task.Run(() => Api.FetchModelsAsync($"http://127.0.0.1:{modelsPort}/v1", "list-key")).GetAwaiter().GetResult(), "HTTP 404", "FetchModelsAsync reports missing /models endpoint in Chinese");
+                Assert(modelsServer.GetAwaiter().GetResult(), "Mock /models server observed expected GET requests and Authorization header");
+            }
             // 服务商字段：严格接口不能收到 thinking；OpenAI 改用 max_completion_tokens。
             JsonObject ProviderPayload(string host, bool thinking) { var payload = new JsonObject { ["max_tokens"] = 100 }; Api.ApplyProviderOptions(payload, host, thinking); return payload; }
             var openAi = ProviderPayload("api.openai.com", false);

@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "updated_at": "2026-11-25",
+  "providers": [
+    {
+      "id": "anthropic",
+      "name": "Anthropic Claude",
+      "base_url": "https://api.anthropic.com/v1",
+      "default_model": "claude-haiku-5-5",
+      "models": [
+        { "id": "claude-haiku-5-5", "label": "推荐" }
+      ]
+    },
+    {
+      "id": "deepseek",
+      "name": "DeepSeek",
+      "base_url": "https://api.deepseek.com",
+      "default_model": "deepseek-flash",
+      "models": [
+        { "id": "deepseek-flash", "label": "推荐" }
+      ]
+    },
+    {
+      "id": "zhipu",
+      "name": "智谱 GLM",
+      "base_url": "https://open.bigmodel.cn/api/paas/v4",
+      "default_model": "glm-5.3-flash",
+      "models": [
+        { "id": "glm-5.3-flash", "label": "推荐" }
+      ]
+    },
+    {
+      "id": "openai",
+      "name": "OpenAI",
+      "base_url": "https://api.openai.com/v1",
+      "default_model": "gpt-5.6-luna",
+      "models": [
+        { "id": "gpt-5.6-luna", "label": "推荐" }
+      ]
+    },
+    {
+      "id": "mimo",
+      "name": "小米 MiMo",
+      "base_url": "https://api.xiaomimimo.com/v1",
+      "default_model": "mimo-v2.5",
+      "models": [
+        { "id": "mimo-v2.5", "label": "推荐" }
+      ]
+    },
+    {
+      "id": "minimax",
+      "name": "MiniMax",
+      "base_url": "https://api.minimax.chat/v1",
+      "default_model": "minimax-m3",
+      "models": [
+        { "id": "minimax-m3", "label": "推荐" }
+      ]
+    },
+    {
+      "id": "hunyuan",
+      "name": "腾讯混元",
+      "base_url": "https://api.hunyuan.cloud.tencent.com/v1",
+      "default_model": "hy3",
+      "models": [
+        { "id": "hy3", "label": "推荐" }
+      ]
+    },
+    {
+      "id": "gemini",
+      "name": "Google Gemini",
+      "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
+      "default_model": "gemini-3.6-flash",
+      "models": [
+        { "id": "gemini-3.6-flash", "label": "推荐" }
+      ]
+    },
+    {
+      "id": "qwen",
+      "name": "阿里通义千问",
+      "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+      "default_model": "qwen-flash",
+      "models": [
+        { "id": "qwen-flash", "label": "推荐" }
+      ]
+    },
+    {
+      "id": "kimi",
+      "name": "Kimi",
+      "base_url": "https://api.moonshot.cn/v1",
+      "default_model": "kimi-k2.8",
+      "models": [
+        { "id": "kimi-k2.8", "label": "推荐" }
+      ]
+    },
+    {
+      "id": "doubao",
+      "name": "字节豆包",
+      "base_url": "https://ark.cn-beijing.volces.com/api/v3",
+      "default_model": "doubao-seed-2.0-lite",
+      "models": [
+        { "id": "doubao-seed-2.0-lite", "label": "推荐" }
+      ]
+    }
+  ]
+}

@@ -104,8 +104,11 @@
       <Border Style="{StaticResource Card}" Margin="0,20,0,14">
        <StackPanel>
         <TextBlock Text="服务商" Style="{StaticResource FieldLabel}"/>
-        <ComboBox x:Name="Provider" Width="420" HorizontalAlignment="Left" SelectionChanged="ProviderChanged"/>
-        <TextBlock Style="{StaticResource Hint}" Text="预设沿用旧版，仅作填写参考；实际可用地址与模型以服务商账户支持情况为准。"/>
+        <StackPanel Orientation="Horizontal">
+         <ComboBox x:Name="Provider" Width="420" SelectionChanged="ProviderChanged"/>
+         <Button x:Name="RefreshCatalogButton" Content="刷新模型清单" Click="RefreshCatalog" Margin="8,0,0,0"/>
+        </StackPanel>
+        <TextBlock x:Name="CatalogStatus" Style="{StaticResource Hint}" Text="预设仅作填写参考；实际可用地址与模型以服务商账户支持情况为准。"/>
        </StackPanel>
       </Border>
 
@@ -115,7 +118,17 @@
         <TextBlock Text="API 地址" Style="{StaticResource FieldLabel}"/>
         <TextBox x:Name="BaseUrl" Width="420" HorizontalAlignment="Left"/>
         <TextBlock Text="模型名称" Style="{StaticResource FieldLabel}" Margin="0,14,0,8"/>
-        <TextBox x:Name="Model" Width="420" HorizontalAlignment="Left"/>
+        <StackPanel Orientation="Horizontal">
+         <ComboBox x:Name="Model" IsEditable="True" IsTextSearchEnabled="False" TextSearch.TextPath="Id" Width="420">
+          <ComboBox.ItemTemplate>
+           <DataTemplate>
+            <TextBlock Text="{Binding Display}"/>
+           </DataTemplate>
+          </ComboBox.ItemTemplate>
+         </ComboBox>
+         <Button x:Name="FetchModelsButton" Content="获取可用模型" Click="FetchModels" Margin="8,0,0,0"/>
+        </StackPanel>
+        <TextBlock x:Name="ModelFetchStatus" Style="{StaticResource Hint}" Visibility="Collapsed"/>
         <TextBlock Text="API Key（留空保留已有密钥）" Style="{StaticResource FieldLabel}" Margin="0,14,0,8"/>
         <PasswordBox x:Name="ApiKey" Width="420" HorizontalAlignment="Left"/>
         <CheckBox x:Name="ClearKey" Content="清除已保存的密钥" Margin="0,14,0,0"/>

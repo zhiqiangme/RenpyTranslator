@@ -1,0 +1,27 @@
+name: Validate providers catalog
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'providers.json'
+      - 'tools/validate_providers.py'
+      - '.github/workflows/validate-providers.yml'
+  pull_request:
+    paths:
+      - 'providers.json'
+      - 'tools/validate_providers.py'
+      - '.github/workflows/validate-providers.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate providers.json
+        run: python tools/validate_providers.py providers.json

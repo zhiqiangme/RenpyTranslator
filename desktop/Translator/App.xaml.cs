@@ -26,7 +26,10 @@ public partial class App : Application
         if (e.Args.Contains("--self-test")) { Shutdown(SelfTest.Run()); return; }
         instance = new System.Threading.Mutex(true, "Local\\RenpyTranslator.Desktop", out var created);
         if (!created) { MessageBox.Show("汉化管理器已经运行，请使用已有窗口。"); Shutdown(); return; }
-        var window = new MainWindow(); MainWindow = window; window.Show();
+        var window = new MainWindow(); MainWindow = window;
+        // 截图模式不发起后台清单刷新，避免外部网络干扰界面回归截图。
+        if (e.Args.Contains("--snapshot")) window.SuppressBackgroundRefresh = true;
+        window.Show();
         // 截图模式：--snapshot [页索引]；可加 --game <目录> 先载入一个游戏，核对真实数据下的界面。
         if (e.Args.Contains("--snapshot"))
         {
